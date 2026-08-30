@@ -1,0 +1,324 @@
+{
+  "_nota": "Datos esperados del ambiente QA. Todos los items estan marcados con el prefijo 'AUTO-QA NO TOCAR - ' en la base y tienen tarifas vigentes hasta 2031/2032. Regenerar este archivo si se migra a otro ambiente.",
+  "_ambiente": "QA",
+  "_usuarioTest": {
+    "webUserId": 332,
+    "userName": "pablo1",
+    "agencyId": 1,
+    "agencia": "AMV. TRAVEL",
+    "cityId": 5000,
+    "countryId": 10,
+    "currencyId": 1,
+    "languageId": 1,
+    "hasOpportunity": true
+  },
+  "_prefijo": "AUTO-QA NO TOCAR - ",
+  "tarifario": {
+    "paquetes": {
+      "tab": "a-tours",
+      "container": "tours-container",
+      "id": 5059,
+      "nombre": "AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia (6 días / 5 noches)",
+      "noches": 5,
+      "vigenteHasta": "2031-12-31",
+      "ciudades": [
+        {
+          "id": 5000,
+          "nombre": "Buenos Aires",
+          "noches": 3
+        },
+        {
+          "id": 5010,
+          "nombre": "Ushuaia",
+          "noches": 2
+        }
+      ],
+      "serviciosIncluidos": [
+        5,
+        1223,
+        163
+      ],
+      "habitacionesPorCiudad": 4,
+      "tabKey": "tour",
+      "paramDeepLink": "tour",
+      "cityIdBusqueda": 5000,
+      "terminoBusqueda": "Paquete Buenos Aires y Ushuaia"
+    },
+    "excursiones": {
+      "tab": "a-excursions",
+      "container": "excursions-container",
+      "id": 5,
+      "nombre": "AUTO-QA NO TOCAR - Tigre y Delta",
+      "serviceTypeId": 1,
+      "ciudad": {
+        "id": 5000,
+        "nombre": "Buenos Aires",
+        "pais": "Argentina"
+      },
+      "currencyId": 8,
+      "vigenteHasta": "2031-12-31",
+      "tarifasBase": [
+        {
+          "rateTypeId": 7,
+          "paxFrom": 1,
+          "paxTo": 1,
+          "totalRate": 396110
+        },
+        {
+          "rateTypeId": 7,
+          "paxFrom": 2,
+          "paxTo": 2,
+          "totalRate": 208010
+        },
+        {
+          "rateTypeId": 7,
+          "paxFrom": 3,
+          "paxTo": 3,
+          "totalRate": 163643.7
+        },
+        {
+          "rateTypeId": 7,
+          "paxFrom": 4,
+          "paxTo": 6,
+          "totalRate": 127710
+        },
+        {
+          "rateTypeId": 7,
+          "paxFrom": 7,
+          "paxTo": 9,
+          "totalRate": 81510
+        },
+        {
+          "rateTypeId": 6,
+          "paxFrom": 1,
+          "paxTo": 1,
+          "totalRate": 47300
+        }
+      ],
+      "tabKey": "excursion",
+      "paramDeepLink": "service",
+      "cityIdBusqueda": 5000,
+      "nombreMaestro": "AUTO-QA NO TOCAR - Tigre y Delta",
+      "terminoBusqueda": "Tigre y Delta"
+    },
+    "hoteles": {
+      "tab": "a-hotels",
+      "container": "hotels-container",
+      "id": 5003,
+      "nombre": "AUTO-QA NO TOCAR - Park Hyatt Palacio Duhau",
+      "ciudad": {
+        "id": 5000,
+        "nombre": "Buenos Aires",
+        "pais": "Argentina"
+      },
+      "vigenteHasta": "2031-12-27",
+      "habitacionesConTarifa": 7,
+      "hotelSecundario": {
+        "id": 12581,
+        "nombre": "AUTO-QA NO TOCAR - Arakur Resort & Spa",
+        "ciudad": {
+          "id": 5010,
+          "nombre": "Ushuaia",
+          "pais": "Argentina"
+        },
+        "vigenteHasta": "2032-03-31",
+        "habitacionesConTarifa": 13
+      },
+      "tabKey": "hotel",
+      "paramDeepLink": "hotel",
+      "cityIdBusqueda": 5000,
+      "terminoBusqueda": "Park Hyatt"
+    },
+    "traslados": {
+      "tab": "a-transfers",
+      "container": "transfers-container",
+      "id": 1223,
+      "nombre": "AUTO-QA NO TOCAR - Aeropuerto Internacional / Hotel céntrico con servicio de guía",
+      "serviceTypeId": 2,
+      "ciudad": {
+        "id": 5000,
+        "nombre": "Buenos Aires",
+        "pais": "Argentina"
+      },
+      "currencyId": 8,
+      "vigenteHasta": "2031-12-31",
+      "tarifasBase": [
+        {
+          "rateTypeId": 7,
+          "paxFrom": 1,
+          "paxTo": 1,
+          "totalRate": 10
+        },
+        {
+          "rateTypeId": 7,
+          "paxFrom": 2,
+          "paxTo": 2,
+          "totalRate": 12
+        },
+        {
+          "rateTypeId": 7,
+          "paxFrom": 3,
+          "paxTo": 3,
+          "totalRate": 13
+        },
+        {
+          "rateTypeId": 7,
+          "paxFrom": 4,
+          "paxTo": 4,
+          "totalRate": 14
+        },
+        {
+          "rateTypeId": 7,
+          "paxFrom": 5,
+          "paxTo": 9,
+          "totalRate": 15
+        }
+      ],
+      "tabKey": "transfer",
+      "paramDeepLink": "service",
+      "cityIdBusqueda": 5000,
+      "nombreMaestro": "AUTO-QA NO TOCAR - Aeropuerto Internacional/ Hotel Céntrico con servicio de guía",
+      "terminoBusqueda": "Aeropuerto Internacional"
+    },
+    "cenaShow": {
+      "tab": "a-shows",
+      "container": "shows-container",
+      "id": 163,
+      "nombre": "AUTO-QA NO TOCAR - Café de los Angelitos",
+      "serviceTypeId": 3,
+      "ciudad": {
+        "id": 5000,
+        "nombre": "Buenos Aires",
+        "pais": "Argentina"
+      },
+      "currencyId": 1,
+      "vigenteHasta": "2031-12-31",
+      "tarifasBase": [
+        {
+          "rateTypeId": 8,
+          "paxFrom": 1,
+          "paxTo": 1,
+          "totalRate": 34.1
+        },
+        {
+          "rateTypeId": 6,
+          "paxFrom": 1,
+          "paxTo": 1,
+          "totalRate": 68.2
+        },
+        {
+          "rateTypeId": 18,
+          "paxFrom": 1,
+          "paxTo": 1,
+          "totalRate": 44
+        },
+        {
+          "rateTypeId": 19,
+          "paxFrom": 1,
+          "paxTo": 1,
+          "totalRate": 143
+        },
+        {
+          "rateTypeId": 19,
+          "paxFrom": 1,
+          "paxTo": 1,
+          "totalRate": 71.5
+        }
+      ],
+      "tabKey": "show",
+      "paramDeepLink": "service",
+      "cityIdBusqueda": 5000,
+      "nombreMaestro": "AUTO-QA NO TOCAR - Cafe de los Angelitos",
+      "terminoBusqueda": "Angelitos"
+    },
+    "cruceros": {
+      "tab": "a-cruises",
+      "container": "cruises-container",
+      "id": 14,
+      "nombre": "AUTO-QA NO TOCAR - Fiordos de Tierra del Fuego - Ventus Australis 4 noches",
+      "currencyId": 1,
+      "vigenteHasta": "2031-04-02",
+      "cabinas": [
+        {
+          "id": 47,
+          "nombre": "Cabina B",
+          "capacidad": 3
+        },
+        {
+          "id": 48,
+          "nombre": "Cabina A",
+          "capacidad": 3
+        },
+        {
+          "id": 49,
+          "nombre": "Cabina AA",
+          "capacidad": 3
+        },
+        {
+          "id": 50,
+          "nombre": "Cabina AAA",
+          "capacidad": 3
+        },
+        {
+          "id": 51,
+          "nombre": "Cabina AA Superior",
+          "capacidad": 3
+        },
+        {
+          "id": 52,
+          "nombre": "Cabina AAA Superior",
+          "capacidad": 3
+        }
+      ],
+      "salidas": 61,
+      "tabKey": "cruise",
+      "paramDeepLink": null,
+      "cityIdBusqueda": 5010,
+      "ciudadSalidaId": 5113,
+      "ciudadLlegadaId": 5010,
+      "terminoBusqueda": "Ventus Australis"
+    },
+    "ofertas": {
+      "tab": "a-opportunities",
+      "container": "opportunities-container",
+      "id": 5060,
+      "nombre": "AUTO-QA NO TOCAR - Oferta Buenos Aires y Ushuaia (6 días / 5 noches)",
+      "noches": 5,
+      "vigenteHasta": "2031-12-31",
+      "ciudades": [
+        {
+          "id": 5000,
+          "nombre": "Buenos Aires",
+          "noches": 3
+        },
+        {
+          "id": 5010,
+          "nombre": "Ushuaia",
+          "noches": 2
+        }
+      ],
+      "serviciosIncluidos": [
+        5,
+        1223,
+        163
+      ],
+      "habitacionesPorCiudad": 4,
+      "tabKey": "opportunity",
+      "paramDeepLink": null,
+      "cityIdBusqueda": 5000,
+      "terminoBusqueda": "Oferta Buenos Aires y Ushuaia",
+      "precondicion": "Requiere tener la agencia AMV. TRAVEL (ID 1) asignada en la pestania Agencias de la oportunidad. Sin agencia asignada no se lista en el tarifario."
+    }
+  },
+  "_deepLink": {
+    "ruta": "/online/defaulttariff.aspx",
+    "params": "tab, city, from, to, resident, tour, hotel, service",
+    "endpoints": {
+      "tour": "/advisorws/loadtourtariffs/",
+      "opportunity": "/advisorws/loadopportunitytariffs/",
+      "excursion|transfer|show": "/advisorws/loadservicetariffs/ (srvtype 1|2|3)",
+      "hotel": "/advisorws/loadhoteltariffs/",
+      "cruise": "/advisorws/loadcruisetariffs/"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "amv-qa-e2e",
+  "version": "1.0.0",
+  "description": "Suite E2E de AMV Travel sobre ambiente QA (Playwright + Allure)",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:bloque-a": "playwright test tests/bloque-a",
+    "test:headed": "playwright test --headed",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report",
+    "allure:serve": "allure serve allure-results   (requiere Java + CLI de Allure)",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^26.4.0",
+    "allure-playwright": "^3.0.0",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.9.3"
+  }
+}

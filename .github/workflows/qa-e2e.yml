@@ -1,0 +1,84 @@
+name: AMV Travel - Suite E2E (QA)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Que correr. Ej: tests/bloque-a | tests/bloque-a/tarifario.spec.ts | -g "Ofertas"'
+        required: false
+        default: 'tests/bloque-a'
+
+permissions:
+  contents: write
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar navegador
+        run: npx playwright install --with-deps chromium
+
+      - name: Ejecutar tests
+        env:
+          AMV_BASE_URL: https://qa.amv.travel
+          AMV_BO_URL: https://qa.bo.amv.travel
+          AMV_USER: ${{ secrets.AMV_USER }}
+          AMV_PASS: ${{ secrets.AMV_PASS }}
+          BO_USER: ${{ secrets.BO_USER }}
+          BO_PASS: ${{ secrets.BO_PASS }}
+          TARGET: ${{ github.event.inputs.target || 'tests/bloque-a' }}
+        run: npx playwright test $TARGET
+
+      - name: Subir resultados de Allure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: allure-results
+          retention-days: 7
+
+      - name: Subir reporte HTML de Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
+
+      # El CLI de Allure necesita Java; en el runner se instala en un paso.
+      - name: Configurar Java (para Allure)
+        if: always()
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Generar reporte Allure
+        if: always()
+        uses: simple-elf/allure-report-action@master
+        with:
+          allure_results: allure-results
+          allure_history: allure-history
+          keep_histories: 20
+
+      - name: Publicar en GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history
