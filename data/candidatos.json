@@ -42,7 +42,8 @@
       "tabKey": "tour",
       "paramDeepLink": "tour",
       "cityIdBusqueda": 5000,
-      "terminoBusqueda": "Paquete Buenos Aires y Ushuaia"
+      "terminoBusqueda": "Paquete Buenos Aires y Ushuaia",
+      "validarTarifas": false
     },
     "excursiones": {
       "tab": "a-excursions",
@@ -99,7 +100,8 @@
       "paramDeepLink": "service",
       "cityIdBusqueda": 5000,
       "nombreMaestro": "AUTO-QA NO TOCAR - Tigre y Delta",
-      "terminoBusqueda": "Tigre y Delta"
+      "terminoBusqueda": "Tigre y Delta",
+      "validarTarifas": false
     },
     "hoteles": {
       "tab": "a-hotels",
@@ -127,7 +129,8 @@
       "tabKey": "hotel",
       "paramDeepLink": "hotel",
       "cityIdBusqueda": 5000,
-      "terminoBusqueda": "Park Hyatt"
+      "terminoBusqueda": "Park Hyatt",
+      "validarTarifas": false
     },
     "traslados": {
       "tab": "a-transfers",
@@ -178,7 +181,8 @@
       "paramDeepLink": "service",
       "cityIdBusqueda": 5000,
       "nombreMaestro": "AUTO-QA NO TOCAR - Aeropuerto Internacional/ Hotel Céntrico con servicio de guía",
-      "terminoBusqueda": "Aeropuerto Internacional"
+      "terminoBusqueda": "Aeropuerto Internacional",
+      "validarTarifas": false
     },
     "cenaShow": {
       "tab": "a-shows",
@@ -195,33 +199,33 @@
       "vigenteHasta": "2031-12-31",
       "tarifasBase": [
         {
-          "rateTypeId": 8,
-          "paxFrom": 1,
-          "paxTo": 1,
-          "totalRate": 34.1
-        },
-        {
           "rateTypeId": 6,
-          "paxFrom": 1,
-          "paxTo": 1,
+          "tipo": "Regular",
+          "tipoMaestro": "Regular",
           "totalRate": 68.2
         },
         {
+          "rateTypeId": 8,
+          "tipo": "Menores en regular",
+          "tipoMaestro": "Menores regular",
+          "totalRate": 34.1
+        },
+        {
           "rateTypeId": 18,
-          "paxFrom": 1,
-          "paxTo": 1,
+          "tipo": "Solo Show",
+          "tipoMaestro": "Solo Show",
           "totalRate": 44
         },
         {
           "rateTypeId": 19,
-          "paxFrom": 1,
-          "paxTo": 1,
+          "tipo": "Cena Show VIP",
+          "tipoMaestro": "Cena Show VIP",
           "totalRate": 143
         },
         {
           "rateTypeId": 19,
-          "paxFrom": 1,
-          "paxTo": 1,
+          "tipo": "Cena Show VIP",
+          "tipoMaestro": "Cena Show VIP",
           "totalRate": 71.5
         }
       ],
@@ -229,7 +233,8 @@
       "paramDeepLink": "service",
       "cityIdBusqueda": 5000,
       "nombreMaestro": "AUTO-QA NO TOCAR - Cafe de los Angelitos",
-      "terminoBusqueda": "Angelitos"
+      "terminoBusqueda": "Angelitos",
+      "validarTarifas": true
     },
     "cruceros": {
       "tab": "a-cruises",
@@ -276,7 +281,8 @@
       "cityIdBusqueda": 5010,
       "ciudadSalidaId": 5113,
       "ciudadLlegadaId": 5010,
-      "terminoBusqueda": "Ventus Australis"
+      "terminoBusqueda": "Ventus Australis",
+      "validarTarifas": false
     },
     "ofertas": {
       "tab": "a-opportunities",
@@ -307,7 +313,8 @@
       "paramDeepLink": null,
       "cityIdBusqueda": 5000,
       "terminoBusqueda": "Oferta Buenos Aires y Ushuaia",
-      "precondicion": "Requiere tener la agencia AMV. TRAVEL (ID 1) asignada en la pestania Agencias de la oportunidad. Sin agencia asignada no se lista en el tarifario."
+      "precondicion": "Requiere tener la agencia AMV. TRAVEL (ID 1) asignada en la pestania Agencias de la oportunidad. Sin agencia asignada no se lista en el tarifario.",
+      "validarTarifas": false
     }
   },
   "_deepLink": {
@@ -320,5 +327,41 @@
       "hotel": "/advisorws/loadhoteltariffs/",
       "cruise": "/advisorws/loadcruisetariffs/"
     }
+  },
+  "_formulaPrecio": {
+    "descripcion": "El front muestra Math.ceil(TotalRate / markup). Fuente: AdvisorHelper.AddMarkUpDiv (price/markup) + RoundUp(x,0) = Math.Ceiling.",
+    "markupPorDefecto": 0.5,
+    "ejemplo": "68,20 / 0,50 = 136,40 -> 137"
+  },
+  "_tiposDeTarifa": {
+    "6": {
+      "maestro": "Regular",
+      "es": "Regular",
+      "en": "Shared Service",
+      "pt": "Regular",
+      "it": "Regular"
+    },
+    "8": {
+      "maestro": "Menores regular",
+      "es": "Menores en regular",
+      "en": "Children in shared service",
+      "pt": "Menores em Serviço Regular",
+      "it": "Menores em Serviço Regular"
+    },
+    "18": {
+      "maestro": "Solo Show",
+      "es": "Solo Show",
+      "en": "Show Only",
+      "pt": "Solo Show",
+      "it": "Solo Show"
+    },
+    "19": {
+      "maestro": "Cena Show VIP",
+      "es": "Cena Show VIP",
+      "en": "VIP Dinner Show",
+      "pt": "Jantar Show VIP",
+      "it": "Cena Show VIP"
+    },
+    "_fuente": "qa.dbo.RateTypeDetail (el front muestra el nombre traducido, no RateType.Name)"
   }
 }

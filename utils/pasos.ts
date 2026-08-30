@@ -65,3 +65,17 @@ export function importeANumero(texto: string): number | null {
   const valor = Number(normalizado);
   return Number.isFinite(valor) ? valor : null;
 }
+
+/**
+ * Precio tal como lo muestra el tarifario a partir del valor de la base.
+ *
+ * Fuente: AdvisorHelper.AddMarkUpDiv(price, markup) => price / markup
+ *         AdvisorHelper.RoundUp(x, 0)              => Math.Ceiling(x)
+ *
+ * Con markup 0,50: 68,20 / 0,50 = 136,40 -> 137
+ */
+export function precioMostrado(totalRate: number, markup: number): number {
+  const conMarkup = markup > 0 ? totalRate / markup : totalRate;
+  // Se redondea a 2 antes de Ceiling para evitar arrastres binarios (136.39999...).
+  return Math.ceil(Number(conMarkup.toFixed(2)));
+}

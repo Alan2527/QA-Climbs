@@ -135,6 +135,47 @@ export class TarifarioPage {
     return this.page.locator(this.buscadorOpciones).allInnerTexts();
   }
 
+
+  /**
+   * Despliega el detalle de tarifas de la card ("Ver Tarifario").
+   * El boton llama a loadServiceDetail(serviceId, containerId) y el resultado
+   * se inyecta por AJAX; por eso se espera a que aparezcan las filas.
+   */
+  async verTarifario(container: string) {
+    const boton = this.contenedor(container)
+      .locator("a[onclick*='loadServiceDetail'], a[onclick*='loadDetail'], a[onclick*='loadHotelDetail']")
+      .first();
+    await expect(boton).toBeVisible({ timeout: 30_000 });
+    await boton.click();
+    await esperarFinDeCarga(this.page);
+    await expect(this.contenedor(container).locator('table tr').first())
+      .toBeVisible({ timeout: 60_000 });
+  }
+
+  /** Filas de la tabla de tarifas desplegada: FECHAS | TIPO | PAX | PRECIO. */
+  async leerTablaTarifas(container: string): Promise<string[][]> {
+    return this.contenedor(container).locator('table tr').evaluateAll((trs) =>
+      trs
+        .map((tr) =>
+          Array.from(tr.querySelectorAll('th,td'))
+            .map((c) => (c as HTMLElement).innerText.replace(/\s+/g, ' ').trim())
+            .filter(Boolean),
+        )
+        .filter((f) => f.length),
+    );
+  }
+
+  /**
+   * Markup activo del usuario, que se muestra en el header como "M 0.50".
+   * Se lee de la pantalla y no se fija por configuracion: si alguien lo cambia,
+   * el test compara contra el valor real en vez de dar un falso positivo.
+   */
+  async markupActivo(): Promise<number | null> {
+    const texto = await this.page.locator('body').innerText();
+    const m = texto.match(/M\s*([0-9]+[.,][0-9]+)/);
+    return m ? Number(m[1].replace(',', '.')) : null;
+  }
+
   async textoDe(container: string): Promise<string> {
     return (await this.contenedor(container).innerText()).trim();
   }

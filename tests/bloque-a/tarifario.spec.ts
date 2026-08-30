@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { TarifarioPage } from '../../pages/tarifario.page';
-import { paso, adjuntarTexto } from '../../utils/pasos';
+import { paso, adjuntarTexto, precioMostrado, importeANumero } from '../../utils/pasos';
 import candidatos from '../../data/candidatos.json';
 
 const T = candidatos.tarifario;
@@ -16,6 +16,8 @@ const T = candidatos.tarifario;
  * tapa el resultado de los demas.
  */
 test.describe('Tarifario', () => {
+
+  const SALTO = String.fromCharCode(10);
 
   type Config = {
     tab: string; container: string; nombre: string; id: number;
@@ -95,8 +97,77 @@ test.describe('Tarifario', () => {
     await validarItem(page, T.traslados as Config, 'Traslados');
   });
 
-  test('Cena Show: trae tarifas y muestra el show esperado', async ({ page }) => {
-    await validarItem(page, T.cenaShow as Config, 'Cena Show');
+  test('Cena Show: trae tarifas y coinciden con las de la base', async ({ page }) => {
+    const cfg = T.cenaShow;
+    const t = await validarItem(page, cfg as Config, 'Cena Show');
+
+    await paso(page, '5. Desplegar el tarifario del item', async () => {
+      await t.verTarifario(cfg.container);
+      const filas = await t.leerTablaTarifas(cfg.container);
+      await adjuntarTexto(
+        'Tarifas que muestra la pantalla',
+        filas.map((f) => f.join(' | ')).join(SALTO),
+      );
+      expect(filas.length, 'El tarifario no mostro ninguna fila').toBeGreaterThan(1);
+    });
+
+    await paso(page, '6. Las tarifas coinciden con las de la base de datos', async () => {
+      // Se lee de la pantalla para no dar falso positivo si alguien lo cambia;
+      // si no se puede leer, se cae al valor documentado en candidatos.json.
+      const leido = await t.markupActivo();
+      const markup = leido ?? candidatos._formulaPrecio.markupPorDefecto;
+      await adjuntarTexto(
+        'Markup aplicado',
+        leido !== null ? `leido de la pantalla: ${leido}` : `no se pudo leer; se usa el documentado: ${markup}`,
+      );
+      expect(markup, 'No hay markup con el que calcular').toBeGreaterThan(0);
+
+      // Precio mostrado = Math.ceil(TotalRate / markup)  -- ver utils/pasos.ts
+      const esperados = cfg.tarifasBase.map((x) => ({
+        tipo: x.tipo,
+        base: x.totalRate,
+        esperado: precioMostrado(x.totalRate, markup),
+      }));
+
+      const filas = await t.leerTablaTarifas(cfg.container);
+
+      // Cada fila es: FECHAS | TIPO DE SERVICIO | [PAX] | PRECIO
+      // Se empareja tipo con precio y no solo el conjunto de importes: si un
+      // cambio intercambiara los precios entre tipos, el conjunto seria el mismo
+      // y el test pasaria igual.
+      const enPantalla = filas.slice(1).map((f) => ({
+        tipo: (f[1] ?? '').trim(),
+        precio: importeANumero((f[f.length - 1] ?? '').replace(/[^0-9.,]/g, '')),
+      }));
+
+      await adjuntarTexto(
+        'Comparacion base vs pantalla',
+        `markup: ${markup}` + SALTO + SALTO +
+          esperados
+            .map((e) => `${e.tipo.padEnd(20)} base ${e.base}  ->  esperado ${e.esperado}`)
+            .join(SALTO) +
+          SALTO + SALTO + 'en pantalla:' + SALTO +
+          enPantalla.map((x) => `${x.tipo.padEnd(20)} ${x.precio}`).join(SALTO),
+      );
+
+      // Cada tarifa de la base tiene que estar en pantalla con SU tipo y su precio.
+      for (const e of esperados) {
+        const coincide = enPantalla.some(
+          (x) => x.tipo.toLowerCase() === e.tipo.toLowerCase() && x.precio === e.esperado,
+        );
+        expect(
+          coincide,
+          `No hay fila "${e.tipo}" con precio ${e.esperado} (base ${e.base}). ` +
+            `Pantalla: ${enPantalla.map((x) => `${x.tipo}=${x.precio}`).join(', ')}`,
+        ).toBe(true);
+      }
+
+      // Y la pantalla no debe mostrar tarifas que la base no tenga.
+      expect(
+        enPantalla.length,
+        'La pantalla muestra mas tarifas que las cargadas en la base',
+      ).toBe(esperados.length);
+    });
   });
 
   // Las cabinas no figuran en la card del listado: se ven al abrir el detalle
