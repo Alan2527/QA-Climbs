@@ -188,6 +188,58 @@ export class TarifarioPage {
     return m ? Number(m[1].replace(',', '.')) : null;
   }
 
+
+  // --- Ficha de detalle (popup "Ver Detalle") ---
+  // openServiceSheet(link, containerId) trae la ficha de /advisorws/loadservicesheet/
+  // y la inyecta en .svc-sheet-body. Las solapas son condicionales: si el dato no
+  // esta cargado, la solapa no se renderiza (ver ServiceSheetControl.RenderSheet).
+  readonly fichaSolapas = '.svc-tab';
+  readonly fichaPanel   = '.svc-panel';
+
+  /** Abre el popup "Ver Detalle" del item y espera a que cargue la ficha. */
+  async abrirFichaDetalle(container: string) {
+    const boton = this.contenedor(container)
+      .locator("a[onclick*='openServiceSheet']").first();
+    await expect(boton).toBeVisible({ timeout: 30_000 });
+    await boton.click();
+    await expect(this.page.locator('.svc-sheet')).toBeVisible({ timeout: 60_000 });
+    await esperarFinDeCarga(this.page);
+  }
+
+  /** Claves de las solapas presentes en la ficha (description, technical, ...). */
+  async solapasDeLaFicha(): Promise<string[]> {
+    return this.page.locator(this.fichaSolapas).evaluateAll((els) =>
+      els.map((e) => e.getAttribute('data-tab') ?? '').filter(Boolean),
+    );
+  }
+
+  /** Abre una solapa de la ficha y devuelve su texto. */
+  async contenidoDeSolapa(clave: string): Promise<string> {
+    const solapa = this.page.locator(`${this.fichaSolapas}[data-tab="${clave}"]`);
+    if (await solapa.count()) await solapa.click();
+    const panel = this.page.locator(`${this.fichaPanel}[data-tab="${clave}"]`);
+    return (await panel.innerText()).replace(/\s+/g, ' ').trim();
+  }
+
+  /** Listas de "Incluye" y "No incluye" de la solapa de amenities. */
+  async amenitiesDeLaFicha(): Promise<{ incluye: string[]; noIncluye: string[] }> {
+    await this.contenidoDeSolapa('amenities');
+    const leer = async (clase: string) =>
+      this.page.locator(`.${clase} li`).evaluateAll((els) =>
+        els.map((e) => (e as HTMLElement).innerText.split(String.fromCharCode(10))[0].trim()).filter(Boolean),
+      );
+    return {
+      incluye: await leer('svc-amenity-included'),
+      noIncluye: await leer('svc-amenity-excluded'),
+    };
+  }
+
+  /** Cierra el popup de la ficha. */
+  async cerrarFichaDetalle() {
+    await this.page.keyboard.press('Escape');
+    await this.page.locator('.svc-sheet').waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => {});
+  }
+
   async textoDe(container: string): Promise<string> {
     return (await this.contenedor(container).innerText()).trim();
   }

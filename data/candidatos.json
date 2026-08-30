@@ -101,7 +101,31 @@
       "cityIdBusqueda": 5000,
       "nombreMaestro": "AUTO-QA NO TOCAR - Tigre y Delta",
       "terminoBusqueda": "Tigre y Delta",
-      "validarTarifas": false
+      "validarTarifas": false,
+      "fichaDetalle": {
+        "solapas": [
+          "description",
+          "technical",
+          "amenities",
+          "policies"
+        ],
+        "idiomas": [
+          "Español",
+          "English",
+          "Portuguese"
+        ],
+        "incluye": [
+          "Guía de Turismo",
+          "Navegación",
+          "Traslados"
+        ],
+        "noIncluye": [
+          "Almuerzo",
+          "Bebidas",
+          "Drop off en hotel",
+          "Otro servicio no especificado"
+        ]
+      }
     },
     "hoteles": {
       "tab": "a-hotels",
@@ -182,7 +206,28 @@
       "cityIdBusqueda": 5000,
       "nombreMaestro": "AUTO-QA NO TOCAR - Aeropuerto Internacional/ Hotel Céntrico con servicio de guía",
       "terminoBusqueda": "Aeropuerto Internacional",
-      "validarTarifas": false
+      "validarTarifas": false,
+      "fichaDetalle": {
+        "solapas": [
+          "description",
+          "technical",
+          "amenities",
+          "policies"
+        ],
+        "idiomas": [
+          "Español",
+          "English",
+          "Portuguese"
+        ],
+        "incluye": [
+          "Drop off en hotel",
+          "Guía de Turismo",
+          "Traslados"
+        ],
+        "noIncluye": [
+          "Botella de agua"
+        ]
+      }
     },
     "cenaShow": {
       "tab": "a-shows",
@@ -234,7 +279,30 @@
       "cityIdBusqueda": 5000,
       "nombreMaestro": "AUTO-QA NO TOCAR - Cafe de los Angelitos",
       "terminoBusqueda": "Angelitos",
-      "validarTarifas": true
+      "validarTarifas": true,
+      "fichaDetalle": {
+        "solapas": [
+          "description",
+          "technical",
+          "amenities",
+          "policies"
+        ],
+        "idiomas": [
+          "Español",
+          "English",
+          "Portuguese"
+        ],
+        "incluye": [
+          "Bebidas",
+          "Cena",
+          "Pick Up y Drop Off en hotel",
+          "Traslados"
+        ],
+        "noIncluye": [
+          "Guía de Turismo",
+          "Tasas y/o impuestos"
+        ]
+      }
     },
     "cruceros": {
       "tab": "a-cruises",
@@ -363,5 +431,9 @@
       "it": "Cena Show VIP"
     },
     "_fuente": "qa.dbo.RateTypeDetail (el front muestra el nombre traducido, no RateType.Name)"
+  },
+  "_fichaDetalle": {
+    "_fuente": "ServiceToServiceAmenity (Included/NotIncluded) + ServiceAmenity.Name, ServiceLanguage, ServiceInfo.CancellationPolicy",
+    "_nota": "Las solapas son condicionales: si el dato no esta cargado, la solapa no aparece. El tarifario muestra tambien amenities con Published=0."
   }
 }

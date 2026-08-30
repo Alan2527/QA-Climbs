@@ -41,6 +41,56 @@ test.describe('Tarifario', () => {
     await new TarifarioPage(page).irDesdeElMenu();
   });
 
+
+  /** Normaliza para comparar: el front cambia mayusculas ("Pick Up" -> "Pick up"). */
+  const norm = (x: string) => x.trim().toLowerCase();
+
+  /**
+   * Valida el popup "Ver Detalle" contra lo que hay en la base.
+   * Las solapas son condicionales: si el dato no esta cargado, no se renderiza.
+   */
+  async function validarFichaDetalle(page: Page, t: TarifarioPage, cfg: any, desde: number) {
+    const ficha = cfg.fichaDetalle;
+
+    await paso(page, `${desde}. Abrir el popup Ver Detalle`, async () => {
+      await t.abrirFichaDetalle(cfg.container);
+      const solapas = await t.solapasDeLaFicha();
+      await adjuntarTexto('Solapas de la ficha', solapas.join(', '));
+      for (const esperada of ficha.solapas) {
+        expect(solapas, `Falta la solapa "${esperada}" en la ficha`).toContain(esperada);
+      }
+    });
+
+    await paso(page, `${desde + 1}. Incluye / No incluye coincide con la base`, async () => {
+      const { incluye, noIncluye } = await t.amenitiesDeLaFicha();
+      await adjuntarTexto(
+        'Amenities: base vs pantalla',
+        'INCLUYE esperado: ' + ficha.incluye.join(', ') + SALTO +
+        'INCLUYE pantalla: ' + incluye.join(', ') + SALTO + SALTO +
+        'NO INCLUYE esperado: ' + ficha.noIncluye.join(', ') + SALTO +
+        'NO INCLUYE pantalla: ' + noIncluye.join(', '),
+      );
+
+      for (const a of ficha.incluye) {
+        expect(incluye.map(norm), `Falta "${a}" en INCLUYE`).toContain(norm(a));
+      }
+      for (const a of ficha.noIncluye) {
+        expect(noIncluye.map(norm), `Falta "${a}" en NO INCLUYE`).toContain(norm(a));
+      }
+      expect(incluye.length, 'INCLUYE muestra items que la base no tiene').toBe(ficha.incluye.length);
+      expect(noIncluye.length, 'NO INCLUYE muestra items que la base no tiene').toBe(ficha.noIncluye.length);
+    });
+
+    await paso(page, `${desde + 2}. La ficha tecnica muestra los idiomas de la base`, async () => {
+      const tecnica = await t.contenidoDeSolapa('technical');
+      await adjuntarTexto('Ficha tecnica en pantalla', tecnica);
+      for (const idioma of ficha.idiomas) {
+        expect(norm(tecnica), `Falta el idioma "${idioma}" en la ficha tecnica`).toContain(norm(idioma));
+      }
+      await t.cerrarFichaDetalle();
+    });
+  }
+
   async function validarItem(page: Page, cfg: Config, titulo: string) {
     const tarifario = new TarifarioPage(page);
     const ciudad = CIUDAD[cfg.tab] ?? 'Buenos Aires';
@@ -99,7 +149,8 @@ test.describe('Tarifario', () => {
   });
 
   test('Excursiones: trae tarifas y muestra la excursion esperada', async ({ page }) => {
-    await validarItem(page, T.excursiones as Config, 'Excursiones');
+    const t = await validarItem(page, T.excursiones as Config, 'Excursiones');
+    await validarFichaDetalle(page, t, T.excursiones, 6);
   });
 
   test('Hoteles: trae tarifas y muestra el hotel esperado', async ({ page }) => {
@@ -107,7 +158,8 @@ test.describe('Tarifario', () => {
   });
 
   test('Traslados: trae tarifas y muestra el traslado esperado', async ({ page }) => {
-    await validarItem(page, T.traslados as Config, 'Traslados');
+    const t = await validarItem(page, T.traslados as Config, 'Traslados');
+    await validarFichaDetalle(page, t, T.traslados, 6);
   });
 
   test('Cena Show: trae tarifas y coinciden con las de la base', async ({ page }) => {
@@ -171,6 +223,8 @@ test.describe('Tarifario', () => {
         'La pantalla muestra mas tarifas que las cargadas en la base',
       ).toBe(esperados.length);
     });
+
+    await validarFichaDetalle(page, t, cfg, 7);
   });
 
   // Las cabinas no figuran en la card del listado: se ven al abrir el detalle
