@@ -142,14 +142,26 @@ export class TarifarioPage {
    * se inyecta por AJAX; por eso se espera a que aparezcan las filas.
    */
   async verTarifario(container: string) {
-    const boton = this.contenedor(container)
-      .locator("a[onclick*='loadServiceDetail'], a[onclick*='loadDetail'], a[onclick*='loadHotelDetail']")
-      .first();
-    await expect(boton).toBeVisible({ timeout: 30_000 });
-    await boton.click();
-    await esperarFinDeCarga(this.page);
-    await expect(this.contenedor(container).locator('table tr').first())
-      .toBeVisible({ timeout: 60_000 });
+    // Cruceros no tiene boton: la tabla de cabinas ya viene desplegada en la card.
+    const boton = this.contenedor(container).locator("a[onclick*='load']").first();
+    if (await boton.count()) {
+      await boton.click();
+      await esperarFinDeCarga(this.page);
+    }
+    // Se espera por cantidad de filas y no por visibilidad: en las tablas con
+    // SGL/DBL/TPL la primera fila es un encabezado de altura cero y toBeVisible falla.
+    await expect
+      .poll(async () => this.contenedor(container).locator('table tr').count(),
+            { timeout: 60_000 })
+      .toBeGreaterThan(0);
+  }
+
+  /** Importes que muestra la tabla de tarifas desplegada. */
+  async preciosDelTarifario(container: string): Promise<string[]> {
+    const filas = await this.leerTablaTarifas(container);
+    return filas
+      .flat()
+      .filter((c) => /(USD|ARS|\$)\s*[0-9]/.test(c));
   }
 
   /** Filas de la tabla de tarifas desplegada: FECHAS | TIPO | PAX | PRECIO. */

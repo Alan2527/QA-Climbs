@@ -72,12 +72,25 @@ test.describe('Tarifario', () => {
         .toContain(cfg.nombre);
     });
 
+    await paso(page, '5. Desplegar el tarifario del item', async () => {
+      await tarifario.verTarifario(cfg.container);
+      const filas = await tarifario.leerTablaTarifas(cfg.container);
+      await adjuntarTexto(
+        'Tarifas que muestra la pantalla',
+        filas.map((f) => f.join(' | ')).join(SALTO),
+      );
+      expect(filas.length, 'El tarifario no mostro ninguna fila').toBeGreaterThan(1);
+
+      const precios = await tarifario.preciosDelTarifario(cfg.container);
+      expect(precios.length, 'El tarifario no muestra ningun importe').toBeGreaterThan(0);
+    });
+
     return tarifario;
   }
 
   test('Paquetes: trae tarifas y muestra el paquete esperado', async ({ page }) => {
     const t = await validarItem(page, T.paquetes as Config, 'Paquetes');
-    await paso(page, '5. El paquete muestra sus dos ciudades', async () => {
+    await paso(page, '6. El paquete muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.paquetes.container);
       for (const c of T.paquetes.ciudades) {
         expect(texto, `Falta la ciudad ${c.nombre}`).toContain(c.nombre);
@@ -100,16 +113,6 @@ test.describe('Tarifario', () => {
   test('Cena Show: trae tarifas y coinciden con las de la base', async ({ page }) => {
     const cfg = T.cenaShow;
     const t = await validarItem(page, cfg as Config, 'Cena Show');
-
-    await paso(page, '5. Desplegar el tarifario del item', async () => {
-      await t.verTarifario(cfg.container);
-      const filas = await t.leerTablaTarifas(cfg.container);
-      await adjuntarTexto(
-        'Tarifas que muestra la pantalla',
-        filas.map((f) => f.join(' | ')).join(SALTO),
-      );
-      expect(filas.length, 'El tarifario no mostro ninguna fila').toBeGreaterThan(1);
-    });
 
     await paso(page, '6. Las tarifas coinciden con las de la base de datos', async () => {
       // Se lee de la pantalla para no dar falso positivo si alguien lo cambia;
@@ -178,7 +181,7 @@ test.describe('Tarifario', () => {
 
   test('Ofertas: trae tarifas y muestra la oferta esperada', async ({ page }) => {
     const t = await validarItem(page, T.ofertas as Config, 'Ofertas');
-    await paso(page, '5. La oferta muestra sus dos ciudades', async () => {
+    await paso(page, '6. La oferta muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.ofertas.container);
       for (const c of T.ofertas.ciudades) {
         expect(texto, `Falta la ciudad ${c.nombre}`).toContain(c.nombre);
