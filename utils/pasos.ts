@@ -4,16 +4,27 @@ import { test, Page, TestInfo } from '@playwright/test';
  * Envuelve un bloque logico como paso de Allure y adjunta una captura al terminarlo.
  * Equivale al `with allure.step(...)` + screenshot de la suite de Selenium.
  */
-export async function paso(page: Page, titulo: string, fn: () => Promise<void>) {
+export async function paso(
+  page: Page,
+  titulo: string,
+  fn: () => Promise<void>,
+  opciones: { paginaCompleta?: boolean } = {},
+) {
   await test.step(titulo, async () => {
     await fn();
-    await adjuntarCaptura(page, titulo);
+    await adjuntarCaptura(page, titulo, opciones.paginaCompleta ?? true);
   });
 }
 
-/** Adjunta una captura de pantalla al reporte con el nombre indicado. */
-export async function adjuntarCaptura(page: Page, nombre: string) {
-  const imagen = await page.screenshot({ fullPage: false });
+/**
+ * Adjunta una captura al reporte.
+ *
+ * Por defecto toma la pagina completa (todo el scroll), no solo lo visible:
+ * en el tarifario la tabla de tarifas queda debajo del pliegue y con la captura
+ * del viewport no se veia.
+ */
+export async function adjuntarCaptura(page: Page, nombre: string, paginaCompleta = true) {
+  const imagen = await page.screenshot({ fullPage: paginaCompleta });
   await test.info().attach(nombre, { body: imagen, contentType: 'image/png' });
 }
 
