@@ -1,0 +1,2212 @@
+{
+  "_nota": "Linea base de los importes tal como los muestra el tarifario. Capturada con tests/bloque-a/_capturar-lineabase.spec.ts. Si un cambio del sistema altera un importe, el recargo por idioma o la marca TARIFA EXTENDIDA, la comparacion falla.",
+  "_capturada": "2026-08-31",
+  "_ambiente": "QA",
+  "items": {
+    "cenaShow": {
+      "item": "AUTO-QA NO TOCAR - Café de los Angelitos",
+      "id": 163,
+      "porIdioma": {
+        "Español": [
+          [
+            "FECHAS",
+            "TIPO DE SERVICIO",
+            "PAX",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 Recargo por idioma.",
+            "Regular",
+            "USD 137 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
+            "Menores en regular",
+            "USD 69 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
+            "Solo Show",
+            "1",
+            "USD 88 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
+            "Cena Show VIP",
+            "1",
+            "USD 286 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
+            "Cena Show VIP",
+            "1",
+            "USD 143 TARIFA EXTENDIDA"
+          ]
+        ],
+        "Inglés": [
+          [
+            "FECHAS",
+            "TIPO DE SERVICIO",
+            "PAX",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 Recargo por idioma.",
+            "Regular",
+            "USD 152 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
+            "Menores en regular",
+            "USD 69 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
+            "Solo Show",
+            "1",
+            "USD 88 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
+            "Cena Show VIP",
+            "1",
+            "USD 286 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
+            "Cena Show VIP",
+            "1",
+            "USD 143 TARIFA EXTENDIDA"
+          ]
+        ],
+        "Portugués": [
+          [
+            "FECHAS",
+            "TIPO DE SERVICIO",
+            "PAX",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 Recargo por idioma.",
+            "Regular",
+            "USD 137 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
+            "Menores en regular",
+            "USD 69 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
+            "Solo Show",
+            "1",
+            "USD 88 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
+            "Cena Show VIP",
+            "1",
+            "USD 286 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
+            "Cena Show VIP",
+            "1",
+            "USD 143 TARIFA EXTENDIDA"
+          ]
+        ]
+      },
+      "tarifaExtendida": 5,
+      "solapasIdioma": 3
+    },
+    "cruceros": {
+      "item": "AUTO-QA NO TOCAR - Fiordos de Tierra del Fuego - Ventus Australis 4 noches",
+      "id": 14,
+      "porIdioma": {
+        "sin-solapas": [
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 5,479 USD 290",
+            "USD 3,653 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 5,952 USD 290",
+            "USD 3,968 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 7,617 USD 290",
+            "USD 5,078 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 6,424 USD 290",
+            "USD 4,283 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 8,112 USD 290",
+            "USD 5,408 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 4,399 USD 290",
+            "USD 2,933 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 7,686 USD 290",
+            "USD 5,124 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 8,384 USD 290",
+            "USD 5,589 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 10,139 USD 290",
+            "USD 6,759 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 9,081 USD 290",
+            "USD 6,054 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 10,814 USD 290",
+            "USD 7,209 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 6,899 USD 290",
+            "USD 4,599 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 10,636 USD 290",
+            "USD 7,091 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 11,334 USD 290",
+            "USD 7,556 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 14,776 USD 290",
+            "USD 9,851 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 12,256 USD 290",
+            "USD 8,171 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 15,991 USD 290",
+            "USD 10,661 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 8,994 USD 290",
+            "USD 5,996 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 10,636 USD 290",
+            "USD 7,091 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 11,334 USD 290",
+            "USD 7,556 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 14,776 USD 290",
+            "USD 9,851 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 12,256 USD 290",
+            "USD 8,171 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 15,991 USD 290",
+            "USD 10,661 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 8,994 USD 290",
+            "USD 5,996 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 10,636 USD 290",
+            "USD 7,091 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 11,334 USD 290",
+            "USD 7,556 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 14,776 USD 290",
+            "USD 9,851 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 12,256 USD 290",
+            "USD 8,171 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 15,991 USD 290",
+            "USD 10,661 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 8,994 USD 290",
+            "USD 5,996 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 10,636 USD 290",
+            "USD 7,091 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 11,334 USD 290",
+            "USD 7,556 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 14,776 USD 290",
+            "USD 9,851 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 12,256 USD 290",
+            "USD 8,171 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 15,991 USD 290",
+            "USD 10,661 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 8,994 USD 290",
+            "USD 5,996 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 10,636 USD 290",
+            "USD 7,091 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 11,334 USD 290",
+            "USD 7,556 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 14,776 USD 290",
+            "USD 9,851 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 12,256 USD 290",
+            "USD 8,171 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 15,991 USD 290",
+            "USD 10,661 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 8,994 USD 290",
+            "USD 5,996 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 7,686 USD 290",
+            "USD 5,124 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 8,384 USD 290",
+            "USD 5,589 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 10,139 USD 290",
+            "USD 6,759 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 9,081 USD 290",
+            "USD 6,054 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 10,814 USD 290",
+            "USD 7,209 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 6,899 USD 290",
+            "USD 4,599 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 5,479 USD 290",
+            "USD 3,653 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 5,952 USD 290",
+            "USD 3,968 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 7,617 USD 290",
+            "USD 5,078 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 6,424 USD 290",
+            "USD 4,283 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 8,112 USD 290",
+            "USD 5,408 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 4,399 USD 290",
+            "USD 2,933 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 5,479 USD 290",
+            "USD 3,653 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 5,952 USD 290",
+            "USD 3,968 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 7,617 USD 290",
+            "USD 5,078 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 6,424 USD 290",
+            "USD 4,283 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 8,112 USD 290",
+            "USD 5,408 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 4,399 USD 290",
+            "USD 2,933 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 7,686 USD 290",
+            "USD 5,124 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 8,384 USD 290",
+            "USD 5,589 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 10,139 USD 290",
+            "USD 6,759 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 9,081 USD 290",
+            "USD 6,054 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 10,814 USD 290",
+            "USD 7,209 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 6,899 USD 290",
+            "USD 4,599 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 10,636 USD 290",
+            "USD 7,091 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 11,334 USD 290",
+            "USD 7,556 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 14,776 USD 290",
+            "USD 9,851 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 12,256 USD 290",
+            "USD 8,171 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 15,991 USD 290",
+            "USD 10,661 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 8,994 USD 290",
+            "USD 5,996 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 10,636 USD 290",
+            "USD 7,091 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 11,334 USD 290",
+            "USD 7,556 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 14,776 USD 290",
+            "USD 9,851 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 12,256 USD 290",
+            "USD 8,171 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 15,991 USD 290",
+            "USD 10,661 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 8,994 USD 290",
+            "USD 5,996 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 10,636 USD 290",
+            "USD 7,091 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 11,334 USD 290",
+            "USD 7,556 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 14,776 USD 290",
+            "USD 9,851 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 12,256 USD 290",
+            "USD 8,171 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 15,991 USD 290",
+            "USD 10,661 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 8,994 USD 290",
+            "USD 5,996 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 10,636 USD 290",
+            "USD 7,091 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 11,334 USD 290",
+            "USD 7,556 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 14,776 USD 290",
+            "USD 9,851 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 12,256 USD 290",
+            "USD 8,171 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 15,991 USD 290",
+            "USD 10,661 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 8,994 USD 290",
+            "USD 5,996 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 10,636 USD 290",
+            "USD 7,091 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 11,334 USD 290",
+            "USD 7,556 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 14,776 USD 290",
+            "USD 9,851 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 12,256 USD 290",
+            "USD 8,171 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 15,991 USD 290",
+            "USD 10,661 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 8,994 USD 290",
+            "USD 5,996 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "CABINA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL",
+            "MENORES"
+          ],
+          [
+            "Cabina A Impuesto(s)",
+            "USD 5,479 USD 290",
+            "USD 3,653 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Impuesto(s)",
+            "USD 5,952 USD 290",
+            "USD 3,968 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AA Superior Impuesto(s)",
+            "USD 7,617 USD 290",
+            "USD 5,078 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Impuesto(s)",
+            "USD 6,424 USD 290",
+            "USD 4,283 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina AAA Superior Impuesto(s)",
+            "USD 8,112 USD 290",
+            "USD 5,408 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ],
+          [
+            "Cabina B Impuesto(s)",
+            "USD 4,399 USD 290",
+            "USD 2,933 USD 290",
+            "USD - USD -",
+            "USD - USD -"
+          ]
+        ]
+      },
+      "tarifaExtendida": 0,
+      "solapasIdioma": 0
+    },
+    "excursiones": {
+      "item": "AUTO-QA NO TOCAR - Tigre y Delta",
+      "id": 5,
+      "porIdioma": {
+        "Español": [
+          [
+            "FECHAS",
+            "TIPO DE SERVICIO",
+            "PAX",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031 Recargo por idioma 10%",
+            "Regular",
+            "Mínimo 2 pasajeros",
+            "USD 10 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "1",
+            "USD 80 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "2",
+            "USD 42 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "3",
+            "USD 33 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "4 - 6",
+            "USD 26 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "7 - 9",
+            "USD 17 TARIFA EXTENDIDA"
+          ]
+        ],
+        "Inglés": [
+          [
+            "FECHAS",
+            "TIPO DE SERVICIO",
+            "PAX",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031 Recargo por idioma 10%",
+            "Regular",
+            "Mínimo 2 pasajeros",
+            "USD 11 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "1",
+            "USD 80 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "2",
+            "USD 42 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "3",
+            "USD 33 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "4 - 6",
+            "USD 26 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "7 - 9",
+            "USD 17 TARIFA EXTENDIDA"
+          ]
+        ],
+        "Portugués": [
+          [
+            "FECHAS",
+            "TIPO DE SERVICIO",
+            "PAX",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031 Recargo por idioma 10%",
+            "Regular",
+            "Mínimo 2 pasajeros",
+            "USD 10 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "1",
+            "USD 80 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "2",
+            "USD 42 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "3",
+            "USD 33 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "4 - 6",
+            "USD 26 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/07/2026 - 31/12/2031",
+            "Privado",
+            "7 - 9",
+            "USD 17 TARIFA EXTENDIDA"
+          ]
+        ]
+      },
+      "tarifaExtendida": 6,
+      "solapasIdioma": 3
+    },
+    "hoteles": {
+      "item": "AUTO-QA NO TOCAR - Park Hyatt Palacio Duhau",
+      "id": 5003,
+      "porIdioma": {
+        "sin-solapas": [
+          [
+            "FECHAS",
+            "PRECIO POR NOCHE POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL"
+          ],
+          [
+            "01/04/2026 - 30/09/2026",
+            "USD 860",
+            "USD 430",
+            "USD 340"
+          ],
+          [
+            "01/10/2026 - 27/12/2026",
+            "USD 1,000",
+            "USD 500",
+            "USD 387"
+          ],
+          [
+            "03/01/2027 - 31/03/2027",
+            "USD 1,000",
+            "USD 500",
+            "USD 387"
+          ],
+          [
+            "01/04/2027 - 30/06/2027",
+            "USD 860",
+            "USD 430",
+            "USD 340"
+          ],
+          [
+            "01/07/2027 - 30/09/2027",
+            "USD 946 TARIFA EXTENDIDA",
+            "USD 473 TARIFA EXTENDIDA",
+            "USD 374 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2027 - 27/12/2027",
+            "USD 1,100 TARIFA EXTENDIDA",
+            "USD 550 TARIFA EXTENDIDA",
+            "USD 426 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2028 - 28/02/2028",
+            "USD 1,100 TARIFA EXTENDIDA",
+            "USD 550 TARIFA EXTENDIDA",
+            "USD 426 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/03/2028 - 31/03/2028",
+            "USD 1,100 TARIFA EXTENDIDA",
+            "USD 550 TARIFA EXTENDIDA",
+            "USD 426 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2028 - 30/09/2028",
+            "USD 946 TARIFA EXTENDIDA",
+            "USD 473 TARIFA EXTENDIDA",
+            "USD 374 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2028 - 27/12/2028",
+            "USD 1,100 TARIFA EXTENDIDA",
+            "USD 550 TARIFA EXTENDIDA",
+            "USD 426 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2029 - 31/03/2029",
+            "USD 1,100 TARIFA EXTENDIDA",
+            "USD 550 TARIFA EXTENDIDA",
+            "USD 426 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2029 - 30/09/2029",
+            "USD 946 TARIFA EXTENDIDA",
+            "USD 473 TARIFA EXTENDIDA",
+            "USD 374 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2029 - 27/12/2029",
+            "USD 1,100 TARIFA EXTENDIDA",
+            "USD 550 TARIFA EXTENDIDA",
+            "USD 426 TARIFA EXTENDIDA"
+          ],
+          [
+            "FECHAS",
+            "PRECIO POR NOCHE POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL"
+          ],
+          [
+            "01/04/2026 - 30/09/2026",
+            "USD 860",
+            "USD 430",
+            "USD 340"
+          ],
+          [
+            "01/10/2026 - 27/12/2026",
+            "USD 1,000",
+            "USD 500",
+            "USD 387"
+          ],
+          [
+            "03/01/2027 - 31/03/2027",
+            "USD 1,000",
+            "USD 500",
+            "USD 387"
+          ],
+          [
+            "01/04/2027 - 30/06/2027",
+            "USD 860",
+            "USD 430",
+            "USD 340"
+          ],
+          [
+            "01/07/2027 - 30/09/2027",
+            "USD 946 TARIFA EXTENDIDA",
+            "USD 473 TARIFA EXTENDIDA",
+            "USD 374 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2027 - 27/12/2027",
+            "USD 1,100 TARIFA EXTENDIDA",
+            "USD 550 TARIFA EXTENDIDA",
+            "USD 426 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2028 - 28/02/2028",
+            "USD 1,100 TARIFA EXTENDIDA",
+            "USD 550 TARIFA EXTENDIDA",
+            "USD 426 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/03/2028 - 31/03/2028",
+            "USD 1,100 TARIFA EXTENDIDA",
+            "USD 550 TARIFA EXTENDIDA",
+            "USD 426 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2028 - 30/09/2028",
+            "USD 946 TARIFA EXTENDIDA",
+            "USD 473 TARIFA EXTENDIDA",
+            "USD 374 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2028 - 27/12/2028",
+            "USD 1,100 TARIFA EXTENDIDA",
+            "USD 550 TARIFA EXTENDIDA",
+            "USD 426 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2029 - 31/03/2029",
+            "USD 1,100 TARIFA EXTENDIDA",
+            "USD 550 TARIFA EXTENDIDA",
+            "USD 426 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2029 - 30/09/2029",
+            "USD 946 TARIFA EXTENDIDA",
+            "USD 473 TARIFA EXTENDIDA",
+            "USD 374 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2029 - 27/12/2029",
+            "USD 1,100 TARIFA EXTENDIDA",
+            "USD 550 TARIFA EXTENDIDA",
+            "USD 426 TARIFA EXTENDIDA"
+          ],
+          [
+            "FECHAS",
+            "PRECIO POR NOCHE POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL"
+          ],
+          [
+            "01/04/2026 - 30/09/2026",
+            "USD 920",
+            "USD 460",
+            "USD 360"
+          ],
+          [
+            "01/10/2026 - 27/12/2026",
+            "USD 1,060",
+            "USD 530",
+            "USD 407"
+          ],
+          [
+            "03/01/2027 - 31/03/2027",
+            "USD 1,060",
+            "USD 530",
+            "USD 407"
+          ],
+          [
+            "01/04/2027 - 30/06/2027",
+            "USD 920",
+            "USD 460",
+            "USD 360"
+          ],
+          [
+            "01/07/2027 - 30/09/2027",
+            "USD 1,012 TARIFA EXTENDIDA",
+            "USD 506 TARIFA EXTENDIDA",
+            "USD 396 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2027 - 27/12/2027",
+            "USD 1,166 TARIFA EXTENDIDA",
+            "USD 583 TARIFA EXTENDIDA",
+            "USD 448 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2028 - 28/02/2028",
+            "USD 1,166 TARIFA EXTENDIDA",
+            "USD 583 TARIFA EXTENDIDA",
+            "USD 448 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/03/2028 - 31/03/2028",
+            "USD 1,166 TARIFA EXTENDIDA",
+            "USD 583 TARIFA EXTENDIDA",
+            "USD 448 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2028 - 30/09/2028",
+            "USD 1,012 TARIFA EXTENDIDA",
+            "USD 506 TARIFA EXTENDIDA",
+            "USD 396 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2028 - 27/12/2028",
+            "USD 1,166 TARIFA EXTENDIDA",
+            "USD 583 TARIFA EXTENDIDA",
+            "USD 448 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2029 - 31/03/2029",
+            "USD 1,166 TARIFA EXTENDIDA",
+            "USD 583 TARIFA EXTENDIDA",
+            "USD 448 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2029 - 30/09/2029",
+            "USD 1,012 TARIFA EXTENDIDA",
+            "USD 506 TARIFA EXTENDIDA",
+            "USD 396 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2029 - 27/12/2029",
+            "USD 1,166 TARIFA EXTENDIDA",
+            "USD 583 TARIFA EXTENDIDA",
+            "USD 448 TARIFA EXTENDIDA"
+          ],
+          [
+            "FECHAS",
+            "PRECIO POR NOCHE POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL"
+          ],
+          [
+            "01/04/2026 - 30/09/2026",
+            "USD 940",
+            "USD 470",
+            "USD 367"
+          ],
+          [
+            "01/10/2026 - 27/12/2026",
+            "USD 1,080",
+            "USD 540",
+            "USD 414"
+          ],
+          [
+            "03/01/2027 - 31/03/2027",
+            "USD 1,080",
+            "USD 540",
+            "USD 414"
+          ],
+          [
+            "01/04/2027 - 30/06/2027",
+            "USD 940",
+            "USD 470",
+            "USD 367"
+          ],
+          [
+            "01/07/2027 - 30/09/2027",
+            "USD 1,034 TARIFA EXTENDIDA",
+            "USD 517 TARIFA EXTENDIDA",
+            "USD 404 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2027 - 27/12/2027",
+            "USD 1,188 TARIFA EXTENDIDA",
+            "USD 594 TARIFA EXTENDIDA",
+            "USD 455 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2028 - 28/02/2028",
+            "USD 1,188 TARIFA EXTENDIDA",
+            "USD 594 TARIFA EXTENDIDA",
+            "USD 455 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/03/2028 - 31/03/2028",
+            "USD 1,188 TARIFA EXTENDIDA",
+            "USD 594 TARIFA EXTENDIDA",
+            "USD 455 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2028 - 30/09/2028",
+            "USD 1,034 TARIFA EXTENDIDA",
+            "USD 517 TARIFA EXTENDIDA",
+            "USD 404 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2028 - 27/12/2028",
+            "USD 1,188 TARIFA EXTENDIDA",
+            "USD 594 TARIFA EXTENDIDA",
+            "USD 455 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2029 - 31/03/2029",
+            "USD 1,188 TARIFA EXTENDIDA",
+            "USD 594 TARIFA EXTENDIDA",
+            "USD 455 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2029 - 30/09/2029",
+            "USD 1,034 TARIFA EXTENDIDA",
+            "USD 517 TARIFA EXTENDIDA",
+            "USD 404 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2029 - 27/12/2029",
+            "USD 1,188 TARIFA EXTENDIDA",
+            "USD 594 TARIFA EXTENDIDA",
+            "USD 455 TARIFA EXTENDIDA"
+          ],
+          [
+            "FECHAS",
+            "PRECIO POR NOCHE POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL"
+          ],
+          [
+            "01/04/2026 - 30/09/2026",
+            "USD 1,180",
+            "USD 590",
+            "USD 447"
+          ],
+          [
+            "01/10/2026 - 27/12/2026",
+            "USD 1,320",
+            "USD 660",
+            "USD 494"
+          ],
+          [
+            "03/01/2027 - 31/03/2027",
+            "USD 1,320",
+            "USD 660",
+            "USD 494"
+          ],
+          [
+            "01/04/2027 - 30/06/2027",
+            "USD 1,180",
+            "USD 590",
+            "USD 447"
+          ],
+          [
+            "01/07/2027 - 30/09/2027",
+            "USD 1,298 TARIFA EXTENDIDA",
+            "USD 649 TARIFA EXTENDIDA",
+            "USD 492 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2027 - 27/12/2027",
+            "USD 1,452 TARIFA EXTENDIDA",
+            "USD 726 TARIFA EXTENDIDA",
+            "USD 543 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2028 - 28/02/2028",
+            "USD 1,452 TARIFA EXTENDIDA",
+            "USD 726 TARIFA EXTENDIDA",
+            "USD 543 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/03/2028 - 31/03/2028",
+            "USD 1,452 TARIFA EXTENDIDA",
+            "USD 726 TARIFA EXTENDIDA",
+            "USD 543 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2028 - 30/09/2028",
+            "USD 1,298 TARIFA EXTENDIDA",
+            "USD 649 TARIFA EXTENDIDA",
+            "USD 492 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2028 - 27/12/2028",
+            "USD 1,452 TARIFA EXTENDIDA",
+            "USD 726 TARIFA EXTENDIDA",
+            "USD 543 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2029 - 31/03/2029",
+            "USD 1,452 TARIFA EXTENDIDA",
+            "USD 726 TARIFA EXTENDIDA",
+            "USD 543 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2029 - 30/09/2029",
+            "USD 1,298 TARIFA EXTENDIDA",
+            "USD 649 TARIFA EXTENDIDA",
+            "USD 492 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2029 - 27/12/2029",
+            "USD 1,452 TARIFA EXTENDIDA",
+            "USD 726 TARIFA EXTENDIDA",
+            "USD 543 TARIFA EXTENDIDA"
+          ],
+          [
+            "FECHAS",
+            "PRECIO POR NOCHE POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL"
+          ],
+          [
+            "01/04/2026 - 30/09/2026",
+            "USD 1,220",
+            "USD 610",
+            "USD 460"
+          ],
+          [
+            "01/10/2026 - 27/12/2026",
+            "USD 1,360",
+            "USD 680",
+            "USD 507"
+          ],
+          [
+            "03/01/2027 - 31/03/2027",
+            "USD 1,360",
+            "USD 680",
+            "USD 507"
+          ],
+          [
+            "01/04/2027 - 30/06/2027",
+            "USD 1,220",
+            "USD 610",
+            "USD 460"
+          ],
+          [
+            "01/07/2027 - 30/09/2027",
+            "USD 1,342 TARIFA EXTENDIDA",
+            "USD 671 TARIFA EXTENDIDA",
+            "USD 506 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2027 - 27/12/2027",
+            "USD 1,496 TARIFA EXTENDIDA",
+            "USD 748 TARIFA EXTENDIDA",
+            "USD 558 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2028 - 28/02/2028",
+            "USD 1,496 TARIFA EXTENDIDA",
+            "USD 748 TARIFA EXTENDIDA",
+            "USD 558 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/03/2028 - 31/03/2028",
+            "USD 1,496 TARIFA EXTENDIDA",
+            "USD 748 TARIFA EXTENDIDA",
+            "USD 558 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2028 - 30/09/2028",
+            "USD 1,342 TARIFA EXTENDIDA",
+            "USD 671 TARIFA EXTENDIDA",
+            "USD 506 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2028 - 27/12/2028",
+            "USD 1,496 TARIFA EXTENDIDA",
+            "USD 748 TARIFA EXTENDIDA",
+            "USD 558 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2029 - 31/03/2029",
+            "USD 1,496 TARIFA EXTENDIDA",
+            "USD 748 TARIFA EXTENDIDA",
+            "USD 558 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2029 - 30/09/2029",
+            "USD 1,342 TARIFA EXTENDIDA",
+            "USD 671 TARIFA EXTENDIDA",
+            "USD 506 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2029 - 27/12/2029",
+            "USD 1,496 TARIFA EXTENDIDA",
+            "USD 748 TARIFA EXTENDIDA",
+            "USD 558 TARIFA EXTENDIDA"
+          ],
+          [
+            "FECHAS",
+            "PRECIO POR NOCHE POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL"
+          ],
+          [
+            "01/04/2026 - 30/09/2026",
+            "USD 1,360",
+            "USD 680",
+            "USD 507"
+          ],
+          [
+            "01/10/2026 - 27/12/2026",
+            "USD 1,500",
+            "USD 750",
+            "USD 554"
+          ],
+          [
+            "03/01/2027 - 31/03/2027",
+            "USD 1,500",
+            "USD 750",
+            "USD 554"
+          ],
+          [
+            "01/04/2027 - 30/06/2027",
+            "USD 1,360",
+            "USD 680",
+            "USD 507"
+          ],
+          [
+            "01/07/2027 - 30/09/2027",
+            "USD 1,496 TARIFA EXTENDIDA",
+            "USD 748 TARIFA EXTENDIDA",
+            "USD 558 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2027 - 27/12/2027",
+            "USD 1,650 TARIFA EXTENDIDA",
+            "USD 825 TARIFA EXTENDIDA",
+            "USD 609 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2028 - 28/02/2028",
+            "USD 1,650 TARIFA EXTENDIDA",
+            "USD 825 TARIFA EXTENDIDA",
+            "USD 609 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/03/2028 - 31/03/2028",
+            "USD 1,650 TARIFA EXTENDIDA",
+            "USD 825 TARIFA EXTENDIDA",
+            "USD 609 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2028 - 30/09/2028",
+            "USD 1,496 TARIFA EXTENDIDA",
+            "USD 748 TARIFA EXTENDIDA",
+            "USD 558 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2028 - 27/12/2028",
+            "USD 1,650 TARIFA EXTENDIDA",
+            "USD 825 TARIFA EXTENDIDA",
+            "USD 609 TARIFA EXTENDIDA"
+          ],
+          [
+            "03/01/2029 - 31/03/2029",
+            "USD 1,650 TARIFA EXTENDIDA",
+            "USD 825 TARIFA EXTENDIDA",
+            "USD 609 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/04/2029 - 30/09/2029",
+            "USD 1,496 TARIFA EXTENDIDA",
+            "USD 748 TARIFA EXTENDIDA",
+            "USD 558 TARIFA EXTENDIDA"
+          ],
+          [
+            "01/10/2029 - 27/12/2029",
+            "USD 1,650 TARIFA EXTENDIDA",
+            "USD 825 TARIFA EXTENDIDA",
+            "USD 609 TARIFA EXTENDIDA"
+          ]
+        ]
+      },
+      "tarifaExtendida": 189,
+      "solapasIdioma": 0
+    },
+    "ofertas": {
+      "item": "AUTO-QA NO TOCAR - Oferta Buenos Aires y Ushuaia (6 días / 5 noches)",
+      "id": 5060,
+      "porIdioma": {
+        "sin-solapas": [
+          [
+            "VIGENCIA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL"
+          ],
+          [
+            "31/08/2026 - 19/09/2026",
+            "USD 4,910",
+            "USD 2,582",
+            "USD 2,084"
+          ],
+          [
+            "20/09/2026 - 30/09/2026",
+            "USD 4,450",
+            "USD 2,368",
+            "USD 1,940"
+          ],
+          [
+            "01/10/2026 - 31/10/2026",
+            "USD 4,870",
+            "USD 2,578",
+            "USD 2,080"
+          ],
+          [
+            "01/11/2026 - 23/12/2026",
+            "USD 5,098",
+            "USD 2,670",
+            "USD 2,142"
+          ],
+          [
+            "24/12/2026 - 27/12/2026",
+            "USD 5,330",
+            "USD 2,792",
+            "USD 2,224"
+          ],
+          [
+            "03/01/2027 - 03/01/2027",
+            "USD 5,330",
+            "USD 2,792",
+            "USD 2,224"
+          ],
+          [
+            "04/01/2027 - 28/02/2027",
+            "USD 5,098",
+            "USD 2,670",
+            "USD 2,142"
+          ],
+          [
+            "01/03/2027 - 31/03/2027",
+            "USD 4,870",
+            "USD 2,578",
+            "USD 2,080"
+          ],
+          [
+            "01/04/2027 - 30/06/2027",
+            "USD 4,286",
+            "USD 2,276",
+            "USD 1,880"
+          ],
+          [
+            "01/07/2027 - 08/07/2027",
+            "USD 4,936",
+            "USD 2,590",
+            "USD 2,104"
+          ],
+          [
+            "09/07/2027 - 19/09/2027",
+            "USD 5,168",
+            "USD 2,712",
+            "USD 2,186"
+          ],
+          [
+            "20/09/2027 - 30/09/2027",
+            "USD 4,708",
+            "USD 2,498",
+            "USD 2,042"
+          ],
+          [
+            "01/10/2027 - 31/10/2027",
+            "USD 5,170",
+            "USD 2,728",
+            "USD 2,196"
+          ],
+          [
+            "01/11/2027 - 23/12/2027",
+            "USD 5,398",
+            "USD 2,820",
+            "USD 2,258"
+          ],
+          [
+            "24/12/2027 - 27/12/2027",
+            "USD 5,630",
+            "USD 2,942",
+            "USD 2,340"
+          ],
+          [
+            "03/01/2028 - 03/01/2028",
+            "USD 5,630",
+            "USD 2,942",
+            "USD 2,340"
+          ],
+          [
+            "04/01/2028 - 28/02/2028",
+            "USD 5,398",
+            "USD 2,820",
+            "USD 2,258"
+          ]
+        ]
+      },
+      "tarifaExtendida": 0,
+      "solapasIdioma": 0
+    },
+    "paquetes": {
+      "item": "AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia (6 días / 5 noches)",
+      "id": 5059,
+      "porIdioma": {
+        "sin-solapas": [
+          [
+            "VIGENCIA",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "SGL",
+            "DBL",
+            "TPL"
+          ],
+          [
+            "31/08/2026 - 19/09/2026",
+            "USD 4,196",
+            "USD 2,206",
+            "USD 1,790"
+          ],
+          [
+            "20/09/2026 - 30/09/2026",
+            "USD 3,736",
+            "USD 1,992",
+            "USD 1,646"
+          ],
+          [
+            "01/10/2026 - 31/10/2026",
+            "USD 4,156",
+            "USD 2,202",
+            "USD 1,786"
+          ],
+          [
+            "01/11/2026 - 23/12/2026",
+            "USD 4,384",
+            "USD 2,294",
+            "USD 1,848"
+          ],
+          [
+            "24/12/2026 - 27/12/2026",
+            "USD 4,616",
+            "USD 2,416",
+            "USD 1,930"
+          ],
+          [
+            "03/01/2027 - 03/01/2027",
+            "USD 4,616",
+            "USD 2,416",
+            "USD 1,930"
+          ],
+          [
+            "04/01/2027 - 28/02/2027",
+            "USD 4,384",
+            "USD 2,294",
+            "USD 1,848"
+          ],
+          [
+            "01/03/2027 - 31/03/2027",
+            "USD 4,156",
+            "USD 2,202",
+            "USD 1,786"
+          ],
+          [
+            "01/04/2027 - 30/06/2027",
+            "USD 3,572",
+            "USD 1,900",
+            "USD 1,586"
+          ],
+          [
+            "01/07/2027 - 08/07/2027",
+            "USD 4,222",
+            "USD 2,214",
+            "USD 1,810"
+          ],
+          [
+            "09/07/2027 - 19/09/2027",
+            "USD 4,454",
+            "USD 2,336",
+            "USD 1,892"
+          ],
+          [
+            "20/09/2027 - 30/09/2027",
+            "USD 3,994",
+            "USD 2,122",
+            "USD 1,748"
+          ],
+          [
+            "01/10/2027 - 31/10/2027",
+            "USD 4,456",
+            "USD 2,352",
+            "USD 1,902"
+          ],
+          [
+            "01/11/2027 - 23/12/2027",
+            "USD 4,684",
+            "USD 2,444",
+            "USD 1,964"
+          ],
+          [
+            "24/12/2027 - 27/12/2027",
+            "USD 4,916",
+            "USD 2,566",
+            "USD 2,046"
+          ],
+          [
+            "03/01/2028 - 03/01/2028",
+            "USD 4,916",
+            "USD 2,566",
+            "USD 2,046"
+          ],
+          [
+            "04/01/2028 - 28/02/2028",
+            "USD 4,684",
+            "USD 2,444",
+            "USD 1,964"
+          ]
+        ]
+      },
+      "tarifaExtendida": 0,
+      "solapasIdioma": 0
+    },
+    "traslados": {
+      "item": "AUTO-QA NO TOCAR - Aeropuerto Internacional / Hotel céntrico con servicio de guía",
+      "id": 1223,
+      "porIdioma": {
+        "Español": [
+          [
+            "FECHAS",
+            "TIPO DE SERVICIO",
+            "PAX",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 Recargo por idioma.",
+            "Privado",
+            "1",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "2",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "3",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "4",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "5",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "6",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "7",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "8",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "9",
+            "USD 1"
+          ]
+        ],
+        "Inglés": [
+          [
+            "FECHAS",
+            "TIPO DE SERVICIO",
+            "PAX",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 Recargo por idioma.",
+            "Privado",
+            "1",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "2",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "3",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "4",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "5",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "6",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "7",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "8",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "9",
+            "USD 1"
+          ]
+        ],
+        "Portugués": [
+          [
+            "FECHAS",
+            "TIPO DE SERVICIO",
+            "PAX",
+            "PRECIO POR PERSONA"
+          ],
+          [
+            "01/01/2026 - 31/12/2031 Recargo por idioma.",
+            "Privado",
+            "1",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "2",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "3",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "4",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "5",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "6",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "7",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "8",
+            "USD 1"
+          ],
+          [
+            "01/01/2026 - 31/12/2031",
+            "Privado",
+            "9",
+            "USD 1"
+          ]
+        ]
+      },
+      "tarifaExtendida": 0,
+      "solapasIdioma": 3
+    }
+  }
+}

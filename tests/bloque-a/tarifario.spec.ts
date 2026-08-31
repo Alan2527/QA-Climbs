@@ -2,6 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 import { TarifarioPage } from '../../pages/tarifario.page';
 import { paso, adjuntarTexto, precioMostrado, importeANumero } from '../../utils/pasos';
 import candidatos from '../../data/candidatos.json';
+import lineaBase from '../../data/importes-lineabase.json';
 
 const T = candidatos.tarifario;
 
@@ -208,6 +209,45 @@ test.describe('Tarifario', () => {
     });
   }
 
+
+  /**
+   * Compara los importes con la linea base capturada: si un cambio del sistema
+   * altera un precio, el recargo por idioma o la marca TARIFA EXTENDIDA, falla.
+   * Se recorren todas las solapas de idioma, porque el precio cambia entre ellas.
+   */
+  async function validarImportes(page: Page, t: TarifarioPage, clave: string, cfg: any, desde: number) {
+    const esperado = (lineaBase.items as Record<string, any>)[clave];
+    if (!esperado) return;
+
+    await paso(page, `${desde}. Los importes coinciden con la linea base`, async () => {
+      const actual = await t.capturarTarifas(cfg.container);
+
+      const resumen = (x: any) =>
+        Object.entries(x.porIdioma)
+          .map(([idioma, filas]: any) => `[${idioma}] ` + filas.map((f: string[]) => f.join(' | ')).join(SALTO))
+          .join(SALTO);
+
+      await adjuntarTexto('Importes esperados (linea base)', resumen(esperado).slice(0, 4000));
+      await adjuntarTexto('Importes en pantalla', resumen(actual).slice(0, 4000));
+
+      expect(actual.solapasIdioma,
+        `Cambio la cantidad de solapas de idioma (esperadas ${esperado.solapasIdioma})`,
+      ).toBe(esperado.solapasIdioma);
+
+      expect(actual.tarifaExtendida,
+        `Cambio la cantidad de marcas TARIFA EXTENDIDA (esperadas ${esperado.tarifaExtendida})`,
+      ).toBe(esperado.tarifaExtendida);
+
+      for (const [idioma, filasEsperadas] of Object.entries(esperado.porIdioma) as [string, string[][]][]) {
+        const filasActuales = actual.porIdioma[idioma];
+        expect(filasActuales, `Falta la solapa de idioma "${idioma}"`).toBeDefined();
+        expect(JSON.stringify(filasActuales),
+          `Cambiaron los importes de la solapa "${idioma}"`,
+        ).toBe(JSON.stringify(filasEsperadas));
+      }
+    });
+  }
+
   async function validarItem(page: Page, cfg: Config, titulo: string) {
     const tarifario = new TarifarioPage(page);
     const ciudad = CIUDAD[cfg.tab] ?? 'Buenos Aires';
@@ -292,6 +332,7 @@ test.describe('Tarifario', () => {
 
   test('Paquetes: trae tarifas y muestra el paquete esperado', async ({ page }) => {
     const t = await validarItem(page, T.paquetes as Config, 'Paquetes');
+    await validarImportes(page, t, 'paquetes', T.paquetes, 8);
     await validarModalDetalle(page, t, T.paquetes, 9);
     await paso(page, '8. El paquete muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.paquetes.container);
@@ -303,18 +344,21 @@ test.describe('Tarifario', () => {
 
   test('Excursiones: trae tarifas y muestra la excursion esperada', async ({ page }) => {
     const t = await validarItem(page, T.excursiones as Config, 'Excursiones');
+    await validarImportes(page, t, 'excursiones', T.excursiones, 8);
     await validarCard(page, t, T.excursiones, 9);
     await validarFichaDetalle(page, t, T.excursiones, 9);
   });
 
   test('Hoteles: trae tarifas y muestra el hotel esperado', async ({ page }) => {
     const thoteles = await validarItem(page, T.hoteles as Config, 'Hoteles');
+    await validarImportes(page, thoteles, 'hoteles', T.hoteles, 8);
     await validarCard(page, thoteles, T.hoteles, 8);
     await validarModalDetalle(page, thoteles, T.hoteles, 8);
   });
 
   test('Traslados: trae tarifas y muestra el traslado esperado', async ({ page }) => {
     const t = await validarItem(page, T.traslados as Config, 'Traslados');
+    await validarImportes(page, t, 'traslados', T.traslados, 8);
     await validarCard(page, t, T.traslados, 8);
     await validarFichaDetalle(page, t, T.traslados, 8);
   });
@@ -322,6 +366,7 @@ test.describe('Tarifario', () => {
   test('Cena Show: trae tarifas y coinciden con las de la base', async ({ page }) => {
     const cfg = T.cenaShow;
     const t = await validarItem(page, cfg as Config, 'Cena Show');
+    await validarImportes(page, t, 'cenaShow', cfg, 8);
 
     await paso(page, '8. Las tarifas coinciden con las de la base de datos', async () => {
       // Se lee de la pantalla para no dar falso positivo si alguien lo cambia;
@@ -394,11 +439,13 @@ test.describe('Tarifario', () => {
   // en rojo hasta que se corrija: el paso no se puede ejecutar y eso es el hallazgo.
   test('Cruceros: trae tarifas y muestra el crucero esperado', async ({ page }) => {
     const t = await validarItem(page, T.cruceros as Config, 'Cruceros');
+    await validarImportes(page, t, 'cruceros', T.cruceros, 8);
     await validarModalDetalle(page, t, T.cruceros, 8);
   });
 
   test('Ofertas: trae tarifas y muestra la oferta esperada', async ({ page }) => {
     const t = await validarItem(page, T.ofertas as Config, 'Ofertas');
+    await validarImportes(page, t, 'ofertas', T.ofertas, 8);
     await validarModalDetalle(page, t, T.ofertas, 9);
     await paso(page, '8. La oferta muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.ofertas.container);

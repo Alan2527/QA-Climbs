@@ -427,6 +427,39 @@ export class TarifarioPage {
     return (await loc.count()) ? (await loc.innerText()).replace(/\s+/g, ' ').trim() : '';
   }
 
+
+  /**
+   * Captura los importes tal como se ven, con una tabla por solapa de idioma.
+   *
+   * Los servicios con recargo por idioma muestran solapas
+   * (.srl-lang-tabs-{InstanceId}, ver ServiceTariffDetailControl.ascx) y el
+   * precio cambia entre ellas, asi que hay que recorrerlas todas.
+   */
+  async capturarTarifas(container: string): Promise<{
+    porIdioma: Record<string, string[][]>; solapasIdioma: number; tarifaExtendida: number;
+  }> {
+    const porIdioma: Record<string, string[][]> = {};
+    const solapas = this.page.locator("[class*='srl-lang-tabs-'] > *");
+    const cantidad = await solapas.count();
+
+    if (cantidad > 0) {
+      for (let i = 0; i < cantidad; i++) {
+        const nombre = (await solapas.nth(i).innerText()).trim() || `solapa-${i}`;
+        await solapas.nth(i).click().catch(() => {});
+        await esperarFinDeCarga(this.page);
+        porIdioma[nombre] = await this.leerTablaTarifas(container);
+      }
+    } else {
+      porIdioma['sin-solapas'] = await this.leerTablaTarifas(container);
+    }
+
+    return {
+      porIdioma,
+      solapasIdioma: cantidad,
+      tarifaExtendida: await this.page.locator('.tariff-extended-label').count(),
+    };
+  }
+
   async textoDe(container: string): Promise<string> {
     return (await this.contenedor(container).innerText()).trim();
   }
