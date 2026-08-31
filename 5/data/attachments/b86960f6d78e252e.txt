@@ -1,0 +1,4 @@
+antes: Ver Tarifario
+despues: Ver Tarifario
+alterna a "Cerrar Tarifario": no (esperado)
+NOTA: Cruceros no tiene CruiseTariffDetailControl.ascx, por eso el boton nunca cambia a Cerrar Tarifario. Verificado en QA y en la rama preprod. Si algun dia lo arreglan, este test avisa.
