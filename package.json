@@ -10,7 +10,8 @@
     "allure:generate": "allure generate allure-results --clean -o allure-report",
     "allure:open": "allure open allure-report",
     "allure:serve": "allure serve allure-results   (requiere Java + CLI de Allure)",
-    "report": "playwright show-report"
+    "report": "playwright show-report",
+    "lineabase": "playwright test --config=playwright.lineabase.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",

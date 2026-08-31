@@ -1,8 +1,8 @@
 import { test, expect, Page } from '@playwright/test';
-import { TarifarioPage } from '../../pages/tarifario.page';
-import { esperarFinDeCarga } from '../../utils/pasos';
+import { TarifarioPage } from '../pages/tarifario.page';
+import { esperarFinDeCarga } from '../utils/pasos';
 import * as fs from 'fs';
-import candidatos from '../../data/candidatos.json';
+import candidatos from '../data/candidatos.json';
 
 /**
  * Capturador de linea base. No es un test de regresion: recorre las 7 pestanias,

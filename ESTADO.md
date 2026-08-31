@@ -119,8 +119,11 @@ no sólo un cambio respecto de ayer.
 Regenerar la línea base cuando se cambien datos a propósito:
 
 ```powershell
-npx playwright test tests/bloque-a/_capturar-lineabase.spec.ts
+npm run lineabase
 ```
+
+El capturador vive en `tools/`, fuera de `tests/`, para que no corra con la suite
+ni aparezca en el reporte: no es un test de regresión, es una herramienta.
 
 ### Resaltado de fallos
 
@@ -285,9 +288,8 @@ qa-e2e/
 │   └── tarifario.page.ts
 ├── tests/
 │   ├── auth.setup.ts                     login único, reusado por storageState
-│   └── bloque-a/
-│       ├── tarifario.spec.ts             los 7 tests
-│       └── _capturar-lineabase.spec.ts   regenera la línea base
+│   └── bloque-a/tarifario.spec.ts        los 7 tests
+├── tools/capturar-lineabase.spec.ts      regenera la línea base (npm run lineabase)
 ├── utils/pasos.ts                        pasos, esperas, resaltado, formato
 └── .github/workflows/qa-e2e.yml          CI con Allure en GitHub Pages
 ```
