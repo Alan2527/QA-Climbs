@@ -119,6 +119,95 @@ test.describe('Tarifario', () => {
     });
   }
 
+
+  /**
+   * Valida los elementos de la card contra la base:
+   *   - observaciones destacadas -> ServiceObservation con IsPriority = 1
+   *   - leyenda "Mas observaciones disponibles en el detalle"
+   *   - tooltips (duracion, idiomas, operatividad y amenity destacada)
+   *   - tag RECOMENDADO -> Hotel.Great = 1
+   */
+  async function validarCard(page: Page, t: TarifarioPage, cfg: any, desde: number) {
+    const card = cfg.card;
+    if (!card) return;
+
+    await paso(page, `${desde}. La card muestra los datos destacados de la base`, async () => {
+      const obs = await t.observacionesDestacadas(cfg.container);
+      const mas = await t.textoMasObservaciones(cfg.container);
+      const tips = await t.tooltips(cfg.container);
+      const tag = await t.tagRecomendado(cfg.container);
+
+      await adjuntarTexto('Elementos de la card',
+        'observaciones destacadas: ' + JSON.stringify(obs) + SALTO +
+        'mas observaciones: ' + JSON.stringify(mas) + SALTO +
+        'tooltips (' + tips.length + '): ' + JSON.stringify(tips) + SALTO +
+        'tag: ' + JSON.stringify(tag));
+
+      if (card.observacionesDestacadas) {
+        for (const esperada of card.observacionesDestacadas) {
+          expect(obs.join(' | '), `Falta la observacion destacada "${esperada}"`)
+            .toContain(esperada);
+        }
+        expect(obs.length, 'La card muestra observaciones que la base no tiene')
+          .toBe(card.observacionesDestacadas.length);
+      }
+
+      // La leyenda "Mas observaciones disponibles en el detalle" depende de
+      // op.HasMoreObservations, cuyo criterio vive en ServiceOperativityData y no
+      // esta en el repo del WEB. Se deja informativa: se adjunta pero no se exige.
+      if (card.hayMasObservaciones) {
+        expect(mas, 'Falta la leyenda de mas observaciones').not.toBeNull();
+      }
+
+      if (card.tooltipAmenity) {
+        expect(tips.join(' | '), `Ningun tooltip trae "${card.tooltipAmenity}"`)
+          .toContain(card.tooltipAmenity);
+      }
+
+      if (card.tagRecomendado) {
+        expect(tag, 'No aparece el tag RECOMENDADO').not.toBeNull();
+        expect((tag ?? '').toUpperCase(), 'El tag no dice RECOMENDADO')
+          .toContain(card.tagRecomendado.toUpperCase());
+      }
+    });
+  }
+
+
+  /**
+   * Valida los componentes de la card contra la matriz tomada del markup de
+   * cada *TariffControl.ascx (ver _elementos en candidatos.json):
+   * imagen, texto, boton de tarifario, proveedores, descarga Word, tag y chips.
+   *
+   * "Cotizar y reservar" se verifica por presencia y NO se clickea: navega al
+   * carrito y saca al test del tarifario.
+   */
+  async function validarElementos(page: Page, t: TarifarioPage, cfg: any, desde: number) {
+    await paso(page, `${desde}. La card muestra los componentes que corresponden`, async () => {
+      const esperados = cfg.elementos;
+      const hay = (await t.elementosDeLaCard(cfg.container)) as Record<string, boolean>;
+      const src = await t.srcImagen(cfg.container);
+
+      await adjuntarTexto('Componentes de la card',
+        Object.keys(esperados)
+          .map((k) => `${k.padEnd(18)} esperado: ${String(esperados[k]).padEnd(6)} en pantalla: ${hay[k]}`)
+          .join(SALTO) + SALTO + SALTO + 'src de la imagen: ' + src);
+
+      for (const clave of Object.keys(esperados)) {
+        expect(hay[clave],
+          esperados[clave]
+            ? `Falta el componente "${clave}" en la card`
+            : `Aparece "${clave}" y esta pestania no deberia tenerlo`,
+        ).toBe(esperados[clave]);
+      }
+
+      // La imagen tiene que ser la cargada en la base, no el placeholder.
+      if (cfg.imagen) {
+        expect(src, 'La card no muestra ninguna imagen').not.toBeNull();
+        expect(src ?? '', `La imagen no es la esperada (${cfg.imagen})`).toContain(cfg.imagen);
+      }
+    });
+  }
+
   async function validarItem(page: Page, cfg: Config, titulo: string) {
     const tarifario = new TarifarioPage(page);
     const ciudad = CIUDAD[cfg.tab] ?? 'Buenos Aires';
@@ -150,11 +239,13 @@ test.describe('Tarifario', () => {
         .toContain(cfg.nombre);
     });
 
+    await validarElementos(page, tarifario, cfg, 5);
+
     // El estado del boton se guarda para validarlo en su propio paso.
     let botonesAntes: string[] = [];
     let botonesDespues: string[] = [];
 
-    await paso(page, '5. Desplegar el tarifario del item', async () => {
+    await paso(page, '6. Desplegar el tarifario del item', async () => {
       // El boton tiene que alternar "Ver Tarifario" -> "Cerrar Tarifario".
       // En Cruceros no lo hace (no tiene CruiseTariffDetailControl.ascx); eso queda
       // documentado como esperado, y si algun dia lo arreglan este test lo avisa.
@@ -172,7 +263,7 @@ test.describe('Tarifario', () => {
       expect(precios.length, 'El tarifario no muestra ningun importe').toBeGreaterThan(0);
     });
 
-    await paso(page, '6. El boton pasa de "Ver Tarifario" a "Cerrar Tarifario"', async () => {
+    await paso(page, '7. El boton pasa de "Ver Tarifario" a "Cerrar Tarifario"', async () => {
       const btn = cfg.botonTarifario;
       const hayCerrar = botonesDespues.some((t) => t.includes('Cerrar Tarifario'));
 
@@ -201,8 +292,8 @@ test.describe('Tarifario', () => {
 
   test('Paquetes: trae tarifas y muestra el paquete esperado', async ({ page }) => {
     const t = await validarItem(page, T.paquetes as Config, 'Paquetes');
-    await validarModalDetalle(page, t, T.paquetes, 8);
-    await paso(page, '7. El paquete muestra sus dos ciudades', async () => {
+    await validarModalDetalle(page, t, T.paquetes, 9);
+    await paso(page, '8. El paquete muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.paquetes.container);
       for (const c of T.paquetes.ciudades) {
         expect(texto, `Falta la ciudad ${c.nombre}`).toContain(c.nombre);
@@ -212,24 +303,27 @@ test.describe('Tarifario', () => {
 
   test('Excursiones: trae tarifas y muestra la excursion esperada', async ({ page }) => {
     const t = await validarItem(page, T.excursiones as Config, 'Excursiones');
-    await validarFichaDetalle(page, t, T.excursiones, 7);
+    await validarCard(page, t, T.excursiones, 9);
+    await validarFichaDetalle(page, t, T.excursiones, 9);
   });
 
   test('Hoteles: trae tarifas y muestra el hotel esperado', async ({ page }) => {
     const thoteles = await validarItem(page, T.hoteles as Config, 'Hoteles');
-    await validarModalDetalle(page, thoteles, T.hoteles, 7);
+    await validarCard(page, thoteles, T.hoteles, 8);
+    await validarModalDetalle(page, thoteles, T.hoteles, 8);
   });
 
   test('Traslados: trae tarifas y muestra el traslado esperado', async ({ page }) => {
     const t = await validarItem(page, T.traslados as Config, 'Traslados');
-    await validarFichaDetalle(page, t, T.traslados, 7);
+    await validarCard(page, t, T.traslados, 8);
+    await validarFichaDetalle(page, t, T.traslados, 8);
   });
 
   test('Cena Show: trae tarifas y coinciden con las de la base', async ({ page }) => {
     const cfg = T.cenaShow;
     const t = await validarItem(page, cfg as Config, 'Cena Show');
 
-    await paso(page, '7. Las tarifas coinciden con las de la base de datos', async () => {
+    await paso(page, '8. Las tarifas coinciden con las de la base de datos', async () => {
       // Se lee de la pantalla para no dar falso positivo si alguien lo cambia;
       // si no se puede leer, se cae al valor documentado en candidatos.json.
       const leido = await t.markupActivo();
@@ -287,7 +381,8 @@ test.describe('Tarifario', () => {
       ).toBe(esperados.length);
     });
 
-    await validarFichaDetalle(page, t, cfg, 8);
+    await validarCard(page, t, cfg, 9);
+    await validarFichaDetalle(page, t, cfg, 9);
   });
 
   // Las cabinas no figuran en la card del listado: se ven al abrir el detalle
@@ -299,13 +394,13 @@ test.describe('Tarifario', () => {
   // en rojo hasta que se corrija: el paso no se puede ejecutar y eso es el hallazgo.
   test('Cruceros: trae tarifas y muestra el crucero esperado', async ({ page }) => {
     const t = await validarItem(page, T.cruceros as Config, 'Cruceros');
-    await validarModalDetalle(page, t, T.cruceros, 7);
+    await validarModalDetalle(page, t, T.cruceros, 8);
   });
 
   test('Ofertas: trae tarifas y muestra la oferta esperada', async ({ page }) => {
     const t = await validarItem(page, T.ofertas as Config, 'Ofertas');
-    await validarModalDetalle(page, t, T.ofertas, 8);
-    await paso(page, '7. La oferta muestra sus dos ciudades', async () => {
+    await validarModalDetalle(page, t, T.ofertas, 9);
+    await paso(page, '8. La oferta muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.ofertas.container);
       for (const c of T.ofertas.ciudades) {
         expect(texto, `Falta la ciudad ${c.nombre}`).toContain(c.nombre);

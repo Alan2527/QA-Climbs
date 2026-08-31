@@ -52,7 +52,21 @@
         "textoInicial": "Ver Tarifario",
         "textoDesplegado": "Cerrar Tarifario",
         "alterna": true
-      }
+      },
+      "elementos": {
+        "imagen": true,
+        "texto": true,
+        "botonTarifario": true,
+        "cotizarYReservar": true,
+        "proveedores": false,
+        "descargaWord": true,
+        "tagRecomendado": false,
+        "observaciones": false,
+        "iconosTooltips": false
+      },
+      "imagen": "31082026121993.jpg",
+      "serviciosCantidad": 3,
+      "ciudadesCantidad": 2
     },
     "excursiones": {
       "tab": "a-excursions",
@@ -126,20 +140,40 @@
         "incluye": [
           "Guía de Turismo",
           "Navegación",
-          "Traslados"
+          "Traslados",
+          "Bebidas"
         ],
         "noIncluye": [
-          "Almuerzo",
-          "Bebidas",
           "Drop off en hotel",
-          "Otro servicio no especificado"
+          "Otro servicio no especificado",
+          "Almuerzo"
         ]
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
         "textoDesplegado": "Cerrar Tarifario",
         "alterna": true
-      }
+      },
+      "card": {
+        "observacionesDestacadas": [
+          "Sujeto a modificaciones según condiciones del río",
+          "Traer ropa cómoda y calzado antideslizante"
+        ],
+        "tooltipAmenity": "Bebidas a cargo del pasajero durante la navegación",
+        "hayMasObservaciones": false
+      },
+      "elementos": {
+        "imagen": true,
+        "texto": true,
+        "botonTarifario": true,
+        "cotizarYReservar": false,
+        "proveedores": true,
+        "descargaWord": false,
+        "tagRecomendado": false,
+        "observaciones": true,
+        "iconosTooltips": true
+      },
+      "imagen": "31082026162503.jpg"
     },
     "hoteles": {
       "tab": "a-hotels",
@@ -162,7 +196,10 @@
           "pais": "Argentina"
         },
         "vigenteHasta": "2032-03-31",
-        "habitacionesConTarifa": 13
+        "habitacionesConTarifa": 13,
+        "imagen": "19052025522498.jpg",
+        "tagRecomendado": false,
+        "categoria": "Lujo"
       },
       "tabKey": "hotel",
       "paramDeepLink": "hotel",
@@ -177,7 +214,26 @@
         "textoInicial": "Ver Tarifario",
         "textoDesplegado": "Cerrar Tarifario",
         "alterna": true
-      }
+      },
+      "card": {
+        "tagRecomendado": "RECOMENDADO"
+      },
+      "elementos": {
+        "imagen": true,
+        "texto": true,
+        "botonTarifario": true,
+        "cotizarYReservar": false,
+        "proveedores": true,
+        "descargaWord": false,
+        "tagRecomendado": true,
+        "observaciones": false,
+        "iconosTooltips": false
+      },
+      "imagen": "31082026182308.jpg",
+      "ubicacion": "Recoleta",
+      "categoria": "Lujo",
+      "desayuno": "Buffet americano",
+      "habitaciones": 9
     },
     "traslados": {
       "tab": "a-transfers",
@@ -243,19 +299,41 @@
           "Portuguese"
         ],
         "incluye": [
-          "Drop off en hotel",
+          "Traslados",
           "Guía de Turismo",
-          "Traslados"
+          "Drop off en hotel",
+          "Almuerzo"
         ],
         "noIncluye": [
-          "Botella de agua"
+          "Botella de agua",
+          "Bebidas"
         ]
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
         "textoDesplegado": "Cerrar Tarifario",
         "alterna": true
-      }
+      },
+      "card": {
+        "observacionesDestacadas": [
+          "Depende de las condiciones del tráfico",
+          "Consultar por adicionales fuera del radio céntrico"
+        ],
+        "hayMasObservaciones": false,
+        "tooltipAmenity": "Texto de prueba 2."
+      },
+      "elementos": {
+        "imagen": true,
+        "texto": true,
+        "botonTarifario": true,
+        "cotizarYReservar": false,
+        "proveedores": true,
+        "descargaWord": false,
+        "tagRecomendado": false,
+        "observaciones": true,
+        "iconosTooltips": true
+      },
+      "imagen": "31082026202880.jpg"
     },
     "cenaShow": {
       "tab": "a-shows",
@@ -321,21 +399,42 @@
           "Portuguese"
         ],
         "incluye": [
-          "Bebidas",
-          "Cena",
           "Pick Up y Drop Off en hotel",
+          "Cena",
+          "Bebidas",
           "Traslados"
         ],
         "noIncluye": [
           "Guía de Turismo",
-          "Tasas y/o impuestos"
+          "Tasas y/o impuestos",
+          "Almuerzo"
         ]
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
         "textoDesplegado": "Cerrar Tarifario",
         "alterna": true
-      }
+      },
+      "card": {
+        "observacionesDestacadas": [
+          "No aplica para cenas de Navidad y Año Nuevo",
+          "Consultar suplemento por hoteles en Palermo"
+        ],
+        "tooltipAmenity": "Copa de bienvenida y bebidas libres durante la cena",
+        "hayMasObservaciones": false
+      },
+      "elementos": {
+        "imagen": true,
+        "texto": true,
+        "botonTarifario": true,
+        "cotizarYReservar": false,
+        "proveedores": true,
+        "descargaWord": false,
+        "tagRecomendado": false,
+        "observaciones": true,
+        "iconosTooltips": true
+      },
+      "imagen": "31082026245403.jpg"
     },
     "cruceros": {
       "tab": "a-cruises",
@@ -393,7 +492,20 @@
         "textoDesplegado": "Ver Tarifario",
         "alterna": false,
         "_hallazgo": "Cruceros no tiene CruiseTariffDetailControl.ascx, por eso el boton nunca cambia a Cerrar Tarifario. Verificado en QA y en la rama preprod. Si algun dia lo arreglan, este test avisa."
-      }
+      },
+      "elementos": {
+        "imagen": true,
+        "texto": true,
+        "botonTarifario": true,
+        "cotizarYReservar": false,
+        "proveedores": false,
+        "descargaWord": false,
+        "tagRecomendado": false,
+        "observaciones": false,
+        "iconosTooltips": false
+      },
+      "imagen": "31082026272428.jpg",
+      "cabinasCantidad": 6
     },
     "ofertas": {
       "tab": "a-opportunities",
@@ -434,7 +546,21 @@
         "textoInicial": "Ver Tarifario",
         "textoDesplegado": "Cerrar Tarifario",
         "alterna": true
-      }
+      },
+      "elementos": {
+        "imagen": true,
+        "texto": true,
+        "botonTarifario": true,
+        "cotizarYReservar": true,
+        "proveedores": false,
+        "descargaWord": true,
+        "tagRecomendado": false,
+        "observaciones": false,
+        "iconosTooltips": false
+      },
+      "imagen": "31082026282177.jpg",
+      "serviciosCantidad": 3,
+      "ciudadesCantidad": 2
     }
   },
   "_deepLink": {
@@ -491,5 +617,17 @@
   "_modalDetalle": {
     "_fuente": "ReceptiveTourDetail.Detail (paquete/oferta), HotelDetail.Detail, CruiseDetail.Detail",
     "_nota": "HotelDetail.Detail y CruiseDetail.Detail vienen en HTML; se compara un fragmento distintivo del texto renderizado."
+  },
+  "_card": {
+    "_fuente": "ServiceObservation.IsPriority (cajas amarillas), ServiceAmenityObservation.Detail (tooltip de amenity), Hotel.Great (tag RECOMENDADO)",
+    "_notaMasObservaciones": "La leyenda \"Mas observaciones disponibles en el detalle\" depende de op.HasMoreObservations, cuyo criterio esta en ServiceOperativityData (no disponible en el repo WEB). Se adjunta al reporte pero no se exige."
+  },
+  "_elementos": {
+    "_fuente": "Markup de ServiceTariffControl / HotelTariffControl / NewTourTariffControl / NewOpportunityTariffControl / CruiseTariffControl (.ascx)",
+    "_nota": "cotizarYReservar se valida por presencia, NUNCA se clickea: navega al carrito."
+  },
+  "_datosCongelados": {
+    "fecha": "2026-08-31",
+    "fuente": "Consulta directa a qa.dbo tras cargar imagenes, amenities y tooltips"
   }
 }
