@@ -460,6 +460,48 @@ export class TarifarioPage {
     };
   }
 
+
+  /** Locator de cada componente de la card, para poder resaltarlo si falla. */
+  locatorDeComponente(container: string, clave: string): Locator {
+    const c = this.contenedor(container);
+    const mapa: Record<string, string> = {
+      imagen:           '.tariff-image-view',
+      texto:            '.tariff-detail',
+      botonTarifario:   '.tariff-view-table',
+      cotizarYReservar: '.tariff-quote-reserve-btn',
+      proveedores:      "[onclick*='openSuppliersModal']",
+      descargaWord:     "[onclick*='downloadWord']",
+      tagRecomendado:   '.featured-tag',
+      observaciones:    '.tariff-obs-item',
+      iconosTooltips:   '.tariff-op-item',
+    };
+    return c.locator(mapa[clave] ?? '.tariff-card');
+  }
+
+  /** Contenedor de la card, como respaldo cuando el componente no existe. */
+  locatorCard(container: string): Locator {
+    return this.contenedor(container).locator('.tariff-card, .item1').first();
+  }
+
+
+  /** Vuelve a la solapa de idioma indicada, para capturar el fallo donde ocurrio. */
+  async volverASolapaIdioma(nombre: string) {
+    const solapas = this.page.locator("[class*='srl-lang-tabs-'] > *");
+    const total = await solapas.count();
+    for (let i = 0; i < total; i++) {
+      if ((await solapas.nth(i).innerText()).trim() === nombre) {
+        await solapas.nth(i).click().catch(() => {});
+        await esperarFinDeCarga(this.page);
+        return;
+      }
+    }
+  }
+
+  /** Fila n de las tablas de tarifas visibles, para resaltar la que difiere. */
+  locatorFilaTarifa(container: string, indice: number): Locator {
+    return this.ambitoTarifas(container).locator('table:visible tr').nth(indice);
+  }
+
   async textoDe(container: string): Promise<string> {
     return (await this.contenedor(container).innerText()).trim();
   }

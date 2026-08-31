@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { TarifarioPage } from '../../pages/tarifario.page';
-import { paso, adjuntarTexto, precioMostrado, importeANumero } from '../../utils/pasos';
+import { paso, adjuntarTexto, precioMostrado, importeANumero, resaltarYCapturar } from '../../utils/pasos';
 import candidatos from '../../data/candidatos.json';
 import lineaBase from '../../data/importes-lineabase.json';
 
@@ -194,6 +194,14 @@ test.describe('Tarifario', () => {
           .join(SALTO) + SALTO + SALTO + 'src de la imagen: ' + src);
 
       for (const clave of Object.keys(esperados)) {
+        if (hay[clave] !== esperados[clave]) {
+          await resaltarYCapturar(
+            page,
+            t.locatorDeComponente(cfg.container, clave),
+            `FALLA: componente "${clave}"`,
+            t.locatorCard(cfg.container),
+          );
+        }
         expect(hay[clave],
           esperados[clave]
             ? `Falta el componente "${clave}" en la card`
@@ -241,9 +249,28 @@ test.describe('Tarifario', () => {
       for (const [idioma, filasEsperadas] of Object.entries(esperado.porIdioma) as [string, string[][]][]) {
         const filasActuales = actual.porIdioma[idioma];
         expect(filasActuales, `Falta la solapa de idioma "${idioma}"`).toBeDefined();
-        expect(JSON.stringify(filasActuales),
-          `Cambiaron los importes de la solapa "${idioma}"`,
-        ).toBe(JSON.stringify(filasEsperadas));
+
+        // Se compara fila por fila para poder senalar cual difiere, en vez de
+        // decir "cambiaron los importes" sin precisar donde.
+        const maximo = Math.max(filasEsperadas.length, filasActuales.length);
+        for (let i = 0; i < maximo; i++) {
+          const esp = filasEsperadas[i] ? filasEsperadas[i].join(' | ') : '(no existe)';
+          const act = filasActuales[i] ? filasActuales[i].join(' | ') : '(no existe)';
+          if (esp !== act) {
+            // Al capturar se recorrieron todas las solapas: hay que volver a la
+            // que fallo para que la captura muestre el dato correcto.
+            await t.volverASolapaIdioma(idioma);
+            await resaltarYCapturar(page, t.locatorFilaTarifa(cfg.container, i),
+              `FALLA: fila ${i} de la solapa "${idioma}"`);
+            expect(act,
+              `Cambio la fila ${i} de la solapa "${idioma}".` + SALTO +
+              `esperado: ${esp}` + SALTO + `en pantalla: ${act}`,
+            ).toBe(esp);
+          }
+        }
+        expect(filasActuales.length,
+          `Cambio la cantidad de filas de la solapa "${idioma}"`,
+        ).toBe(filasEsperadas.length);
       }
     });
   }
@@ -316,6 +343,10 @@ test.describe('Tarifario', () => {
       expect(botonesAntes.join(' | '), `Ningun boton dice "${btn.textoInicial}"`)
         .toContain(btn.textoInicial);
 
+      if (btn.alterna && !hayCerrar) {
+        await resaltarYCapturar(page, tarifario.locatorDeComponente(cfg.container, 'botonTarifario'),
+          'FALLA: el boton no cambio a Cerrar Tarifario');
+      }
       if (btn.alterna) {
         expect(hayCerrar,
           `Al desplegar deberia aparecer "Cerrar Tarifario". Botones: ${botonesDespues.join(' | ')}`,

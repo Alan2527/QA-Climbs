@@ -1,4 +1,4 @@
-import { test, Page, TestInfo } from '@playwright/test';
+import { test, Page, Locator, TestInfo } from '@playwright/test';
 
 /**
  * Envuelve un bloque logico como paso de Allure y adjunta una captura al terminarlo.
@@ -89,4 +89,53 @@ export function precioMostrado(totalRate: number, markup: number): number {
   const conMarkup = markup > 0 ? totalRate / markup : totalRate;
   // Se redondea a 2 antes de Ceiling para evitar arrastres binarios (136.39999...).
   return Math.ceil(Number(conMarkup.toFixed(2)));
+}
+
+/**
+ * Marca un elemento con un recuadro rojo y adjunta la captura.
+ *
+ * Se usa cuando una validacion falla: el reporte muestra la pantalla con el
+ * componente o el dato problematico senalado, en vez de una captura donde hay
+ * que adivinar que esta mal.
+ *
+ * Si el elemento no existe (es lo que suele fallar), se resalta el contenedor
+ * de respaldo para al menos ubicar la zona.
+ */
+export async function resaltarYCapturar(
+  page: Page,
+  locator: Locator,
+  nombre: string,
+  respaldo?: Locator,
+) {
+  const marcar = async (loc: Locator) => {
+    await loc.first().evaluate((el) => {
+      const e = el as HTMLElement;
+      // En una fila de tabla el outline se dibuja solo arriba y abajo: las celdas
+      // no lo heredan. Por eso ahi se pinta cada td y se cierra el recuadro a mano.
+      if (e.tagName === 'TR') {
+        const celdas = Array.from(e.querySelectorAll('td, th')) as HTMLElement[];
+        celdas.forEach((c, i) => {
+          c.style.backgroundColor = 'rgba(225, 29, 72, 0.12)';
+          c.style.borderTop = '3px solid #e11d48';
+          c.style.borderBottom = '3px solid #e11d48';
+          if (i === 0) c.style.borderLeft = '3px solid #e11d48';
+          if (i === celdas.length - 1) c.style.borderRight = '3px solid #e11d48';
+        });
+      } else {
+        e.style.outline = '4px solid #e11d48';
+        e.style.outlineOffset = '2px';
+        e.style.boxShadow = '0 0 0 6px rgba(225, 29, 72, 0.25)';
+      }
+      e.scrollIntoView({ block: 'center', inline: 'center' });
+    });
+  };
+
+  try {
+    if (await locator.count()) await marcar(locator);
+    else if (respaldo && (await respaldo.count())) await marcar(respaldo);
+  } catch {
+    // Un elemento que desaparece entre el conteo y el marcado no debe tapar
+    // el error real: se adjunta la captura igual.
+  }
+  await adjuntarCaptura(page, nombre, true);
 }
