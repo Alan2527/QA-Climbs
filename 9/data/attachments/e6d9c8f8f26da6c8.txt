@@ -1,0 +1,5 @@
+INCLUYE esperado: Pick Up y Drop Off en hotel, Cena, Bebidas, Traslados
+INCLUYE pantalla: Bebidas, Cena, Pick up y drop off en hotel, Traslados
+
+NO INCLUYE esperado: Guía de Turismo, Tasas y/o impuestos, Almuerzo
+NO INCLUYE pantalla: Almuerzo, Guía de Turismo, Tasas y/o impuestos

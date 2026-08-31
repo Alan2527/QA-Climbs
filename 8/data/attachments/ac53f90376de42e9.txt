@@ -1,4 +1,0 @@
-antes de desplegar:  Ver Tarifario
-despues de desplegar: Ver Tarifario
-esperado: NO alterna
-NOTA: Cruceros no tiene CruiseTariffDetailControl.ascx, por eso el boton nunca cambia a Cerrar Tarifario. Verificado en QA y en la rama preprod. Si algun dia lo arreglan, este test avisa.
