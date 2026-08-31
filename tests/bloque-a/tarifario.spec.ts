@@ -285,8 +285,14 @@ test.describe('Tarifario', () => {
 
   // Las cabinas no figuran en la card del listado: se ven al abrir el detalle
   // ("Ver Tarifario"). Esa validacion queda para el test de detalle.
+  // El modal Ver detalle de Cruceros no abre: su onclick tiene las comillas mal
+  // cerradas (Online/Module/CruiseTariffControl.ascx, linea 48), lo que lo deja
+  // como JavaScript invalido. Esta presente tambien en la rama preprod.
+  // El test valida el flujo completo igual que las otras pestanias, asi que queda
+  // en rojo hasta que se corrija: el paso no se puede ejecutar y eso es el hallazgo.
   test('Cruceros: trae tarifas y muestra el crucero esperado', async ({ page }) => {
-    const tcruceros = await validarItem(page, T.cruceros as Config, 'Cruceros');
+    const t = await validarItem(page, T.cruceros as Config, 'Cruceros');
+    await validarModalDetalle(page, t, T.cruceros, 6);
   });
 
   test('Ofertas: trae tarifas y muestra la oferta esperada', async ({ page }) => {
@@ -300,18 +306,4 @@ test.describe('Tarifario', () => {
     });
   });
 
-  /**
-   * Defecto conocido: en Cruceros el boton "Ver detalle" no abre el modal.
-   * El onclick tiene las comillas mal cerradas y queda como JS invalido:
-   *   onclick="$('#modal-X').modal('show'); style="color: var(--primary-color);""
-   * Archivo: Online/Module/CruiseTariffControl.ascx, linea 48. Tambien en preprod.
-   *
-   * Se marca como esperado-a-fallar: si algun dia lo arreglan, Playwright avisa
-   * que el test paso cuando se esperaba que fallara.
-   */
-  test('Cruceros: el modal Ver detalle deberia abrirse (defecto conocido)', async ({ page }) => {
-    test.fail();
-    const t = await validarItem(page, T.cruceros as Config, 'Cruceros');
-    await validarModalDetalle(page, t, T.cruceros, 6);
-  });
 });
