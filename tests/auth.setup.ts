@@ -7,7 +7,7 @@ const ARCHIVO_SESION = 'playwright/.auth/front.json';
  * Login una sola vez por corrida: el estado se reusa en todos los specs.
  * Evita 7 logins seguidos contra un sitio con PostBacks lentos.
  */
-setup('autenticar en el front de QA', async ({ page }) => {
+setup('Login en el front de QA', async ({ page }) => {
   const usuario  = process.env.AMV_USER;
   const password = process.env.AMV_PASS;
 

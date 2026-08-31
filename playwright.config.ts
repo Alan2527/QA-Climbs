@@ -51,11 +51,11 @@ export default defineConfig({
   },
 
   projects: [
-    { name: 'setup', testMatch: /auth\.setup\.ts/ },
+    { name: 'login', testMatch: /auth\.setup\.ts/ },
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
-      dependencies: ['setup'],
+      dependencies: ['login'],
     },
   ],
 });
