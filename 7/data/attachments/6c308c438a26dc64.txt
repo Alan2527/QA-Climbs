@@ -1,0 +1,11 @@
+imagen             esperado: true   en pantalla: true
+texto              esperado: true   en pantalla: true
+botonTarifario     esperado: true   en pantalla: true
+cotizarYReservar   esperado: true   en pantalla: true
+proveedores        esperado: false  en pantalla: false
+descargaWord       esperado: true   en pantalla: true
+tagRecomendado     esperado: false  en pantalla: false
+observaciones      esperado: false  en pantalla: false
+iconosTooltips     esperado: false  en pantalla: false
+
+src de la imagen: https://qa.amv.travel/avatars/thumbs/receptivetours/5060/360_323_31082026282177.jpg
