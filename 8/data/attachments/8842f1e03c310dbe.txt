@@ -1,0 +1,5 @@
+INCLUYE esperado: Guía de Turismo, Navegación, Traslados, Bebidas
+INCLUYE pantalla: Bebidas, Guía de Turismo, Navegación, Traslados
+
+NO INCLUYE esperado: Drop off en hotel, Otro servicio no especificado, Almuerzo
+NO INCLUYE pantalla: Almuerzo, Drop off en hotel, Otro servicio no especificado

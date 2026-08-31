@@ -1,0 +1,3 @@
+antes de desplegar:  Ver Tarifario
+despues de desplegar: Ver Tarifario | Cerrar Tarifario | TEST
+esperado: alterna a "Cerrar Tarifario"

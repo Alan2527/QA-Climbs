@@ -1,0 +1,3 @@
+antes de desplegar:  Ver Tarifario
+despues de desplegar: Ver Tarifario | Cerrar Tarifario | KING DELUXE - EDIFICIO POSADAS .. | TWIN DELUXE - EDIFICIO POSADAS | KING GARDEN VIEW - EDIFICIO POSADAS - | KING BALCONY DELUXE | KING PALACE/ TWIN PALACE | PARK SUITE KING - EDIFICIO POSADAS | BEDROOM SUITE PALACE
+esperado: alterna a "Cerrar Tarifario"

@@ -1,3 +1,0 @@
-antes de desplegar:  Ver Tarifario
-despues de desplegar: Ver Tarifario | Cerrar Tarifario
-esperado: alterna a "Cerrar Tarifario"
