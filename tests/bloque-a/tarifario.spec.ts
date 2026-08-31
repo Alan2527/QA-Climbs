@@ -22,6 +22,9 @@ test.describe('Tarifario', () => {
   type Config = {
     tab: string; container: string; nombre: string; id: number;
     cityIdBusqueda: number; terminoBusqueda: string;
+    botonTarifario: {
+      textoInicial: string; textoDesplegado: string; alterna: boolean; _hallazgo?: string;
+    };
   };
 
   /**
@@ -91,6 +94,31 @@ test.describe('Tarifario', () => {
     });
   }
 
+
+  /**
+   * Valida el modal "Ver detalle" de paquetes, hoteles, cruceros y ofertas.
+   * El titulo se compara siempre; la descripcion solo si esta cargado el
+   * texto esperado desde la base (ver _modalDetalle en candidatos.json).
+   */
+  async function validarModalDetalle(page: Page, t: TarifarioPage, cfg: any, desde: number) {
+    const esperado = cfg.modalDetalle;
+
+    await paso(page, `${desde}. Abrir el modal Ver detalle y validar su contenido`, async () => {
+      const modal = await t.abrirModalDetalle(cfg.container);
+      const texto = (await modal.innerText()).replace(/\s+/g, ' ').trim();
+      await adjuntarTexto('Contenido del modal', texto.slice(0, 2000));
+
+      expect(texto, `El modal no muestra el titulo "${esperado.titulo}"`)
+        .toContain(esperado.titulo);
+
+      if (esperado.descripcion) {
+        expect(texto, 'El modal no muestra la descripcion de la base')
+          .toContain(esperado.descripcion);
+      }
+      await t.cerrarModalDetalle(modal);
+    });
+  }
+
   async function validarItem(page: Page, cfg: Config, titulo: string) {
     const tarifario = new TarifarioPage(page);
     const ciudad = CIUDAD[cfg.tab] ?? 'Buenos Aires';
@@ -123,7 +151,33 @@ test.describe('Tarifario', () => {
     });
 
     await paso(page, '5. Desplegar el tarifario del item', async () => {
+      // El boton tiene que alternar "Ver Tarifario" -> "Cerrar Tarifario".
+      // En Cruceros no lo hace (no tiene CruiseTariffDetailControl.ascx); eso queda
+      // documentado como esperado, y si algun dia lo arreglan este test lo avisa.
+      const btn = cfg.botonTarifario;
+      const antes = await tarifario.textosBotonesTarifario(cfg.container);
+      expect(antes.join(' | '), `Ningun boton dice "${btn.textoInicial}"`)
+        .toContain(btn.textoInicial);
+
       await tarifario.verTarifario(cfg.container);
+
+      const despues = await tarifario.textosBotonesTarifario(cfg.container);
+      const hayCerrar = despues.some((t) => t.includes('Cerrar Tarifario'));
+      await adjuntarTexto('Boton del tarifario',
+        'antes: ' + antes.join(' | ') + SALTO +
+        'despues: ' + despues.join(' | ') + SALTO +
+        'alterna a "Cerrar Tarifario": ' + (btn.alterna ? 'si (esperado)' : 'no (esperado)') +
+        (btn.alterna ? '' : SALTO + 'NOTA: ' + btn._hallazgo));
+
+      if (btn.alterna) {
+        expect(hayCerrar,
+          `Al desplegar deberia aparecer "Cerrar Tarifario". Botones: ${despues.join(' | ')}`,
+        ).toBe(true);
+      } else {
+        expect(hayCerrar,
+          'Aparecio "Cerrar Tarifario" en Cruceros: antes no alternaba, revisar si lo arreglaron.',
+        ).toBe(false);
+      }
       const filas = await tarifario.leerTablaTarifas(cfg.container);
       await adjuntarTexto(
         'Tarifas que muestra la pantalla',
@@ -140,6 +194,7 @@ test.describe('Tarifario', () => {
 
   test('Paquetes: trae tarifas y muestra el paquete esperado', async ({ page }) => {
     const t = await validarItem(page, T.paquetes as Config, 'Paquetes');
+    await validarModalDetalle(page, t, T.paquetes, 7);
     await paso(page, '6. El paquete muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.paquetes.container);
       for (const c of T.paquetes.ciudades) {
@@ -154,7 +209,8 @@ test.describe('Tarifario', () => {
   });
 
   test('Hoteles: trae tarifas y muestra el hotel esperado', async ({ page }) => {
-    await validarItem(page, T.hoteles as Config, 'Hoteles');
+    const thoteles = await validarItem(page, T.hoteles as Config, 'Hoteles');
+    await validarModalDetalle(page, thoteles, T.hoteles, 6);
   });
 
   test('Traslados: trae tarifas y muestra el traslado esperado', async ({ page }) => {
@@ -230,16 +286,32 @@ test.describe('Tarifario', () => {
   // Las cabinas no figuran en la card del listado: se ven al abrir el detalle
   // ("Ver Tarifario"). Esa validacion queda para el test de detalle.
   test('Cruceros: trae tarifas y muestra el crucero esperado', async ({ page }) => {
-    await validarItem(page, T.cruceros as Config, 'Cruceros');
+    const tcruceros = await validarItem(page, T.cruceros as Config, 'Cruceros');
   });
 
   test('Ofertas: trae tarifas y muestra la oferta esperada', async ({ page }) => {
     const t = await validarItem(page, T.ofertas as Config, 'Ofertas');
+    await validarModalDetalle(page, t, T.ofertas, 7);
     await paso(page, '6. La oferta muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.ofertas.container);
       for (const c of T.ofertas.ciudades) {
         expect(texto, `Falta la ciudad ${c.nombre}`).toContain(c.nombre);
       }
     });
+  });
+
+  /**
+   * Defecto conocido: en Cruceros el boton "Ver detalle" no abre el modal.
+   * El onclick tiene las comillas mal cerradas y queda como JS invalido:
+   *   onclick="$('#modal-X').modal('show'); style="color: var(--primary-color);""
+   * Archivo: Online/Module/CruiseTariffControl.ascx, linea 48. Tambien en preprod.
+   *
+   * Se marca como esperado-a-fallar: si algun dia lo arreglan, Playwright avisa
+   * que el test paso cuando se esperaba que fallara.
+   */
+  test('Cruceros: el modal Ver detalle deberia abrirse (defecto conocido)', async ({ page }) => {
+    test.fail();
+    const t = await validarItem(page, T.cruceros as Config, 'Cruceros');
+    await validarModalDetalle(page, t, T.cruceros, 6);
   });
 });

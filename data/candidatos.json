@@ -43,7 +43,16 @@
       "paramDeepLink": "tour",
       "cityIdBusqueda": 5000,
       "terminoBusqueda": "Paquete Buenos Aires y Ushuaia",
-      "validarTarifas": false
+      "validarTarifas": false,
+      "modalDetalle": {
+        "titulo": "AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia (6 días / 5 noches)",
+        "descripcion": "Paquete de datos fijos para pruebas automatizadas. No modificar."
+      },
+      "botonTarifario": {
+        "textoInicial": "Ver Tarifario",
+        "textoDesplegado": "Cerrar Tarifario",
+        "alterna": true
+      }
     },
     "excursiones": {
       "tab": "a-excursions",
@@ -125,6 +134,11 @@
           "Drop off en hotel",
           "Otro servicio no especificado"
         ]
+      },
+      "botonTarifario": {
+        "textoInicial": "Ver Tarifario",
+        "textoDesplegado": "Cerrar Tarifario",
+        "alterna": true
       }
     },
     "hoteles": {
@@ -154,7 +168,16 @@
       "paramDeepLink": "hotel",
       "cityIdBusqueda": 5000,
       "terminoBusqueda": "Park Hyatt",
-      "validarTarifas": false
+      "validarTarifas": false,
+      "modalDetalle": {
+        "titulo": "AUTO-QA NO TOCAR - Park Hyatt Palacio Duhau",
+        "descripcion": "Ubicado en el barrio selecto de Recoleta"
+      },
+      "botonTarifario": {
+        "textoInicial": "Ver Tarifario",
+        "textoDesplegado": "Cerrar Tarifario",
+        "alterna": true
+      }
     },
     "traslados": {
       "tab": "a-transfers",
@@ -227,6 +250,11 @@
         "noIncluye": [
           "Botella de agua"
         ]
+      },
+      "botonTarifario": {
+        "textoInicial": "Ver Tarifario",
+        "textoDesplegado": "Cerrar Tarifario",
+        "alterna": true
       }
     },
     "cenaShow": {
@@ -302,6 +330,11 @@
           "Guía de Turismo",
           "Tasas y/o impuestos"
         ]
+      },
+      "botonTarifario": {
+        "textoInicial": "Ver Tarifario",
+        "textoDesplegado": "Cerrar Tarifario",
+        "alterna": true
       }
     },
     "cruceros": {
@@ -350,7 +383,17 @@
       "ciudadSalidaId": 5113,
       "ciudadLlegadaId": 5010,
       "terminoBusqueda": "Ventus Australis",
-      "validarTarifas": false
+      "validarTarifas": false,
+      "modalDetalle": {
+        "titulo": "AUTO-QA NO TOCAR - Fiordos de Tierra del Fuego - Ventus Australis 4 noches",
+        "descripcion": "Día 1: Punta Arenas - Check In y Zarpe"
+      },
+      "botonTarifario": {
+        "textoInicial": "Ver Tarifario",
+        "textoDesplegado": "Ver Tarifario",
+        "alterna": false,
+        "_hallazgo": "Cruceros no tiene CruiseTariffDetailControl.ascx, por eso el boton nunca cambia a Cerrar Tarifario. Verificado en QA y en la rama preprod. Si algun dia lo arreglan, este test avisa."
+      }
     },
     "ofertas": {
       "tab": "a-opportunities",
@@ -382,7 +425,16 @@
       "cityIdBusqueda": 5000,
       "terminoBusqueda": "Oferta Buenos Aires y Ushuaia",
       "precondicion": "Requiere tener la agencia AMV. TRAVEL (ID 1) asignada en la pestania Agencias de la oportunidad. Sin agencia asignada no se lista en el tarifario.",
-      "validarTarifas": false
+      "validarTarifas": false,
+      "modalDetalle": {
+        "titulo": "AUTO-QA NO TOCAR - Oferta Buenos Aires y Ushuaia (6 días / 5 noches)",
+        "descripcion": "Oferta de datos fijos para pruebas automatizadas. No modificar."
+      },
+      "botonTarifario": {
+        "textoInicial": "Ver Tarifario",
+        "textoDesplegado": "Cerrar Tarifario",
+        "alterna": true
+      }
     }
   },
   "_deepLink": {
@@ -435,5 +487,9 @@
   "_fichaDetalle": {
     "_fuente": "ServiceToServiceAmenity (Included/NotIncluded) + ServiceAmenity.Name, ServiceLanguage, ServiceInfo.CancellationPolicy",
     "_nota": "Las solapas son condicionales: si el dato no esta cargado, la solapa no aparece. El tarifario muestra tambien amenities con Published=0."
+  },
+  "_modalDetalle": {
+    "_fuente": "ReceptiveTourDetail.Detail (paquete/oferta), HotelDetail.Detail, CruiseDetail.Detail",
+    "_nota": "HotelDetail.Detail y CruiseDetail.Detail vienen en HTML; se compara un fragmento distintivo del texto renderizado."
   }
 }

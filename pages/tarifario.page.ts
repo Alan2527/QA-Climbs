@@ -54,6 +54,18 @@ export class TarifarioPage {
     return this.page.locator(`#${container}`);
   }
 
+  /**
+   * Ambito donde buscar las tarifas: el contenedor de la pestania mas los divs
+   * de detalle que el AJAX inyecta, que segun la pestania quedan fuera de el.
+   *   loadDetail / loadServiceDetail / loadHotelDetail -> #detailcnt-{guid}
+   *   loadDetailOpportunity                            -> #detailoptcnt-{guid}
+   */
+  ambitoTarifas(container: string): Locator {
+    return this.page.locator(
+      `#${container}, [id^="detailcnt-"], [id^="detailoptcnt-"], [id^="detailtscnt-"]`,
+    );
+  }
+
   /** Algunas pestanias son condicionales (Travel Sale viene oculta). */
   async pestaniaEstaDisponible(tab: string): Promise<boolean> {
     const loc = this.pestania(tab);
@@ -141,17 +153,76 @@ export class TarifarioPage {
    * El boton llama a loadServiceDetail(serviceId, containerId) y el resultado
    * se inyecta por AJAX; por eso se espera a que aparezcan las filas.
    */
+  /**
+   * Textos de los botones que despliegan/cierran el tarifario.
+   *
+   * Al desplegar, el *TariffDetailControl inyecta un boton "Cerrar Tarifario"
+   * que es un elemento DISTINTO del original: por eso se leen todos y no el
+   * primero, que seguiria diciendo "Ver Tarifario".
+   */
+  async textosBotonesTarifario(container: string): Promise<string[]> {
+    return this.contenedor(container)
+      .locator("a[onclick*='load'], a.accordeon-header, a.tariff-view-table")
+      .evaluateAll((els) =>
+        els.map((e) => (e as HTMLElement).innerText.replace(/\s+/g, ' ').trim())
+           .filter(Boolean),
+      );
+  }
+
   async verTarifario(container: string) {
-    // Cruceros no tiene boton: la tabla de cabinas ya viene desplegada en la card.
-    const boton = this.contenedor(container).locator("a[onclick*='load']").first();
-    if (await boton.count()) {
-      await boton.click();
+    // Servicios, hoteles, paquetes y ofertas piden el detalle por AJAX con un
+    // onclick load*(). Cruceros no: su tabla ya viene renderizada pero oculta,
+    // y el boton es un acordeon por clase (a.accordeon-header).
+    //
+    // Ojo: en cruceros las tablas estan en el DOM aunque el usuario no las vea,
+    // asi que hay que abrir el acordeon si o si; leerlas sin abrirlo da un falso verde.
+    const porAjax = this.contenedor(container).locator("a[onclick*='load']").first();
+    const acordeon = this.contenedor(container).locator('a.accordeon-header').first();
+
+    if (await porAjax.count()) {
+      await porAjax.click();
+      await esperarFinDeCarga(this.page);
+    } else if (await acordeon.count()) {
+      await acordeon.click();
       await esperarFinDeCarga(this.page);
     }
-    // Se espera por cantidad de filas y no por visibilidad: en las tablas con
-    // SGL/DBL/TPL la primera fila es un encabezado de altura cero y toBeVisible falla.
+
+    // El detalle que llega por AJAX entra plegado y, segun la pestania, en un
+    // contenedor distinto (ver mainws.js):
+    //   loadDetail / loadServiceDetail / loadHotelDetail -> #detailcnt-{guid}
+    //   loadDetailOpportunity                            -> #detailoptcnt-{guid}
+    //   travel sale                                      -> #detailtscnt-{guid}
+    // Por eso el acordeon a abrir puede quedar fuera del contenedor de la pestania.
+    // El detalle que llega por AJAX entra plegado, y segun la pestania el div
+    // queda en un contenedor distinto (#detailcnt- / #detailoptcnt- / #detailtscnt-,
+    // ver mainws.js). Ademas en la card hay varios a.accordeon-header: los nombres
+    // de los items tambien usan esa clase.
+    //
+    // En vez de adivinar cual es el del tarifario, se abren los acordeones visibles
+    // de a uno hasta que aparezcan tablas: es lo que haria un usuario y no depende
+    // del texto ni del orden, que varian entre pestanias.
+    const hayTablas = async () =>
+      (await this.ambitoTarifas(container).locator('table:visible').count()) > 0;
+
+    // El detalle que llega por AJAX trae las tarifas agrupadas, y cada grupo entra
+    // plegado: el div.col-md-12 que envuelve cada tabla queda en display:none.
+    // Sus cabeceras son a.accordeon-header.tariff-detail-group-name (el nombre del
+    // grupo), distintas del "Ver/Cerrar Tarifario" que despliega el bloque entero.
+    if (!(await hayTablas())) {
+      const grupos = this.page.locator('a.accordeon-header.tariff-detail-group-name:visible');
+      const total = await grupos.count();
+      for (let i = 0; i < total; i++) {
+        await grupos.nth(i).click().catch(() => {});
+      }
+      await esperarFinDeCarga(this.page);
+    }
+
+    // Se cuenta sobre tablas VISIBLES: en cruceros hay 17 tablas ocultas en el DOM
+    // y contarlas sin filtrar daria verde sin que el usuario vea nada.
+    // Se cuenta la tabla y no la fila porque en las de SGL/DBL/TPL la primera fila
+    // es un encabezado de altura cero.
     await expect
-      .poll(async () => this.contenedor(container).locator('table tr').count(),
+      .poll(async () => this.ambitoTarifas(container).locator('table:visible').count(),
             { timeout: 60_000 })
       .toBeGreaterThan(0);
   }
@@ -166,7 +237,7 @@ export class TarifarioPage {
 
   /** Filas de la tabla de tarifas desplegada: FECHAS | TIPO | PAX | PRECIO. */
   async leerTablaTarifas(container: string): Promise<string[][]> {
-    return this.contenedor(container).locator('table tr').evaluateAll((trs) =>
+    return this.ambitoTarifas(container).locator('table:visible tr').evaluateAll((trs) =>
       trs
         .map((tr) =>
           Array.from(tr.querySelectorAll('th,td'))
@@ -238,6 +309,37 @@ export class TarifarioPage {
   async cerrarFichaDetalle() {
     await this.page.keyboard.press('Escape');
     await this.page.locator('.svc-sheet').waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => {});
+  }
+
+
+  /**
+   * Abre el modal "Ver detalle" de paquetes, hoteles, cruceros y ofertas.
+   *
+   * A diferencia de los servicios (que piden la ficha por AJAX con
+   * openServiceSheet), estos modales ya vienen renderizados en el HTML y el
+   * boton solo hace $('#modal-XXX').modal('show').
+   *
+   * Devuelve el locator del modal abierto.
+   */
+  async abrirModalDetalle(container: string): Promise<Locator> {
+    const boton = this.contenedor(container)
+      .locator("a:has-text('Ver detalle'), a:has-text('Ver Detalle')").first();
+    await expect(boton).toBeVisible({ timeout: 30_000 });
+
+    const onclick = (await boton.getAttribute('onclick')) ?? '';
+    const id = onclick.match(/#(modal-[A-Za-z0-9-]+)/)?.[1];
+    if (!id) throw new Error(`El boton "Ver detalle" no apunta a ningun modal: ${onclick}`);
+
+    await boton.click();
+    const modal = this.page.locator(`#${id}`);
+    await expect(modal).toBeVisible({ timeout: 30_000 });
+    return modal;
+  }
+
+  /** Cierra el modal de detalle abierto. */
+  async cerrarModalDetalle(modal: Locator) {
+    await this.page.keyboard.press('Escape');
+    await modal.waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => {});
   }
 
   async textoDe(container: string): Promise<string> {
