@@ -1,5 +1,0 @@
-INCLUYE esperado: Drop off en hotel, Guía de Turismo, Traslados
-INCLUYE pantalla: Drop off en hotel, Guía de Turismo, Traslados
-
-NO INCLUYE esperado: Botella de agua
-NO INCLUYE pantalla: Botella de agua

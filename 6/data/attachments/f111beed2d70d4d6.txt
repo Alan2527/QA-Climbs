@@ -1,0 +1,3 @@
+antes: Ver Tarifario
+despues: Ver Tarifario | Cerrar Tarifario
+alterna a "Cerrar Tarifario": si (esperado)

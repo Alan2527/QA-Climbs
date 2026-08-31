@@ -1,0 +1,3 @@
+antes: Ver Tarifario
+despues: Ver Tarifario | Cerrar Tarifario | AUTO QA NO TOCAR | AUTO QA NO TOCAR | AUTO QA NO TOCAR | AUTO QA NO TOCAR
+alterna a "Cerrar Tarifario": si (esperado)
