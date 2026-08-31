@@ -335,8 +335,7 @@ export class TarifarioPage {
    * Devuelve el locator del modal abierto.
    */
   async abrirModalDetalle(container: string): Promise<Locator> {
-    const boton = this.contenedor(container)
-      .locator("a:has-text('Ver detalle'), a:has-text('Ver Detalle')").first();
+    const boton = this.locatorBotonVerDetalle(container);
     await expect(boton).toBeVisible({ timeout: 30_000 });
 
     const onclick = (await boton.getAttribute('onclick')) ?? '';
@@ -347,6 +346,14 @@ export class TarifarioPage {
     const modal = this.page.locator(`#${id}`);
     await expect(modal).toBeVisible({ timeout: 30_000 });
     return modal;
+  }
+
+  /**
+   * Boton "Ver detalle" de la card, para poder resaltarlo cuando no abre el modal.
+   */
+  locatorBotonVerDetalle(container: string): Locator {
+    return this.contenedor(container)
+      .locator("a:has-text('Ver detalle'), a:has-text('Ver Detalle')").first();
   }
 
   /** Cierra el modal de detalle abierto. */

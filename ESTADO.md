@@ -44,8 +44,8 @@ CityID 5000, CurrencyID 1 (USD), markup del header **M 0.50**.
 
 ## BLOQUE A — Tarifario: terminado
 
-7 tests, uno por pestaña. **6 en verde**, Cruceros en rojo por un defecto real de
-la aplicación (ver Hallazgos).
+7 tests, uno por pestaña. **6 en verde**, Cruceros en rojo por dos defectos reales
+de la aplicación (ver Hallazgos).
 
 ### Recorrido de cada test
 
@@ -178,6 +178,10 @@ importes en `data/importes-lineabase.json`.
 
 No están redactados como bug porque no hay US contra la cual citarlos.
 
+Los dos primeros los marca en rojo el test de Cruceros. Ninguno está dado por
+esperado en `candidatos.json`: el paso se deja escrito como corresponde y falla
+hasta que se corrija.
+
 ### 1. Cruceros: el botón "Ver detalle" no abre nada
 
 `Online/Module/CruiseTariffControl.ascx`, línea 48. El `onclick` tiene las comillas
@@ -191,14 +195,23 @@ El modal existe en el DOM pero nunca se muestra. **Presente también en la rama
 preprod**, así que no es una regresión reciente. Es el único control con ese patrón;
 el botón por cabina (línea 99) está bien escrito.
 
-**Por eso el test de Cruceros está en rojo.** Cuando lo corrijan, pasa a verde solo.
+Falla el paso 9 del test. La captura del reporte resalta el botón "Ver detalle"
+sobre el que se hizo clic.
 
 ### 2. Cruceros: el botón nunca cambia a "Cerrar Tarifario"
 
 Las otras cinco pestañas cargan su detalle por AJAX desde un `*TariffDetailControl.ascx`
 que inyecta el botón con el recurso `Advisor.Tariff.Service.Hide`. Cruceros no tiene
 ese control porque su tabla ya viene renderizada, así que el texto queda fijo.
-Está documentado como esperado en `candidatos.json`: si lo arreglan, el test avisa.
+
+Falla el paso 7 del test, con el botón resaltado en la captura. La comparación va
+contra `textoDesplegado` de `candidatos.json`, que dice **"Cerrar Tarifario"** en las
+siete pestañas: lo que la aplicación hace hoy no define el resultado esperado. El
+contexto queda en `_hallazgoConocido`, que se adjunta al reporte como nota.
+
+El assert es **soft**: el tarifario ya quedó desplegado y con filas en el paso 6, así
+que el test sigue y valida los importes y el modal en la misma corrida. Con un assert
+duro cortaba en el paso 7 y tapaba el hallazgo 1.
 
 ### 3. El tarifario muestra amenities con `Published = 0`
 
@@ -302,5 +315,12 @@ qa-e2e/
 - **Fechas de búsqueda**: siempre hoy + 7 días.
 - **Capturas de página completa** en cada paso.
 - **Un test por caso**, para que un fallo no tape a los demás.
+- **Los pasos se numeran solos**: `paso()` lleva el contador y lo reinicia en el
+  `beforeEach`. El título va sin número. Antes venía escrito a mano y bastaba con
+  intercalar un bloque de validación para que se repitiera un número.
+- **Un paso que falla también adjunta captura**, no sólo los que pasan.
+- **Lo que la aplicación hace no define lo esperado**: un defecto conocido no se
+  invierte en el assert para que el paso salga en verde. Se deja el paso escrito
+  como corresponde, se anota el contexto en `_hallazgoConocido` y se acepta el rojo.
 - **Los selectores salen del código fuente** (`WEB/src/AMV.Travel/Web`), nunca se
   inventan. Si hace falta uno que no está en el código, se pide el `outerHTML`.

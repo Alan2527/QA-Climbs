@@ -1,6 +1,9 @@
 import { test, expect, Page } from '@playwright/test';
 import { TarifarioPage } from '../../pages/tarifario.page';
-import { paso, adjuntarTexto, precioMostrado, importeANumero, resaltarYCapturar } from '../../utils/pasos';
+import {
+  paso, adjuntarTexto, precioMostrado, importeANumero, resaltarYCapturar,
+  reiniciarNumeracionDePasos,
+} from '../../utils/pasos';
 import candidatos from '../../data/candidatos.json';
 import lineaBase from '../../data/importes-lineabase.json';
 
@@ -24,7 +27,7 @@ test.describe('Tarifario', () => {
     tab: string; container: string; nombre: string; id: number;
     cityIdBusqueda: number; terminoBusqueda: string;
     botonTarifario: {
-      textoInicial: string; textoDesplegado: string; alterna: boolean; _hallazgo?: string;
+      textoInicial: string; textoDesplegado: string; _hallazgoConocido?: string;
     };
   };
 
@@ -40,6 +43,7 @@ test.describe('Tarifario', () => {
   };
 
   test.beforeEach(async ({ page }) => {
+    reiniciarNumeracionDePasos();
     // Landing del portal despues del login; desde ahi se navega por el menu.
     await page.goto('/online/');
     await new TarifarioPage(page).irDesdeElMenu();
@@ -53,10 +57,10 @@ test.describe('Tarifario', () => {
    * Valida el popup "Ver Detalle" contra lo que hay en la base.
    * Las solapas son condicionales: si el dato no esta cargado, no se renderiza.
    */
-  async function validarFichaDetalle(page: Page, t: TarifarioPage, cfg: any, desde: number) {
+  async function validarFichaDetalle(page: Page, t: TarifarioPage, cfg: any) {
     const ficha = cfg.fichaDetalle;
 
-    await paso(page, `${desde}. Abrir el popup Ver Detalle`, async () => {
+    await paso(page, 'Abrir el popup Ver Detalle', async () => {
       await t.abrirFichaDetalle(cfg.container);
       const solapas = await t.solapasDeLaFicha();
       await adjuntarTexto('Solapas de la ficha', solapas.join(', '));
@@ -65,7 +69,7 @@ test.describe('Tarifario', () => {
       }
     });
 
-    await paso(page, `${desde + 1}. Incluye / No incluye coincide con la base`, async () => {
+    await paso(page, 'Incluye / No incluye coincide con la base', async () => {
       const { incluye, noIncluye } = await t.amenitiesDeLaFicha();
       await adjuntarTexto(
         'Amenities: base vs pantalla',
@@ -85,7 +89,7 @@ test.describe('Tarifario', () => {
       expect(noIncluye.length, 'NO INCLUYE muestra items que la base no tiene').toBe(ficha.noIncluye.length);
     });
 
-    await paso(page, `${desde + 2}. La ficha tecnica muestra los idiomas de la base`, async () => {
+    await paso(page, 'La ficha tecnica muestra los idiomas de la base', async () => {
       const tecnica = await t.contenidoDeSolapa('technical');
       await adjuntarTexto('Ficha tecnica en pantalla', tecnica);
       for (const idioma of ficha.idiomas) {
@@ -101,11 +105,25 @@ test.describe('Tarifario', () => {
    * El titulo se compara siempre; la descripcion solo si esta cargado el
    * texto esperado desde la base (ver _modalDetalle en candidatos.json).
    */
-  async function validarModalDetalle(page: Page, t: TarifarioPage, cfg: any, desde: number) {
+  async function validarModalDetalle(page: Page, t: TarifarioPage, cfg: any) {
     const esperado = cfg.modalDetalle;
 
-    await paso(page, `${desde}. Abrir el modal Ver detalle y validar su contenido`, async () => {
-      const modal = await t.abrirModalDetalle(cfg.container);
+    await paso(page, 'Abrir el modal Ver detalle y validar su contenido', async () => {
+      // El fallo tipico es que el modal no llegue a abrirse. Sin este resaltado
+      // el paso quedaba en rojo sin imagen y no se veia sobre que boton se
+      // habia hecho clic ni que mostraba la pantalla en ese momento.
+      let modal;
+      try {
+        modal = await t.abrirModalDetalle(cfg.container);
+      } catch (error) {
+        await resaltarYCapturar(
+          page,
+          t.locatorBotonVerDetalle(cfg.container),
+          'FALLA: el boton "Ver detalle" no abrio el modal',
+          t.locatorCard(cfg.container),
+        );
+        throw error;
+      }
       const texto = (await modal.innerText()).replace(/\s+/g, ' ').trim();
       await adjuntarTexto('Contenido del modal', texto.slice(0, 2000));
 
@@ -128,11 +146,11 @@ test.describe('Tarifario', () => {
    *   - tooltips (duracion, idiomas, operatividad y amenity destacada)
    *   - tag RECOMENDADO -> Hotel.Great = 1
    */
-  async function validarCard(page: Page, t: TarifarioPage, cfg: any, desde: number) {
+  async function validarCard(page: Page, t: TarifarioPage, cfg: any) {
     const card = cfg.card;
     if (!card) return;
 
-    await paso(page, `${desde}. La card muestra los datos destacados de la base`, async () => {
+    await paso(page, 'La card muestra los datos destacados de la base', async () => {
       const obs = await t.observacionesDestacadas(cfg.container);
       const mas = await t.textoMasObservaciones(cfg.container);
       const tips = await t.tooltips(cfg.container);
@@ -182,8 +200,8 @@ test.describe('Tarifario', () => {
    * "Cotizar y reservar" se verifica por presencia y NO se clickea: navega al
    * carrito y saca al test del tarifario.
    */
-  async function validarElementos(page: Page, t: TarifarioPage, cfg: any, desde: number) {
-    await paso(page, `${desde}. La card muestra los componentes que corresponden`, async () => {
+  async function validarElementos(page: Page, t: TarifarioPage, cfg: any) {
+    await paso(page, 'La card muestra los componentes que corresponden', async () => {
       const esperados = cfg.elementos;
       const hay = (await t.elementosDeLaCard(cfg.container)) as Record<string, boolean>;
       const src = await t.srcImagen(cfg.container);
@@ -223,11 +241,11 @@ test.describe('Tarifario', () => {
    * altera un precio, el recargo por idioma o la marca TARIFA EXTENDIDA, falla.
    * Se recorren todas las solapas de idioma, porque el precio cambia entre ellas.
    */
-  async function validarImportes(page: Page, t: TarifarioPage, clave: string, cfg: any, desde: number) {
+  async function validarImportes(page: Page, t: TarifarioPage, clave: string, cfg: any) {
     const esperado = (lineaBase.items as Record<string, any>)[clave];
     if (!esperado) return;
 
-    await paso(page, `${desde}. Los importes coinciden con la linea base`, async () => {
+    await paso(page, 'Los importes coinciden con la linea base', async () => {
       const actual = await t.capturarTarifas(cfg.container);
 
       const resumen = (x: any) =>
@@ -279,7 +297,7 @@ test.describe('Tarifario', () => {
     const tarifario = new TarifarioPage(page);
     const ciudad = CIUDAD[cfg.tab] ?? 'Buenos Aires';
 
-    await paso(page, `1. Filtrar por Argentina / ${ciudad} y buscar`, async () => {
+    await paso(page, `Filtrar por Argentina / ${ciudad} y buscar`, async () => {
       await tarifario.seleccionarPais('Argentina');
       await tarifario.seleccionarCiudad(ciudad);
       const filtros = await tarifario.filtrosActuales();
@@ -288,17 +306,17 @@ test.describe('Tarifario', () => {
       await tarifario.buscar();
     });
 
-    await paso(page, `2. Abrir la pestania ${titulo} y esperar tarifas`, async () => {
+    await paso(page, `Abrir la pestania ${titulo} y esperar tarifas`, async () => {
       const disponible = await tarifario.pestaniaEstaDisponible(cfg.tab);
       expect(disponible, `La pestania ${titulo} (#${cfg.tab}) no esta visible`).toBe(true);
       await tarifario.abrirPestania(cfg.tab, cfg.container);
     });
 
-    await paso(page, `3. Buscar "${cfg.terminoBusqueda}" en el buscador de la pantalla`, async () => {
+    await paso(page, `Buscar "${cfg.terminoBusqueda}" en el buscador de la pantalla`, async () => {
       await tarifario.buscarPorNombre(cfg.terminoBusqueda, cfg.nombre);
     });
 
-    await paso(page, `4. El item aparece con su nombre exacto`, async () => {
+    await paso(page, 'El item aparece con su nombre exacto', async () => {
       const texto = await tarifario.textoDe(cfg.container);
       await adjuntarTexto('Esperado', `ID: ${cfg.id}\nNombre: ${cfg.nombre}`);
       await adjuntarTexto('Obtenido en pantalla', texto.slice(0, 3000));
@@ -306,16 +324,15 @@ test.describe('Tarifario', () => {
         .toContain(cfg.nombre);
     });
 
-    await validarElementos(page, tarifario, cfg, 5);
+    await validarElementos(page, tarifario, cfg);
 
     // El estado del boton se guarda para validarlo en su propio paso.
     let botonesAntes: string[] = [];
     let botonesDespues: string[] = [];
 
-    await paso(page, '6. Desplegar el tarifario del item', async () => {
+    await paso(page, 'Desplegar el tarifario del item', async () => {
       // El boton tiene que alternar "Ver Tarifario" -> "Cerrar Tarifario".
-      // En Cruceros no lo hace (no tiene CruiseTariffDetailControl.ascx); eso queda
-      // documentado como esperado, y si algun dia lo arreglan este test lo avisa.
+      // Se guarda el texto antes y despues para validarlo en el paso siguiente.
       botonesAntes = await tarifario.textosBotonesTarifario(cfg.container);
       await tarifario.verTarifario(cfg.container);
       botonesDespues = await tarifario.textosBotonesTarifario(cfg.container);
@@ -330,32 +347,36 @@ test.describe('Tarifario', () => {
       expect(precios.length, 'El tarifario no muestra ningun importe').toBeGreaterThan(0);
     });
 
-    await paso(page, '7. El boton pasa de "Ver Tarifario" a "Cerrar Tarifario"', async () => {
+    // El paso exige la misma transicion en todas las pestanias. Antes, en
+    // Cruceros se invertia la validacion y se daba por bueno que el boton
+    // siguiera diciendo "Ver Tarifario": el paso salia en verde con el defecto
+    // a la vista en la captura. Lo que la aplicacion hace no define lo esperado.
+    await paso(page, 'El boton pasa de "Ver Tarifario" a "Cerrar Tarifario"', async () => {
       const btn = cfg.botonTarifario;
-      const hayCerrar = botonesDespues.some((t) => t.includes('Cerrar Tarifario'));
+      const hayCerrar = botonesDespues.some((t) => t.includes(btn.textoDesplegado));
 
       await adjuntarTexto('Transicion del boton',
-        'antes de desplegar:  ' + botonesAntes.join(' | ') + SALTO +
+        'antes de desplegar:   ' + botonesAntes.join(' | ') + SALTO +
         'despues de desplegar: ' + botonesDespues.join(' | ') + SALTO +
-        'esperado: ' + (btn.alterna ? 'alterna a "Cerrar Tarifario"' : 'NO alterna') +
-        (btn.alterna ? '' : SALTO + 'NOTA: ' + btn._hallazgo));
+        'esperado antes:       ' + btn.textoInicial + SALTO +
+        'esperado despues:     ' + btn.textoDesplegado +
+        (btn._hallazgoConocido ? SALTO + SALTO + 'HALLAZGO CONOCIDO: ' + btn._hallazgoConocido : ''));
 
       expect(botonesAntes.join(' | '), `Ningun boton dice "${btn.textoInicial}"`)
         .toContain(btn.textoInicial);
 
-      if (btn.alterna && !hayCerrar) {
+      if (!hayCerrar) {
         await resaltarYCapturar(page, tarifario.locatorDeComponente(cfg.container, 'botonTarifario'),
-          'FALLA: el boton no cambio a Cerrar Tarifario');
+          `FALLA: el boton sigue diciendo "${botonesDespues.join(' | ')}" y deberia decir "${btn.textoDesplegado}"`);
       }
-      if (btn.alterna) {
-        expect(hayCerrar,
-          `Al desplegar deberia aparecer "Cerrar Tarifario". Botones: ${botonesDespues.join(' | ')}`,
-        ).toBe(true);
-      } else {
-        expect(hayCerrar,
-          'Aparecio "Cerrar Tarifario" en Cruceros: antes no alternaba, revisar si lo arreglaron.',
-        ).toBe(false);
-      }
+
+      // Soft: el tarifario ya quedo desplegado y con filas (paso anterior), asi
+      // que las validaciones que siguen tienen sentido igual. Con un expect duro
+      // el test cortaba aca y tapaba el resto de los hallazgos de la pestania.
+      expect.soft(hayCerrar,
+        `Al desplegar, el boton deberia pasar a "${btn.textoDesplegado}". ` +
+        `En pantalla dice: ${botonesDespues.join(' | ')}`,
+      ).toBe(true);
     });
 
     return tarifario;
@@ -363,9 +384,9 @@ test.describe('Tarifario', () => {
 
   test('Paquetes: trae tarifas y muestra el paquete esperado', async ({ page }) => {
     const t = await validarItem(page, T.paquetes as Config, 'Paquetes');
-    await validarImportes(page, t, 'paquetes', T.paquetes, 8);
-    await validarModalDetalle(page, t, T.paquetes, 9);
-    await paso(page, '8. El paquete muestra sus dos ciudades', async () => {
+    await validarImportes(page, t, 'paquetes', T.paquetes);
+    await validarModalDetalle(page, t, T.paquetes);
+    await paso(page, 'El paquete muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.paquetes.container);
       for (const c of T.paquetes.ciudades) {
         expect(texto, `Falta la ciudad ${c.nombre}`).toContain(c.nombre);
@@ -375,31 +396,31 @@ test.describe('Tarifario', () => {
 
   test('Excursiones: trae tarifas y muestra la excursion esperada', async ({ page }) => {
     const t = await validarItem(page, T.excursiones as Config, 'Excursiones');
-    await validarImportes(page, t, 'excursiones', T.excursiones, 8);
-    await validarCard(page, t, T.excursiones, 9);
-    await validarFichaDetalle(page, t, T.excursiones, 9);
+    await validarImportes(page, t, 'excursiones', T.excursiones);
+    await validarCard(page, t, T.excursiones);
+    await validarFichaDetalle(page, t, T.excursiones);
   });
 
   test('Hoteles: trae tarifas y muestra el hotel esperado', async ({ page }) => {
     const thoteles = await validarItem(page, T.hoteles as Config, 'Hoteles');
-    await validarImportes(page, thoteles, 'hoteles', T.hoteles, 8);
-    await validarCard(page, thoteles, T.hoteles, 8);
-    await validarModalDetalle(page, thoteles, T.hoteles, 8);
+    await validarImportes(page, thoteles, 'hoteles', T.hoteles);
+    await validarCard(page, thoteles, T.hoteles);
+    await validarModalDetalle(page, thoteles, T.hoteles);
   });
 
   test('Traslados: trae tarifas y muestra el traslado esperado', async ({ page }) => {
     const t = await validarItem(page, T.traslados as Config, 'Traslados');
-    await validarImportes(page, t, 'traslados', T.traslados, 8);
-    await validarCard(page, t, T.traslados, 8);
-    await validarFichaDetalle(page, t, T.traslados, 8);
+    await validarImportes(page, t, 'traslados', T.traslados);
+    await validarCard(page, t, T.traslados);
+    await validarFichaDetalle(page, t, T.traslados);
   });
 
   test('Cena Show: trae tarifas y coinciden con las de la base', async ({ page }) => {
     const cfg = T.cenaShow;
     const t = await validarItem(page, cfg as Config, 'Cena Show');
-    await validarImportes(page, t, 'cenaShow', cfg, 8);
+    await validarImportes(page, t, 'cenaShow', cfg);
 
-    await paso(page, '8. Las tarifas coinciden con las de la base de datos', async () => {
+    await paso(page, 'Las tarifas coinciden con las de la base de datos', async () => {
       // Se lee de la pantalla para no dar falso positivo si alguien lo cambia;
       // si no se puede leer, se cae al valor documentado en candidatos.json.
       const leido = await t.markupActivo();
@@ -457,28 +478,32 @@ test.describe('Tarifario', () => {
       ).toBe(esperados.length);
     });
 
-    await validarCard(page, t, cfg, 9);
-    await validarFichaDetalle(page, t, cfg, 9);
+    await validarCard(page, t, cfg);
+    await validarFichaDetalle(page, t, cfg);
   });
 
   // Las cabinas no figuran en la card del listado: se ven al abrir el detalle
   // ("Ver Tarifario"). Esa validacion queda para el test de detalle.
-  // El modal Ver detalle de Cruceros no abre: su onclick tiene las comillas mal
-  // cerradas (Online/Module/CruiseTariffControl.ascx, linea 48), lo que lo deja
-  // como JavaScript invalido. Esta presente tambien en la rama preprod.
-  // El test valida el flujo completo igual que las otras pestanias, asi que queda
-  // en rojo hasta que se corrija: el paso no se puede ejecutar y eso es el hallazgo.
+  //
+  // Cruceros arrastra dos defectos de la aplicacion y el test los muestra a los
+  // dos en la misma corrida, sin dar ninguno por esperado:
+  //   - el boton no pasa a "Cerrar Tarifario": no existe CruiseTariffDetailControl.ascx
+  //   - el modal "Ver detalle" no abre: el onclick tiene las comillas mal cerradas
+  //     (Online/Module/CruiseTariffControl.ascx, linea 48), lo que lo deja como
+  //     JavaScript invalido. Presente tambien en la rama preprod.
+  // Queda en rojo hasta que se corrijan: el paso no se puede ejecutar tal como
+  // esta escrito, y eso es el hallazgo.
   test('Cruceros: trae tarifas y muestra el crucero esperado', async ({ page }) => {
     const t = await validarItem(page, T.cruceros as Config, 'Cruceros');
-    await validarImportes(page, t, 'cruceros', T.cruceros, 8);
-    await validarModalDetalle(page, t, T.cruceros, 8);
+    await validarImportes(page, t, 'cruceros', T.cruceros);
+    await validarModalDetalle(page, t, T.cruceros);
   });
 
   test('Ofertas: trae tarifas y muestra la oferta esperada', async ({ page }) => {
     const t = await validarItem(page, T.ofertas as Config, 'Ofertas');
-    await validarImportes(page, t, 'ofertas', T.ofertas, 8);
-    await validarModalDetalle(page, t, T.ofertas, 9);
-    await paso(page, '8. La oferta muestra sus dos ciudades', async () => {
+    await validarImportes(page, t, 'ofertas', T.ofertas);
+    await validarModalDetalle(page, t, T.ofertas);
+    await paso(page, 'La oferta muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.ofertas.container);
       for (const c of T.ofertas.ciudades) {
         expect(texto, `Falta la ciudad ${c.nombre}`).toContain(c.nombre);

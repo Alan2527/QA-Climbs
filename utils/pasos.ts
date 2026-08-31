@@ -1,8 +1,30 @@
 import { test, Page, Locator, TestInfo } from '@playwright/test';
 
 /**
- * Envuelve un bloque logico como paso de Allure y adjunta una captura al terminarlo.
- * Equivale al `with allure.step(...)` + screenshot de la suite de Selenium.
+ * Numero de paso dentro del test en curso.
+ *
+ * Antes cada llamada a `paso()` traia el numero escrito a mano en el titulo y
+ * habia que pasarle un `desde` a cada bloque de validacion. Bastaba con sumar
+ * un bloque intermedio para que se repitiera un numero: el test de Cruceros
+ * mostraba dos pasos 8 en el reporte. Ahora lo lleva el contador.
+ */
+let numeroDePaso = 0;
+
+/** Marca si el paso en curso ya adjunto una captura con el fallo resaltado. */
+let hayCapturaDeFalla = false;
+
+/** Vuelve la numeracion a cero. Se llama en el beforeEach de cada test. */
+export function reiniciarNumeracionDePasos() {
+  numeroDePaso = 0;
+}
+
+/**
+ * Envuelve un bloque logico como paso de Allure, numerandolo solo, y adjunta
+ * una captura al terminarlo.
+ *
+ * Si el bloque falla tambien adjunta la captura: sin esto un paso en rojo
+ * quedaba en el reporte sin ninguna imagen y no se veia que habia en pantalla
+ * en el momento del fallo.
  */
 export async function paso(
   page: Page,
@@ -10,9 +32,17 @@ export async function paso(
   fn: () => Promise<void>,
   opciones: { paginaCompleta?: boolean } = {},
 ) {
-  await test.step(titulo, async () => {
-    await fn();
-    await adjuntarCaptura(page, titulo, opciones.paginaCompleta ?? true);
+  const numerado = `${++numeroDePaso}. ${titulo}`;
+  await test.step(numerado, async () => {
+    hayCapturaDeFalla = false;
+    try {
+      await fn();
+    } catch (error) {
+      // Si ya se adjunto una captura con el elemento resaltado, no se duplica.
+      if (!hayCapturaDeFalla) await adjuntarCaptura(page, `FALLA: ${numerado}`, true);
+      throw error;
+    }
+    await adjuntarCaptura(page, numerado, opciones.paginaCompleta ?? true);
   });
 }
 
@@ -138,4 +168,5 @@ export async function resaltarYCapturar(
     // el error real: se adjunta la captura igual.
   }
   await adjuntarCaptura(page, nombre, true);
+  hayCapturaDeFalla = true;
 }

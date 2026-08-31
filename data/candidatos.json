@@ -50,8 +50,7 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Cerrar Tarifario",
-        "alterna": true
+        "textoDesplegado": "Cerrar Tarifario"
       },
       "elementos": {
         "imagen": true,
@@ -151,8 +150,7 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Cerrar Tarifario",
-        "alterna": true
+        "textoDesplegado": "Cerrar Tarifario"
       },
       "card": {
         "observacionesDestacadas": [
@@ -212,8 +210,7 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Cerrar Tarifario",
-        "alterna": true
+        "textoDesplegado": "Cerrar Tarifario"
       },
       "card": {
         "tagRecomendado": "RECOMENDADO"
@@ -311,8 +308,7 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Cerrar Tarifario",
-        "alterna": true
+        "textoDesplegado": "Cerrar Tarifario"
       },
       "card": {
         "observacionesDestacadas": [
@@ -412,8 +408,7 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Cerrar Tarifario",
-        "alterna": true
+        "textoDesplegado": "Cerrar Tarifario"
       },
       "card": {
         "observacionesDestacadas": [
@@ -489,9 +484,8 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Ver Tarifario",
-        "alterna": false,
-        "_hallazgo": "Cruceros no tiene CruiseTariffDetailControl.ascx, por eso el boton nunca cambia a Cerrar Tarifario. Verificado en QA y en la rama preprod. Si algun dia lo arreglan, este test avisa."
+        "textoDesplegado": "Cerrar Tarifario",
+        "_hallazgoConocido": "Hoy el boton no cambia a Cerrar Tarifario: Cruceros no tiene CruiseTariffDetailControl.ascx, que es el que inyecta el boton con el recurso Advisor.Tariff.Service.Hide. Verificado en QA y en la rama preprod. El paso se deja escrito como corresponde y falla hasta que lo corrijan."
       },
       "elementos": {
         "imagen": true,
@@ -544,8 +538,7 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Cerrar Tarifario",
-        "alterna": true
+        "textoDesplegado": "Cerrar Tarifario"
       },
       "elementos": {
         "imagen": true,
