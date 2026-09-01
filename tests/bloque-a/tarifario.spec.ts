@@ -434,6 +434,48 @@ test.describe('Tarifario', () => {
           .toContain(card.tooltipAmenity);
       }
 
+      // --- Barra de operatividad: duracion, idiomas y calendario ---
+      if (card.duracionRegular) {
+        const barra = await t.barraDeOperatividad(cfg.container);
+        const idiomas: string[] = cfg.fichaDetalle?.idiomas ?? [];
+        const meses: number[] = cfg.fichaDetalle?.mesesConSalida ?? [];
+
+        await adjuntarTexto('Barra de operatividad de la card',
+          barra.map((x, i) =>
+            `[${i}] ${x.esCalendario ? 'calendario' : 'item'}` + SALTO +
+            `    texto:   ${x.texto}` + SALTO +
+            `    meses:   ${x.meses}` + SALTO +
+            `    tooltip: ${x.tooltip}`).join(SALTO));
+
+        // La card muestra la duracion de la modalidad Regular.
+        expect(barra.map((x) => x.texto).join(' | '),
+          `Ningun item de la barra muestra la duracion "${card.duracionRegular}"`,
+        ).toContain(card.duracionRegular);
+
+        // El tooltip de idiomas trae la lista completa, no los codigos.
+        const tipIdiomas = barra.map((x) => norm(x.tooltip)).join(' | ');
+        for (const idioma of idiomas) {
+          expect(tipIdiomas, `El tooltip de idiomas no menciona "${idioma}"`)
+            .toContain(norm(idioma));
+        }
+
+        // El resumen de temporada no puede nombrar un mes que la base no opera.
+        // No se compara la cadena entera porque el control la abrevia en rangos
+        // ("Ene-Mar, May-Jul"), y reconstruir ese formato seria reimplementarlo.
+        const calendario = barra.find((x) => x.esCalendario);
+        expect(calendario, 'La card no muestra el item de operatividad').toBeDefined();
+        if (calendario && meses.length) {
+          const ABREV = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+                         'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+          const fuera = ABREV.filter((_, i) => !meses.includes(i + 1));
+          for (const mes of fuera) {
+            expect(norm(calendario.meses),
+              `La temporada nombra "${mes}" y la base no opera ese mes`,
+            ).not.toContain(norm(mes));
+          }
+        }
+      }
+
       if (card.tagRecomendado) {
         expect(tag, 'No aparece el tag RECOMENDADO').not.toBeNull();
         expect((tag ?? '').toUpperCase(), 'El tag no dice RECOMENDADO')

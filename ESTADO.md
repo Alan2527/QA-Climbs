@@ -214,6 +214,26 @@ saltos y espacios, así que una igualdad estricta daría rojo por diferencias de
 formato que no le importan a nadie. Con este criterio, un párrafo que falta o que
 cambió sí falla.
 
+### Barra de operatividad de la card
+
+`RenderOperativityIcons` (`ServiceTariffControl.ascx.cs:99`) arma hasta tres ítems,
+y se validan los tres por separado en vez de contar cuántos hay:
+
+| Ítem | Qué se valida | Fuente |
+|---|---|---|
+| Duración (`ph-clock`) | el texto es la duración de la modalidad Regular | `ServiceDuration` con `RateTypeID = 6` |
+| Idiomas (`ph-translate`) | el tooltip trae los nombres completos, no los códigos | los idiomas del servicio |
+| Operatividad (`.tariff-op-calendar`) | el resumen de temporada **no nombra un mes que la base no opera** | `ServiceMonth` |
+
+Del resumen de temporada no se compara la cadena entera: el control la abrevia en
+rangos (`Ene–Mar, May–Jul, Oct–Dic`) y reconstruir ese formato sería reimplementar
+su lógica. Se valida por la negativa, que es lo que detecta un error real, y la
+comparación exacta de meses ya la hace la solapa Salidas contra `ServiceMonth`.
+
+> El tag **RECOMENDADO** de la card de hoteles sale de `Hotel.Great = 1`,
+> verificado en QA sobre el hotel 5003. Antes el esperado estaba escrito a mano
+> sin trazabilidad.
+
 ### Modal de Proveedores
 
 Lo tienen los tres servicios y Hoteles. Se abre y se compara **la tabla entera**,
@@ -443,8 +463,6 @@ cubrir, ordenado por dónde está en la pantalla:
 - **El carrusel de imágenes.** Es un `Repeater` de `WebImageDTO`, así que una card
   puede tener varias imágenes. Se valida sólo el `src` de la primera: ni la
   cantidad ni la navegación.
-- **La barra de operatividad desglosada**: duración, idiomas y calendario. Hoy sólo
-  se cuenta que haya al menos un `tariff-op-item`.
 
 **Ficha y modal de detalle** — las cinco solapas quedaron cubiertas:
 
@@ -476,8 +494,6 @@ bueno lo que la aplicación hace.
 
 ### Bloque A — pendientes menores
 
-- **Tooltips de operatividad**: salen de `ServiceCalendar` (campos `Monday`…`Sunday`
-  más rango de fechas). Falta armar el texto esperado y compararlo.
 - **Leyenda "Más observaciones disponibles en el detalle"**: depende de
   `op.HasMoreObservations`, cuyo criterio vive en `ServiceOperativityData`, que no
   está en el repo del WEB. Se adjunta al reporte pero no se exige.

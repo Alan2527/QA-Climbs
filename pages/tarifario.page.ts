@@ -594,6 +594,36 @@ export class TarifarioPage {
     );
   }
 
+  /**
+   * Barra de operatividad de la card, item por item con su tooltip.
+   *
+   * RenderOperativityIcons (ServiceTariffControl.ascx.cs:99) arma hasta tres
+   * items: duracion (ph-clock), idiomas (ph-translate) con la lista completa en
+   * el tooltip, y operatividad (.tariff-op-calendar) con dias y temporada. Antes
+   * solo se contaba cuantos habia y se buscaba un texto suelto entre todos los
+   * tooltips, sin saber cual era cual.
+   */
+  async barraDeOperatividad(container: string): Promise<{
+    texto: string; tooltip: string; esCalendario: boolean; meses: string;
+  }[]> {
+    return this.contenedor(container).locator('.tariff-op-item').evaluateAll((els) =>
+      els.map((e) => {
+        const tip = e.querySelector('.tariff-op-tooltip') as HTMLElement | null;
+        const meses = e.querySelector('.tariff-op-months') as HTMLElement | null;
+        const limpio = (x: string) => x.replace(/\s+/g, ' ').trim();
+        // El texto visible es el del item menos el del tooltip, que va adentro.
+        const completo = limpio((e as HTMLElement).innerText);
+        const tooltip = tip ? limpio(tip.innerText) : '';
+        return {
+          texto: tooltip ? limpio(completo.replace(tooltip, '')) : completo,
+          tooltip,
+          esCalendario: e.classList.contains('tariff-op-calendar'),
+          meses: meses ? limpio(meses.innerText) : '',
+        };
+      }),
+    );
+  }
+
   /** Tag "RECOMENDADO" de la card de hoteles (se muestra si Hotel.Great = 1). */
   async tagRecomendado(container: string): Promise<string | null> {
     const loc = this.contenedor(container).locator('.featured-tag');

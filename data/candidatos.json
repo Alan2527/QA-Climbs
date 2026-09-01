@@ -218,7 +218,9 @@
           "Traer ropa cómoda y calzado antideslizante"
         ],
         "tooltipAmenity": "Bebidas a cargo del pasajero durante la navegación",
-        "hayMasObservaciones": false
+        "hayMasObservaciones": false,
+        "duracionRegular": "02:00",
+        "_fuenteOperatividad": "ServiceDuration con RateTypeID = 6 (Regular), los idiomas y los meses de fichaDetalle"
       },
       "elementos": {
         "imagen": true,
@@ -311,7 +313,8 @@
         "textoDesplegado": "Cerrar Tarifario"
       },
       "card": {
-        "tagRecomendado": "RECOMENDADO"
+        "tagRecomendado": "RECOMENDADO",
+        "_fuenteTag": "Hotel.Great = 1 (verificado en QA sobre el hotel 5003)"
       },
       "elementos": {
         "imagen": true,
@@ -489,7 +492,9 @@
           "Consultar por adicionales fuera del radio céntrico"
         ],
         "hayMasObservaciones": false,
-        "tooltipAmenity": "Texto de prueba 2."
+        "tooltipAmenity": "Texto de prueba 2.",
+        "duracionRegular": "01:30",
+        "_fuenteOperatividad": "ServiceDuration con RateTypeID = 6 (Regular), los idiomas y los meses de fichaDetalle"
       },
       "elementos": {
         "imagen": true,
@@ -683,7 +688,9 @@
           "Consultar suplemento por hoteles en Palermo"
         ],
         "tooltipAmenity": "Copa de bienvenida y bebidas libres durante la cena",
-        "hayMasObservaciones": false
+        "hayMasObservaciones": false,
+        "duracionRegular": "02:00",
+        "_fuenteOperatividad": "ServiceDuration con RateTypeID = 6 (Regular), los idiomas y los meses de fichaDetalle"
       },
       "elementos": {
         "imagen": true,
