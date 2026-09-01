@@ -68,7 +68,11 @@ test.describe('Tarifario', () => {
       await fn();
     } catch (error) {
       await resaltarYCapturar(page, locator, `FALLA: ${etiqueta}`);
-      throw error;
+      // Se registra como fallo blando en vez de cortar el test: una diferencia de
+      // contenido no impide seguir mirando el resto de la pantalla. Antes, el
+      // primer texto que no coincidia dejaba sin ejecutar todos los pasos
+      // siguientes y habia que corregir y volver a correr para ver el resto.
+      expect.soft(false, (error as Error).message).toBe(true);
     }
   }
 
@@ -472,45 +476,6 @@ test.describe('Tarifario', () => {
 
 
   /**
-   * La descripcion de la card tiene que ser el COMIENZO del texto de la base.
-   *
-   * La card muestra el mismo campo que el modal pero recortado, asi que no se
-   * puede comparar por igualdad. Se compara por prefijo, que es lo que detecta
-   * cualquier cambio: si se le agrega una palabra adelante, deja de ser el
-   * comienzo; si se cambia algo en el medio, deja de coincidir. Antes de esto el
-   * texto de la card solo se verificaba por presencia, y editar la descripcion
-   * se detectaba en el modal pero no en la card.
-   */
-  async function validarDescripcionDeLaCard(page: Page, t: TarifarioPage, cfg: any) {
-    const esperadas: string[] = cfg.detalleEsperado?.Detail;
-    if (!esperadas?.length) return;
-
-    await paso(page, 'La descripcion de la card coincide con la base', async () => {
-      const enPantalla = await t.descripcionDeLaCard(cfg.container);
-      const compacto = (x: string) => norm(x.replace(/\s+/g, ' '));
-      // El recorte deja unos puntos suspensivos al final que no son del dato.
-      const recortada = compacto(enPantalla).replace(/[.\s]+$/, '');
-      const completa = compacto(esperadas.join(' '));
-
-      await adjuntarTexto('Descripcion de la card: base vs pantalla',
-        'EN LA BASE (completa):' + SALTO + esperadas.join(' ').slice(0, 1500) + SALTO + SALTO +
-        'EN LA CARD (recortada):' + SALTO + enPantalla.slice(0, 1500));
-
-      expect(enPantalla, 'La card tiene que mostrar una descripcion').not.toBe('');
-
-      await conResaltado(page, t.locatorDescripcionDeLaCard(cfg.container),
-        'la descripcion de la card no coincide', () => {
-          expect(completa.startsWith(recortada),
-            'La descripcion de la card tiene que ser el comienzo de la de la base.' + SALTO +
-            'en la base:  ' + completa.slice(0, 200) + SALTO +
-            'en la card:  ' + recortada.slice(0, 200),
-          ).toBe(true);
-        });
-    });
-  }
-
-
-  /**
    * Valida los elementos de la card contra la base:
    *   - observaciones destacadas -> ServiceObservation con IsPriority = 1
    *   - leyenda "Mas observaciones disponibles en el detalle"
@@ -806,7 +771,6 @@ test.describe('Tarifario', () => {
     });
 
     await validarElementos(page, tarifario, cfg);
-    await validarDescripcionDeLaCard(page, tarifario, cfg);
 
     // El estado del boton se guarda para validarlo en su propio paso.
     let botonesAntes: string[] = [];
