@@ -82,8 +82,8 @@ test.describe('Tarifario', () => {
       'EN PANTALLA:' + SALTO + enPantalla.slice(0, 4000));
 
     expect(faltantes.join(SALTO + '  - '),
-      `La pantalla no muestra ${faltantes.length} de las ${esperadas.length} lineas ` +
-      `que tiene la base en ${campo}`,
+      `El detalle ${campo} tiene que mostrar las ${esperadas.length} lineas de la base ` +
+      `(faltan ${faltantes.length})`,
     ).toBe('');
   }
 
@@ -100,7 +100,7 @@ test.describe('Tarifario', () => {
       const solapas = await t.solapasDeLaFicha();
       await adjuntarTexto('Solapas de la ficha', solapas.join(', '));
       for (const esperada of ficha.solapas) {
-        expect(solapas, `Falta la solapa "${esperada}" en la ficha`).toContain(esperada);
+        expect(solapas, `La ficha tiene que mostrar la solapa "${esperada}"`).toContain(esperada);
       }
     });
 
@@ -129,11 +129,11 @@ test.describe('Tarifario', () => {
           const buscada = norm(comoTexto(a));
           expect(vistas,
             a.descripcion
-              ? `En ${bloque} falta "${a.nombre}" con su descripcion "${a.descripcion}"`
-              : `Falta "${a.nombre}" en ${bloque}`,
+              ? `${bloque} tiene que mostrar "${a.nombre}" con su descripcion "${a.descripcion}"`
+              : `${bloque} tiene que mostrar "${a.nombre}"`,
           ).toContain(buscada);
         }
-        expect(enPantalla.length, `${bloque} muestra items que la base no tiene`)
+        expect(enPantalla.length, `${bloque} tiene que mostrar exactamente los ${esperadas.length} items de la base`)
           .toBe(esperadas.length);
       };
 
@@ -155,23 +155,23 @@ test.describe('Tarifario', () => {
         'EN PANTALLA:' + SALTO + tecnica);
 
       for (const idioma of ficha.idiomas) {
-        expect(norm(tecnica), `Falta el idioma "${idioma}" en la ficha tecnica`).toContain(norm(idioma));
+        expect(norm(tecnica), `La ficha tecnica tiene que mostrar el idioma "${idioma}"`).toContain(norm(idioma));
       }
       if (ficha.puntoDeEncuentro) {
-        expect(norm(tecnica), 'La ficha tecnica no muestra el punto de encuentro de la base')
+        expect(norm(tecnica), 'La ficha tecnica tiene que mostrar el punto de encuentro de la base')
           .toContain(norm(ficha.puntoDeEncuentro));
       }
       if (ficha.dropOff) {
-        expect(norm(tecnica), 'La ficha tecnica no muestra el drop-off de la base')
+        expect(norm(tecnica), 'La ficha tecnica tiene que mostrar el drop-off de la base')
           .toContain(norm(ficha.dropOff));
       }
       for (const obs of ficha.observaciones ?? []) {
-        expect(norm(tecnica), `Falta la observacion "${obs}" en la ficha tecnica`)
+        expect(norm(tecnica), `La ficha tecnica tiene que mostrar la observacion "${obs}"`)
           .toContain(norm(obs));
       }
       // Una duracion por modalidad (ServiceDuration.RateTypeID): Regular y Privado.
       for (const dur of ficha.duraciones ?? []) {
-        expect(norm(tecnica), `Falta la duracion "${dur}" en la ficha tecnica`)
+        expect(norm(tecnica), `La ficha tecnica tiene que mostrar la duracion "${dur}"`)
           .toContain(norm(dur));
       }
     });
@@ -186,7 +186,7 @@ test.describe('Tarifario', () => {
           'modalidades: ' + modalidades.join(' | '));
 
         expect(mesesConSalida,
-          'Los meses con salida del calendario no coinciden con ServiceMonth',
+          'Los meses con salida tienen que coincidir con ServiceMonth',
         ).toEqual(ficha.mesesConSalida);
 
         // Con una sola modalidad el control no dibuja subsolapas: renderiza el
@@ -206,7 +206,7 @@ test.describe('Tarifario', () => {
           'ESPERADO (ServiceInfo.CancellationPolicy):' + SALTO + ficha.politicas + SALTO + SALTO +
           'EN PANTALLA:' + SALTO + politicas);
 
-        expect(norm(politicas), 'La solapa Politicas no muestra el texto de la base')
+        expect(norm(politicas), 'La solapa Politicas tiene que mostrar el texto de la base')
           .toContain(norm(ficha.politicas));
       });
     }
@@ -236,9 +236,9 @@ test.describe('Tarifario', () => {
           'bytes:  ' + bytes + SALTO +
           'firma:  ' + JSON.stringify(firma) + '  (un PDF valido empieza con %PDF)');
 
-        expect(nombre, `El archivo descargado no es un .pdf: "${nombre}"`).toMatch(/\.pdf$/i);
-        expect(bytes, 'El PDF descargado esta vacio').toBeGreaterThan(0);
-        expect(firma, 'El archivo descargado no es un PDF valido').toBe('%PDF');
+        expect(nombre, `El archivo descargado tiene que ser un .pdf (bajo "${nombre}")`).toMatch(/\.pdf$/i);
+        expect(bytes, 'El PDF descargado tiene que tener contenido').toBeGreaterThan(0);
+        expect(firma, 'El archivo descargado tiene que empezar con %PDF').toBe('%PDF');
       });
     }
 
@@ -274,11 +274,11 @@ test.describe('Tarifario', () => {
       const texto = (await modal.innerText()).replace(/\s+/g, ' ').trim();
       await adjuntarTexto('Contenido del modal', texto.slice(0, 2000));
 
-      expect(texto, `El modal no muestra el titulo "${esperado.titulo}"`)
+      expect(texto, `El modal tiene que mostrar el titulo "${esperado.titulo}"`)
         .toContain(esperado.titulo);
 
       if (esperado.descripcion) {
-        expect(texto, 'El modal no muestra la descripcion de la base')
+        expect(texto, 'El modal tiene que mostrar la descripcion de la base')
           .toContain(esperado.descripcion);
       }
 
@@ -331,13 +331,13 @@ test.describe('Tarifario', () => {
         'EN PANTALLA (' + enPantalla.length + '):' + SALTO + enPantalla.join(SALTO));
 
       expect(enPantalla.length,
-        `El modal muestra ${enPantalla.length} proveedores y la base tiene ${deLaBase.length}`,
+        `El modal tiene que mostrar ${deLaBase.length} proveedores`,
       ).toBe(deLaBase.length);
 
       // Fila por fila y en orden: la aplicacion las ordena por DisplayOrder, asi
       // que un cambio de orden tambien es un hallazgo.
       for (let i = 0; i < deLaBase.length; i++) {
-        expect(enPantalla[i], `Cambio la fila ${i + 1} del modal de Proveedores`)
+        expect(enPantalla[i], `La fila ${i + 1} del modal de Proveedores tiene que coincidir con la base`)
           .toBe(deLaBase[i]);
       }
 
@@ -383,9 +383,9 @@ test.describe('Tarifario', () => {
         'bytes:  ' + bytes + SALTO +
         'firma:  ' + JSON.stringify(firma) + '  (un .docx es un ZIP, empieza con PK)');
 
-      expect(nombre, `El archivo descargado no es un .docx: "${nombre}"`).toMatch(/\.docx$/i);
-      expect(bytes, 'El archivo descargado esta vacio').toBeGreaterThan(0);
-      expect(firma, 'El archivo descargado no es un .docx valido').toBe('PK');
+      expect(nombre, `El archivo descargado tiene que ser un .docx (bajo "${nombre}")`).toMatch(/\.docx$/i);
+      expect(bytes, 'El archivo descargado tiene que tener contenido').toBeGreaterThan(0);
+      expect(firma, 'El archivo descargado tiene que empezar con PK').toBe('PK');
     });
   }
 
@@ -415,10 +415,10 @@ test.describe('Tarifario', () => {
 
       if (card.observacionesDestacadas) {
         for (const esperada of card.observacionesDestacadas) {
-          expect(obs.join(' | '), `Falta la observacion destacada "${esperada}"`)
+          expect(obs.join(' | '), `La card tiene que mostrar la observacion destacada "${esperada}"`)
             .toContain(esperada);
         }
-        expect(obs.length, 'La card muestra observaciones que la base no tiene')
+        expect(obs.length, 'La card tiene que mostrar exactamente las observaciones destacadas de la base')
           .toBe(card.observacionesDestacadas.length);
       }
 
@@ -426,11 +426,11 @@ test.describe('Tarifario', () => {
       // op.HasMoreObservations, cuyo criterio vive en ServiceOperativityData y no
       // esta en el repo del WEB. Se deja informativa: se adjunta pero no se exige.
       if (card.hayMasObservaciones) {
-        expect(mas, 'Falta la leyenda de mas observaciones').not.toBeNull();
+        expect(mas, 'La card tiene que mostrar la leyenda de mas observaciones').not.toBeNull();
       }
 
       if (card.tooltipAmenity) {
-        expect(tips.join(' | '), `Ningun tooltip trae "${card.tooltipAmenity}"`)
+        expect(tips.join(' | '), `Algun tooltip tiene que traer "${card.tooltipAmenity}"`)
           .toContain(card.tooltipAmenity);
       }
 
@@ -449,13 +449,13 @@ test.describe('Tarifario', () => {
 
         // La card muestra la duracion de la modalidad Regular.
         expect(barra.map((x) => x.texto).join(' | '),
-          `Ningun item de la barra muestra la duracion "${card.duracionRegular}"`,
+          `La barra de operatividad tiene que mostrar la duracion "${card.duracionRegular}"`,
         ).toContain(card.duracionRegular);
 
         // El tooltip de idiomas trae la lista completa, no los codigos.
         const tipIdiomas = barra.map((x) => norm(x.tooltip)).join(' | ');
         for (const idioma of idiomas) {
-          expect(tipIdiomas, `El tooltip de idiomas no menciona "${idioma}"`)
+          expect(tipIdiomas, `El tooltip de idiomas tiene que mencionar "${idioma}"`)
             .toContain(norm(idioma));
         }
 
@@ -463,22 +463,22 @@ test.describe('Tarifario', () => {
         // No se compara la cadena entera porque el control la abrevia en rangos
         // ("Ene-Mar, May-Jul"), y reconstruir ese formato seria reimplementarlo.
         const calendario = barra.find((x) => x.esCalendario);
-        expect(calendario, 'La card no muestra el item de operatividad').toBeDefined();
+        expect(calendario, 'La card tiene que mostrar el item de operatividad').toBeDefined();
         if (calendario && meses.length) {
           const ABREV = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
                          'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
           const fuera = ABREV.filter((_, i) => !meses.includes(i + 1));
           for (const mes of fuera) {
             expect(norm(calendario.meses),
-              `La temporada nombra "${mes}" y la base no opera ese mes`,
+              `La temporada no tiene que nombrar "${mes}", que la base no opera`,
             ).not.toContain(norm(mes));
           }
         }
       }
 
       if (card.tagRecomendado) {
-        expect(tag, 'No aparece el tag RECOMENDADO').not.toBeNull();
-        expect((tag ?? '').toUpperCase(), 'El tag no dice RECOMENDADO')
+        expect(tag, 'La card tiene que mostrar el tag RECOMENDADO').not.toBeNull();
+        expect((tag ?? '').toUpperCase(), 'El tag tiene que decir RECOMENDADO')
           .toContain(card.tagRecomendado.toUpperCase());
       }
     });
@@ -515,15 +515,15 @@ test.describe('Tarifario', () => {
         }
         expect(hay[clave],
           esperados[clave]
-            ? `Falta el componente "${clave}" en la card`
-            : `Aparece "${clave}" y esta pestania no deberia tenerlo`,
+            ? `El componente "${clave}" tiene que estar en la card`
+            : `El componente "${clave}" no tiene que estar en esta pestania`,
         ).toBe(esperados[clave]);
       }
 
       // La imagen tiene que ser la cargada en la base, no el placeholder.
       if (cfg.imagen) {
-        expect(src, 'La card no muestra ninguna imagen').not.toBeNull();
-        expect(src ?? '', `La imagen no es la esperada (${cfg.imagen})`).toContain(cfg.imagen);
+        expect(src, 'La card tiene que mostrar una imagen').not.toBeNull();
+        expect(src ?? '', `La imagen tiene que ser ${cfg.imagen}`).toContain(cfg.imagen);
       }
     });
   }
@@ -550,16 +550,16 @@ test.describe('Tarifario', () => {
       await adjuntarTexto('Importes en pantalla', resumen(actual).slice(0, 4000));
 
       expect(actual.solapasIdioma,
-        `Cambio la cantidad de solapas de idioma (esperadas ${esperado.solapasIdioma})`,
+        `Tiene que haber ${esperado.solapasIdioma} solapas de idioma`,
       ).toBe(esperado.solapasIdioma);
 
       expect(actual.tarifaExtendida,
-        `Cambio la cantidad de marcas TARIFA EXTENDIDA (esperadas ${esperado.tarifaExtendida})`,
+        `Tiene que haber ${esperado.tarifaExtendida} marcas TARIFA EXTENDIDA`,
       ).toBe(esperado.tarifaExtendida);
 
       for (const [idioma, filasEsperadas] of Object.entries(esperado.porIdioma) as [string, string[][]][]) {
         const filasActuales = actual.porIdioma[idioma];
-        expect(filasActuales, `Falta la solapa de idioma "${idioma}"`).toBeDefined();
+        expect(filasActuales, `Tiene que existir la solapa de idioma "${idioma}"`).toBeDefined();
 
         // Se compara fila por fila para poder senalar cual difiere, en vez de
         // decir "cambiaron los importes" sin precisar donde.
@@ -574,13 +574,13 @@ test.describe('Tarifario', () => {
             await resaltarYCapturar(page, t.locatorFilaTarifa(cfg.container, i),
               `FALLA: fila ${i} de la solapa "${idioma}"`);
             expect(act,
-              `Cambio la fila ${i} de la solapa "${idioma}".` + SALTO +
+              `La fila ${i} de la solapa "${idioma}" tiene que coincidir con la linea base.` + SALTO +
               `esperado: ${esp}` + SALTO + `en pantalla: ${act}`,
             ).toBe(esp);
           }
         }
         expect(filasActuales.length,
-          `Cambio la cantidad de filas de la solapa "${idioma}"`,
+          `La cantidad de filas de la solapa "${idioma}" tiene que ser ${filasEsperadas.length}`,
         ).toBe(filasEsperadas.length);
       }
     });
@@ -601,7 +601,7 @@ test.describe('Tarifario', () => {
 
     await paso(page, `Abrir la pestania ${titulo} y esperar tarifas`, async () => {
       const disponible = await tarifario.pestaniaEstaDisponible(cfg.tab);
-      expect(disponible, `La pestania ${titulo} (#${cfg.tab}) no esta visible`).toBe(true);
+      expect(disponible, `La pestania ${titulo} tiene que estar visible`).toBe(true);
       await tarifario.abrirPestania(cfg.tab, cfg.container);
     });
 
@@ -613,7 +613,7 @@ test.describe('Tarifario', () => {
       const texto = await tarifario.textoDe(cfg.container);
       await adjuntarTexto('Esperado', `ID: ${cfg.id}\nNombre: ${cfg.nombre}`);
       await adjuntarTexto('Obtenido en pantalla', texto.slice(0, 3000));
-      expect(texto, `No se encontro "${cfg.nombre}" en #${cfg.container}`)
+      expect(texto, `La pestania tiene que mostrar "${cfg.nombre}"`)
         .toContain(cfg.nombre);
     });
 
@@ -634,10 +634,10 @@ test.describe('Tarifario', () => {
         'Tarifas que muestra la pantalla',
         filas.map((f) => f.join(' | ')).join(SALTO),
       );
-      expect(filas.length, 'El tarifario no mostro ninguna fila').toBeGreaterThan(1);
+      expect(filas.length, 'El tarifario tiene que mostrar filas').toBeGreaterThan(1);
 
       const precios = await tarifario.preciosDelTarifario(cfg.container);
-      expect(precios.length, 'El tarifario no muestra ningun importe').toBeGreaterThan(0);
+      expect(precios.length, 'El tarifario tiene que mostrar importes').toBeGreaterThan(0);
     });
 
     // El paso exige la misma transicion en todas las pestanias. Antes, en
@@ -655,7 +655,7 @@ test.describe('Tarifario', () => {
         'esperado despues:     ' + btn.textoDesplegado +
         (btn._hallazgoConocido ? SALTO + SALTO + 'HALLAZGO CONOCIDO: ' + btn._hallazgoConocido : ''));
 
-      expect(botonesAntes.join(' | '), `Ningun boton dice "${btn.textoInicial}"`)
+      expect(botonesAntes.join(' | '), `Antes de desplegar, el boton tiene que decir "${btn.textoInicial}"`)
         .toContain(btn.textoInicial);
 
       if (!hayCerrar) {
@@ -683,7 +683,7 @@ test.describe('Tarifario', () => {
     await paso(page, 'El paquete muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.paquetes.container);
       for (const c of T.paquetes.ciudades) {
-        expect(texto, `Falta la ciudad ${c.nombre}`).toContain(c.nombre);
+        expect(texto, `Tiene que aparecer la ciudad ${c.nombre}`).toContain(c.nombre);
       }
     });
   });
@@ -726,7 +726,7 @@ test.describe('Tarifario', () => {
         'Markup aplicado',
         leido !== null ? `leido de la pantalla: ${leido}` : `no se pudo leer; se usa el documentado: ${markup}`,
       );
-      expect(markup, 'No hay markup con el que calcular').toBeGreaterThan(0);
+      expect(markup, 'Tiene que haber un markup con el que calcular').toBeGreaterThan(0);
 
       // Precio mostrado = Math.ceil(TotalRate / markup)  -- ver utils/pasos.ts
       const esperados = cfg.tarifasBase.map((x) => ({
@@ -763,7 +763,7 @@ test.describe('Tarifario', () => {
         );
         expect(
           coincide,
-          `No hay fila "${e.tipo}" con precio ${e.esperado} (base ${e.base}). ` +
+          `Tiene que haber una fila "${e.tipo}" con precio ${e.esperado} (base ${e.base}). ` +
             `Pantalla: ${enPantalla.map((x) => `${x.tipo}=${x.precio}`).join(', ')}`,
         ).toBe(true);
       }
@@ -771,7 +771,7 @@ test.describe('Tarifario', () => {
       // Y la pantalla no debe mostrar tarifas que la base no tenga.
       expect(
         enPantalla.length,
-        'La pantalla muestra mas tarifas que las cargadas en la base',
+        'La pantalla tiene que mostrar las mismas tarifas que la base',
       ).toBe(esperados.length);
     });
 
@@ -805,7 +805,7 @@ test.describe('Tarifario', () => {
     await paso(page, 'La oferta muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.ofertas.container);
       for (const c of T.ofertas.ciudades) {
-        expect(texto, `Falta la ciudad ${c.nombre}`).toContain(c.nombre);
+        expect(texto, `Tiene que aparecer la ciudad ${c.nombre}`).toContain(c.nombre);
       }
     });
   });

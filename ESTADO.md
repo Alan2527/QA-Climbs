@@ -608,6 +608,14 @@ qa-e2e/
 - **Fechas de búsqueda**: siempre hoy + 7 días.
 - **Capturas de página completa** en cada paso.
 - **Un test por caso**, para que un fallo no tape a los demás.
+- **El mensaje del `expect` se escribe como el requisito, no como el fallo.**
+  Playwright lo usa como título del paso en el reporte tanto cuando pasa como
+  cuando falla, así que un mensaje redactado para el error se lee al revés en
+  verde: decía *"Falta el componente imagen en la card"* justamente cuando la
+  imagen estaba. Se escriben en forma de exigencia — *"El componente imagen tiene
+  que estar en la card"* — que se lee bien en los dos estados. El prefijo `FALLA:`
+  queda sólo para los nombres de las capturas resaltadas, que se generan
+  únicamente cuando algo falla.
 - **Los pasos se numeran solos**: `paso()` lleva el contador y lo reinicia en el
   `beforeEach`. El título va sin número. Antes venía escrito a mano y bastaba con
   intercalar un bloque de validación para que se repitiera un número.
