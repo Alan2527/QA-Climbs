@@ -1,8 +1,0 @@
-fuente: ServiceInfo.MeetingPoint, .DropOff y .CancellationPolicy por ServiceID y LanguageID = 1
-
-idiomas esperados:   Español, English, Portuguese
-punto de encuentro:  Desde hotel
-drop-off:            Al hotel
-
-EN PANTALLA:
-OBSERVACIONES No aplica para cenas de Navidad y Año Nuevo Consultar suplemento por hoteles en Palermo El orden del espectáculo puede variar Duración Regular 02:00 Hs · Privado 04:00 Hs Temporada De Octubre a Marzo y de Mayo a Julio Idiomas Español, English, Portuguese Punto de encuentro Desde hotel Drop-off Al hotel SALIDAS PERÍODO LUN MAR MIÉ JUE VIE SÁB DOM Habitual Test Horario a convenir Horario a convenir Horario a convenir Horario a convenir Horario a convenir Horario a convenir Horario a convenir Horarios de salida
