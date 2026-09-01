@@ -617,7 +617,8 @@ export class TarifarioPage {
    * tooltips, sin saber cual era cual.
    */
   async barraDeOperatividad(container: string): Promise<{
-    texto: string; tooltip: string; esCalendario: boolean; meses: string;
+    texto: string; tooltip: string; titulo: string; items: string[];
+    esCalendario: boolean; meses: string;
   }[]> {
     return this.contenedor(container).locator('.tariff-op-item').evaluateAll((els) =>
       els.map((e) => {
@@ -627,9 +628,20 @@ export class TarifarioPage {
         // El texto visible es el del item menos el del tooltip, que va adentro.
         const completo = limpio((e as HTMLElement).innerText);
         const tooltip = tip ? limpio(tip.innerText) : '';
+
+        // El tooltip viene estructurado: <strong>titulo</strong><ul><li>..</li></ul>.
+        // Leerlo asi, y no como una cadena concatenada, permite compararlo exacto
+        // en vez de por contencion, que es lo que dejaba pasar los agregados.
+        const strong = tip ? tip.querySelector('strong') : null;
+        const items = tip
+          ? Array.from(tip.querySelectorAll('li')).map((li) => limpio((li as HTMLElement).innerText))
+          : [];
+
         return {
           texto: tooltip ? limpio(completo.replace(tooltip, '')) : completo,
           tooltip,
+          titulo: strong ? limpio(strong.textContent ?? '') : '',
+          items,
           esCalendario: e.classList.contains('tariff-op-calendar'),
           meses: meses ? limpio(meses.innerText) : '',
         };

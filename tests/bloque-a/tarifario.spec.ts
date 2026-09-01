@@ -446,11 +446,6 @@ test.describe('Tarifario', () => {
         expect(mas, 'La card tiene que mostrar la leyenda de mas observaciones').not.toBeNull();
       }
 
-      if (card.tooltipAmenity) {
-        expect(tips.join(' | '), `Algun tooltip tiene que traer "${card.tooltipAmenity}"`)
-          .toContain(card.tooltipAmenity);
-      }
-
       // --- Barra de operatividad: duracion, idiomas y calendario ---
       if (card.duracionRegular) {
         const barra = await t.barraDeOperatividad(cfg.container);
@@ -464,16 +459,42 @@ test.describe('Tarifario', () => {
             `    meses:   ${x.meses}` + SALTO +
             `    tooltip: ${x.tooltip}`).join(SALTO));
 
-        // La card muestra la duracion de la modalidad Regular.
-        expect(barra.map((x) => x.texto).join(' | '),
-          `La barra de operatividad tiene que mostrar la duracion "${card.duracionRegular}"`,
-        ).toContain(card.duracionRegular);
+        // Todo lo que sigue se compara por IGUALDAD y no por contencion: con
+        // contencion, agregarle una palabra a un tooltip no se detectaba, porque
+        // el texto esperado seguia estando adentro.
 
-        // El tooltip de idiomas trae la lista completa, no los codigos.
-        const tipIdiomas = barra.map((x) => norm(x.tooltip)).join(' | ');
-        for (const idioma of idiomas) {
-          expect(tipIdiomas, `El tooltip de idiomas tiene que mencionar "${idioma}"`)
-            .toContain(norm(idioma));
+        // La card muestra la duracion de la modalidad Regular.
+        const itemDuracion = barra.find((x) => x.texto === card.duracionRegular);
+        expect(itemDuracion,
+          `La barra de operatividad tiene que mostrar la duracion "${card.duracionRegular}" ` +
+          `y muestra: ${barra.map((x) => x.texto).filter(Boolean).join(' | ')}`,
+        ).toBeDefined();
+
+        // El tooltip de idiomas trae la lista completa, un <li> por idioma.
+        // Como conjunto, no por orden: el orden de la lista no es algo que salga
+        // de la base, asi que exigirlo seria fijar un detalle de la implementacion.
+        const mismoConjunto = (a: string[], b: string[]) =>
+          a.length === b.length &&
+          a.map(norm).sort().join('|') === b.map(norm).sort().join('|');
+        const itemIdiomas = barra.find((x) => mismoConjunto(x.items, idiomas));
+        expect(itemIdiomas,
+          `El tooltip de idiomas tiene que listar exactamente ${idiomas.join(', ')}. ` +
+          `Listas en pantalla: ${JSON.stringify(barra.map((x) => x.items))}`,
+        ).toBeDefined();
+
+        // Los tooltips de amenities destacadas: nombre y observacion, exactos y
+        // sin que sobre ninguno. Solo aparecen las de ServiceAmenity.IsPriority = 1.
+        const destacadas: { nombre: string; descripcion: string }[] = card.tooltipsAmenities ?? [];
+        if (destacadas.length) {
+          const enPantalla = barra
+            .filter((x) => !x.esCalendario && x.titulo && x.titulo !== 'Idiomas')
+            .map((x) => `${x.titulo} -- ${x.items.join(' ')}`.trim());
+          const deLaBase = destacadas.map((a) =>
+            `${a.nombre} -- ${a.descripcion}`.trim());
+
+          expect(enPantalla.map(norm).sort(),
+            'Los tooltips de amenities destacadas tienen que coincidir con la base',
+          ).toEqual(deLaBase.map(norm).sort());
         }
 
         // El resumen de temporada no puede nombrar un mes que la base no opera.

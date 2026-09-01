@@ -229,7 +229,8 @@ y se validan los tres por separado en vez de contar cuántos hay:
 | Ítem | Qué se valida | Fuente |
 |---|---|---|
 | Duración (`ph-clock`) | el texto es la duración de la modalidad Regular | `ServiceDuration` con `RateTypeID = 6` |
-| Idiomas (`ph-translate`) | el tooltip trae los nombres completos, no los códigos | los idiomas del servicio |
+| Idiomas (`ph-translate`) | el tooltip lista **exactamente** los idiomas de la base | los idiomas del servicio |
+| Amenities destacadas | nombre y observación **exactos, y sin que sobre ninguna** | `ServiceAmenity.IsPriority = 1` + `ServiceAmenityObservation` |
 | Operatividad (`.tariff-op-calendar`) | el resumen de temporada **no nombra un mes que la base no opera** | `ServiceMonth` |
 
 Del resumen de temporada no se compara la cadena entera: el control la abrevia en
@@ -435,6 +436,10 @@ en `Published = 1`. Es el mismo patrón del hallazgo 5.
 
 ### 6. El tarifario muestra amenities con `Published = 0`
 
+Confirmado también sobre la tabla maestra: `ServiceAmenity` ID 140,
+**"Pick up y drop off en hotel", tiene `Published = 0`** y se sigue mostrando en la
+ficha de Cena Show. Las otras diez amenities de los ítems de prueba están en 1.
+
 Detectado con "Pick up y drop off en hotel" en el Café de los Angelitos. Se
 publicaron las que quedaban para que el dato sea coherente, pero conviene consultarlo.
 
@@ -615,6 +620,13 @@ qa-e2e/
 - **Fechas de búsqueda**: siempre hoy + 7 días.
 - **Capturas de página completa** en cada paso.
 - **Un test por caso**, para que un fallo no tape a los demás.
+- **Comparar por igualdad, no por contención.** `toContain` detecta que falte o
+  que cambie algo, pero **no detecta lo que se agrega**: si a un texto esperado se
+  le antepone o se le agrega una palabra, la cadena original sigue estando adentro
+  y el assert pasa. Apareció dos veces —en el detalle del hotel y en los tooltips
+  de la card— y las dos se arreglaron igual: comparando en los dos sentidos, o
+  leyendo el markup estructurado (`<strong>` y `<li>`) para comparar listas exactas
+  en lugar de una cadena concatenada.
 - **El mensaje del `expect` se escribe como el requisito, no como el fallo.**
   Playwright lo usa como título del paso en el reporte tanto cuando pasa como
   cuando falla, así que un mensaje redactado para el error se lee al revés en

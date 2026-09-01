@@ -217,10 +217,20 @@
           "Sujeto a modificaciones según condiciones del río",
           "Traer ropa cómoda y calzado antideslizante"
         ],
-        "tooltipAmenity": "Bebidas a cargo del pasajero durante la navegación",
         "hayMasObservaciones": false,
         "duracionRegular": "02:00",
-        "_fuenteOperatividad": "ServiceDuration con RateTypeID = 6 (Regular), los idiomas y los meses de fichaDetalle"
+        "_fuenteOperatividad": "ServiceDuration con RateTypeID = 6 (Regular), los idiomas y los meses de fichaDetalle",
+        "_fuenteTooltips": "ServiceAmenity.IsPriority = 1 para saber cuales aparecen, y ServiceAmenityObservation para el texto de cada una",
+        "tooltipsAmenities": [
+          {
+            "nombre": "Bebidas",
+            "descripcion": "Bebidas a cargo del pasajero durante la navegación"
+          },
+          {
+            "nombre": "Almuerzo",
+            "descripcion": "El almuerzo no está incluido, hay parada en restaurante"
+          }
+        ]
       },
       "elementos": {
         "imagen": true,
@@ -492,9 +502,19 @@
           "Consultar por adicionales fuera del radio céntrico"
         ],
         "hayMasObservaciones": false,
-        "tooltipAmenity": "Texto de prueba 2.",
         "duracionRegular": "01:30",
-        "_fuenteOperatividad": "ServiceDuration con RateTypeID = 6 (Regular), los idiomas y los meses de fichaDetalle"
+        "_fuenteOperatividad": "ServiceDuration con RateTypeID = 6 (Regular), los idiomas y los meses de fichaDetalle",
+        "_fuenteTooltips": "ServiceAmenity.IsPriority = 1 para saber cuales aparecen, y ServiceAmenityObservation para el texto de cada una",
+        "tooltipsAmenities": [
+          {
+            "nombre": "Almuerzo",
+            "descripcion": "Texto de prueba."
+          },
+          {
+            "nombre": "Bebidas",
+            "descripcion": "Texto de prueba 2."
+          }
+        ]
       },
       "elementos": {
         "imagen": true,
@@ -687,10 +707,20 @@
           "No aplica para cenas de Navidad y Año Nuevo",
           "Consultar suplemento por hoteles en Palermo"
         ],
-        "tooltipAmenity": "Copa de bienvenida y bebidas libres durante la cena",
         "hayMasObservaciones": false,
         "duracionRegular": "02:00",
-        "_fuenteOperatividad": "ServiceDuration con RateTypeID = 6 (Regular), los idiomas y los meses de fichaDetalle"
+        "_fuenteOperatividad": "ServiceDuration con RateTypeID = 6 (Regular), los idiomas y los meses de fichaDetalle",
+        "_fuenteTooltips": "ServiceAmenity.IsPriority = 1 para saber cuales aparecen, y ServiceAmenityObservation para el texto de cada una",
+        "tooltipsAmenities": [
+          {
+            "nombre": "Bebidas",
+            "descripcion": "Copa de bienvenida y bebidas libres durante la cena"
+          },
+          {
+            "nombre": "Almuerzo",
+            "descripcion": "Texto de prueba."
+          }
+        ]
       },
       "elementos": {
         "imagen": true,
