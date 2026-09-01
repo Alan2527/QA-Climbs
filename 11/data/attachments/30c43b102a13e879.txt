@@ -1,0 +1,3 @@
+nombre: AUTO-QA NO TOCAR - Oferta Buenos Aires y Ushuaia (6 dias - 5 noches).docx
+bytes:  139479
+firma:  "PK"  (un .docx es un ZIP, empieza con PK)

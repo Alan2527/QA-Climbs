@@ -1,0 +1,8 @@
+fuente: ServiceInfo.MeetingPoint, .DropOff y .CancellationPolicy por ServiceID y LanguageID = 1
+
+idiomas esperados:   Español, English, Portuguese
+punto de encuentro:  Aeropuerto Ezeiza
+drop-off:            Hoteles céntricos
+
+EN PANTALLA:
+OBSERVACIONES Depende de las condiciones del tráfico Consultar por adicionales fuera del radio céntrico El punto de encuentro se confirma 24 hs antes Duración Regular 01:30 Hs · Privado 00:45 Hs Temporada De Enero a Febrero y de Abril a Mayo y de Julio a Agosto y de Octubre a Noviembre Idiomas Español, English, Portuguese Punto de encuentro Aeropuerto Ezeiza Drop-off Hoteles céntricos SALIDAS Regular Privado PERÍODO LUN MAR MIÉ JUE VIE SÁB DOM Habitual Test Horario a convenir Horario a convenir Horario a convenir Horario a convenir Horario a convenir Horario a convenir Horario a convenir Horarios de salida
