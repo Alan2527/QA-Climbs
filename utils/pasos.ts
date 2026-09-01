@@ -79,6 +79,23 @@ export async function esperarFinDeCarga(page: Page, timeout = 60_000) {
   }, undefined, { timeout });
 }
 
+/**
+ * Reemplaza la fecha de hoy por el token <HOY> dentro de un texto.
+ *
+ * La vigencia de la primera fila del tarifario arranca en la fecha del dia, asi
+ * que la linea base capturada un dia no servia al siguiente: fallaba por la
+ * fecha aunque los importes fueran identicos. No se habia notado porque se
+ * capturaba y se corria el mismo dia.
+ *
+ * Normalizando de los dos lados, la comparacion deja de depender del dia en que
+ * se corre y sigue detectando cualquier cambio real de fechas o de importes.
+ */
+export function normalizarFechaDeHoy(texto: string, hoy = new Date()): string {
+  const dia = String(hoy.getDate()).padStart(2, '0');
+  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+  return texto.split(`${dia}/${mes}/${hoy.getFullYear()}`).join('<HOY>');
+}
+
 /** Fecha de busqueda estandar de la suite: hoy + 7 dias. */
 export function fechaDeBusqueda(diasExtra = 7): Date {
   const d = new Date();

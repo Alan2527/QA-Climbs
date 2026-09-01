@@ -182,7 +182,31 @@
         "_fuenteFicha": "ServiceInfo.MeetingPoint, .DropOff y .CancellationPolicy por ServiceID y LanguageID = 1",
         "puntoDeEncuentro": "Desde el hotel",
         "dropOff": "Puente de la Mujer (Puerto Madero) /Av. Córdoba y Florida (Galerías Pacifico) /Av. Córdoba y Pellegrini /Av. Córdoba y Cerrito / Cerrito y Juncal / Cerrito y Corrientes / 9 de Julio y Av. De Mayo / Corrientes y Florida. En caso de ser en servicio regular estos puntos pueden ser modificados por el guia de la excursion dependiendo las condiciones del trafico en el dia del paseo.",
-        "politicas": "Las cancelaciones con anterioridad de 24hs. no ocasionará ningún tipo de gastos, de lo contrario se cobrará el 100% del servicio"
+        "politicas": "Las cancelaciones con anterioridad de 24hs. no ocasionará ningún tipo de gastos, de lo contrario se cobrará el 100% del servicio",
+        "_fuenteOperatividad": "ServiceObservation + ServiceObservationDetail (LanguageID = 1), ServiceDuration por RateTypeID y ServiceMonth",
+        "observaciones": [
+          "Sujeto a modificaciones según condiciones del río",
+          "Traer ropa cómoda y calzado antideslizante",
+          "La navegación puede reprogramarse por mal tiempo"
+        ],
+        "duraciones": [
+          "02:00",
+          "04:00"
+        ],
+        "mesesConSalida": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "modalidadesCalendario": 2,
+        "_fuenteModalidades": "RateTypeID distintos y no nulos en ServiceCalendar con Published = 1 y Deleted = 0. Con una sola modalidad el control renderiza el contenido pelado y no dibuja subsolapas."
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
@@ -431,7 +455,29 @@
         "_fuenteFicha": "ServiceInfo.MeetingPoint, .DropOff y .CancellationPolicy por ServiceID y LanguageID = 1",
         "puntoDeEncuentro": "Aeropuerto Ezeiza",
         "dropOff": "Hoteles céntricos",
-        "politicas": "Cancelación sin cargo hasta 24 horas antes del inicio del servicio. Dentro de las 24 horas se aplica el 100% de penalidad."
+        "politicas": "Cancelación sin cargo hasta 24 horas antes del inicio del servicio. Dentro de las 24 horas se aplica el 100% de penalidad.",
+        "_fuenteOperatividad": "ServiceObservation + ServiceObservationDetail (LanguageID = 1), ServiceDuration por RateTypeID y ServiceMonth",
+        "observaciones": [
+          "Depende de las condiciones del tráfico",
+          "Consultar por adicionales fuera del radio céntrico",
+          "El punto de encuentro se confirma 24 hs antes"
+        ],
+        "duraciones": [
+          "01:30",
+          "00:45"
+        ],
+        "mesesConSalida": [
+          1,
+          2,
+          4,
+          5,
+          7,
+          8,
+          10,
+          11
+        ],
+        "modalidadesCalendario": 2,
+        "_fuenteModalidades": "RateTypeID distintos y no nulos en ServiceCalendar con Published = 1 y Deleted = 0. Con una sola modalidad el control renderiza el contenido pelado y no dibuja subsolapas."
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
@@ -602,7 +648,30 @@
         "_fuenteFicha": "ServiceInfo.MeetingPoint, .DropOff y .CancellationPolicy por ServiceID y LanguageID = 1",
         "puntoDeEncuentro": "Desde hotel",
         "dropOff": "Al hotel",
-        "politicas": "Cancelación sin cargo hasta 24 horas antes del inicio del servicio. Dentro de las 24 horas se aplica el 100% de penalidad."
+        "politicas": "Cancelación sin cargo hasta 24 horas antes del inicio del servicio. Dentro de las 24 horas se aplica el 100% de penalidad.",
+        "_fuenteOperatividad": "ServiceObservation + ServiceObservationDetail (LanguageID = 1), ServiceDuration por RateTypeID y ServiceMonth",
+        "observaciones": [
+          "No aplica para cenas de Navidad y Año Nuevo",
+          "Consultar suplemento por hoteles en Palermo",
+          "El orden del espectáculo puede variar"
+        ],
+        "duraciones": [
+          "02:00",
+          "04:00"
+        ],
+        "mesesConSalida": [
+          1,
+          2,
+          3,
+          5,
+          6,
+          7,
+          10,
+          11,
+          12
+        ],
+        "modalidadesCalendario": 1,
+        "_fuenteModalidades": "RateTypeID distintos y no nulos en ServiceCalendar con Published = 1 y Deleted = 0. Con una sola modalidad el control renderiza el contenido pelado y no dibuja subsolapas."
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",

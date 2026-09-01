@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { TarifarioPage } from '../pages/tarifario.page';
-import { esperarFinDeCarga } from '../utils/pasos';
+import { esperarFinDeCarga, normalizarFechaDeHoy } from '../utils/pasos';
 import * as fs from 'fs';
 import candidatos from '../data/candidatos.json';
 
@@ -16,7 +16,7 @@ const T = candidatos.tarifario as Record<string, any>;
 const CIUDAD: Record<string, string> = { 'a-cruises': 'Ushuaia', 'a-opportunities': 'Ushuaia' };
 
 async function leerTablas(page: Page, container: string) {
-  return page.locator(`#${container}, [id^="detailcnt-"], [id^="detailoptcnt-"]`)
+  const filas = await page.locator(`#${container}, [id^="detailcnt-"], [id^="detailoptcnt-"]`)
     .locator('table:visible tr')
     .evaluateAll((trs) =>
       trs.map((tr) =>
@@ -25,6 +25,9 @@ async function leerTablas(page: Page, container: string) {
           .filter(Boolean),
       ).filter((f) => f.length),
     );
+  // Mismo criterio que la suite: la fecha de hoy se guarda como <HOY> para que
+  // la linea base no caduque al dia siguiente.
+  return filas.map((f) => f.map((celda) => normalizarFechaDeHoy(celda)));
 }
 
 for (const [clave, cfg] of Object.entries(T)) {

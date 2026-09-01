@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { esperarFinDeCarga } from '../utils/pasos';
+import { esperarFinDeCarga, normalizarFechaDeHoy } from '../utils/pasos';
 
 /**
  * Tarifario del sitio publico.
@@ -256,7 +256,7 @@ export class TarifarioPage {
 
   /** Filas de la tabla de tarifas desplegada: FECHAS | TIPO | PAX | PRECIO. */
   async leerTablaTarifas(container: string): Promise<string[][]> {
-    return this.ambitoTarifas(container).locator('table:visible tr').evaluateAll((trs) =>
+    const filas = await this.ambitoTarifas(container).locator('table:visible tr').evaluateAll((trs) =>
       trs
         .map((tr) =>
           Array.from(tr.querySelectorAll('th,td'))
@@ -265,6 +265,9 @@ export class TarifarioPage {
         )
         .filter((f) => f.length),
     );
+    // La vigencia de la primera fila arranca hoy: sin normalizar, la linea base
+    // caduca de un dia para el otro. Ver normalizarFechaDeHoy en utils/pasos.
+    return filas.map((f) => f.map((celda) => normalizarFechaDeHoy(celda)));
   }
 
   /**
@@ -337,6 +340,44 @@ export class TarifarioPage {
       incluye: await leer('svc-amenity-included'),
       noIncluye: await leer('svc-amenity-excluded'),
     };
+  }
+
+  /**
+   * Lee el calendario de la solapa Salidas sin navegarlo.
+   *
+   * El calendario se arma en cliente desde los atributos de .svc-calendar
+   * (ServiceSheetCalendarHtml.Render): data-start es el primer dia, data-months
+   * cuantos meses cubre y data-days un codigo por dia. -1 es un dia fuera de la
+   * operatividad y -2 un cierre declarado por excepcion; cualquier valor >= 0 es
+   * un dia con salida. Asi se puede saber que meses operan sin tener que hacer
+   * clic en las flechas para recorrer los doce.
+   */
+  async calendarioDeSalidas(): Promise<{ mesesConSalida: number[]; modalidades: string[] }> {
+    await this.contenidoDeSolapa('calendar');
+
+    const cal = this.page.locator('.svc-calendar').first();
+    await expect(cal).toBeAttached({ timeout: 15_000 });
+
+    const mesesConSalida = await cal.evaluate((el) => {
+      const inicio = el.getAttribute('data-start') ?? '';
+      const dias: number[] = JSON.parse(el.getAttribute('data-days') ?? '[]');
+      const desde = new Date(inicio + (inicio.length <= 10 ? 'T00:00:00' : ''));
+      const meses = new Set<number>();
+      dias.forEach((codigo, i) => {
+        if (codigo < 0) return;
+        const d = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate() + i);
+        meses.add(d.getMonth() + 1);
+      });
+      return Array.from(meses).sort((a, b) => a - b);
+    });
+
+    // Acotado al panel de Salidas: la Ficha Tecnica tiene sus propias subsolapas
+    // Regular/Privado para la tabla semanal, y a nivel pagina se contaban las dos veces.
+    const modalidades = await this.page
+      .locator(`${this.fichaPanel}[data-tab="calendar"] .svc-modality-tab`)
+      .evaluateAll((els) => els.map((e) => (e as HTMLElement).innerText.trim()).filter(Boolean));
+
+    return { mesesConSalida, modalidades };
   }
 
   /** Cierra el popup de la ficha. */
@@ -500,7 +541,9 @@ export class TarifarioPage {
     const boton = this.locatorBotonPdf(container);
     await expect(boton).toBeVisible({ timeout: 30_000 });
 
-    const descarga = this.page.waitForEvent('download', { timeout: 90_000 });
+    // 20s alcanzan: el endpoint responde en menos de 2. Antes eran 90 y, con el
+    // defecto del PDF sin corregir, cada servicio sumaba minuto y medio muerto.
+    const descarga = this.page.waitForEvent('download', { timeout: 20_000 });
     await boton.click();
     return descarga;
   }

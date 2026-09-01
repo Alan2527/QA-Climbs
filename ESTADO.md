@@ -177,6 +177,14 @@ corría sólo el primero: dejaba las siete capturas nuevas y la suite seguía
 comparando contra la línea base vieja. El consolidador imprime un resumen y marca
 la pestaña cuyas solapas o filas cambiaron respecto de la anterior.
 
+> **La fecha de hoy se guarda como `<HOY>`.** La vigencia de la primera fila del
+> tarifario arranca en la fecha del día, así que una línea base capturada un día
+> fallaba al siguiente: cambiaba la fecha aunque los importes fueran idénticos.
+> No se había detectado porque se capturaba y se corría el mismo día. Se
+> normaliza de los dos lados (`normalizarFechaDeHoy` en `utils/pasos.ts`), así la
+> comparación no depende del día en que se corre y sigue detectando cualquier
+> cambio real de fechas o de importes.
+
 El capturador vive en `tools/`, fuera de `tests/`, para que no corra con la suite
 ni aparezca en el reporte: no es un test de regresión, es una herramienta.
 
@@ -438,16 +446,28 @@ cubrir, ordenado por dónde está en la pantalla:
 - **La barra de operatividad desglosada**: duración, idiomas y calendario. Hoy sólo
   se cuenta que haya al menos un `tariff-op-item`.
 
-**Ficha y modal de detalle** — de las cinco solapas hay una completa, una a medias
-y tres vacías:
+**Ficha y modal de detalle** — las cinco solapas quedaron cubiertas:
 
-| Solapa | Estado | Fuente para completarla |
+| Solapa | Qué se valida | Fuente |
 |---|---|---|
-| Descripción | completa | `ServiceDetail.Detail` |
-| Ficha Técnica | **a medias**: sólo se exige que aparezcan los nombres de los idiomas | `ServiceObservation` + `ServiceObservationDetail`, `ServiceMonth`, `ServiceInfo.MeetingPoint` y `.DropOff`, `ServiceDuration` |
-| Salidas | **vacía** | `ServiceCalendar` + `ServiceCalendarTime` + `ServiceCalendarDetail`, con modalidades Regular/Privado por `RateTypeId` |
-| Incluye / No incluye | **a medias**: los nombres sí, pero `amenitiesDeLaFicha` toma sólo la primera línea del `<li>` y descarta la descripción de cada ítem | `ServiceAmenityObservation` |
-| Políticas | **vacía** | `ServiceInfo.CancellationPolicy` |
+| Descripción | texto completo | `ServiceDetail.Detail` |
+| Ficha Técnica | idiomas, punto de encuentro, drop-off, observaciones y duración por modalidad | `ServiceInfo`, `ServiceObservation` + `ServiceObservationDetail`, `ServiceDuration` |
+| Salidas | meses con salida y cantidad de subsolapas de modalidad | `ServiceMonth` y `ServiceCalendar` |
+| Incluye / No incluye | nombre **y** descripción de cada ítem | `ServiceToServiceAmenity` + `ServiceAmenityDetail` + `ServiceAmenityObservation` |
+| Políticas | texto completo | `ServiceInfo.CancellationPolicy` |
+
+El calendario de Salidas **no se navega**: `.svc-calendar` trae `data-start`,
+`data-months` y `data-days` con un código por día (`-1` fuera de operatividad,
+`-2` cierre por excepción, `>= 0` día con salida), así que los doce meses se leen
+de una sola vez. Lo que queda pendiente ahí es el detalle fino de cada regla:
+horarios por día y excepciones puntuales.
+
+Las modalidades del calendario **salen de `ServiceCalendar`, no de
+`ServiceDuration`**: son los `RateTypeID` distintos y no nulos. Y con una sola
+modalidad el control renderiza el contenido pelado, sin subsolapas
+(`RenderModalities`), así que Cena Show espera cero botones y los otros dos
+esperan dos. Derivarlo de la base y no de la pantalla es lo que evita dar por
+bueno lo que la aplicación hace.
 
 **Transversales**
 

@@ -165,7 +165,39 @@ test.describe('Tarifario', () => {
         expect(norm(tecnica), 'La ficha tecnica no muestra el drop-off de la base')
           .toContain(norm(ficha.dropOff));
       }
+      for (const obs of ficha.observaciones ?? []) {
+        expect(norm(tecnica), `Falta la observacion "${obs}" en la ficha tecnica`)
+          .toContain(norm(obs));
+      }
+      // Una duracion por modalidad (ServiceDuration.RateTypeID): Regular y Privado.
+      for (const dur of ficha.duraciones ?? []) {
+        expect(norm(tecnica), `Falta la duracion "${dur}" en la ficha tecnica`)
+          .toContain(norm(dur));
+      }
     });
+
+    if (ficha.mesesConSalida) {
+      await paso(page, 'La solapa Salidas coincide con la operatividad de la base', async () => {
+        const { mesesConSalida, modalidades } = await t.calendarioDeSalidas();
+        await adjuntarTexto('Salidas: base vs pantalla',
+          'fuente: ' + (ficha._fuenteOperatividad ?? '(sin documentar)') + SALTO + SALTO +
+          'meses esperados: ' + ficha.mesesConSalida.join(', ') + SALTO +
+          'meses en pantalla: ' + mesesConSalida.join(', ') + SALTO +
+          'modalidades: ' + modalidades.join(' | '));
+
+        expect(mesesConSalida,
+          'Los meses con salida del calendario no coinciden con ServiceMonth',
+        ).toEqual(ficha.mesesConSalida);
+
+        // Con una sola modalidad el control no dibuja subsolapas: renderiza el
+        // contenido pelado (RenderModalities en ServiceSheetControl.ascx.cs).
+        const solapasEsperadas = ficha.modalidadesCalendario > 1 ? ficha.modalidadesCalendario : 0;
+        expect(modalidades.length,
+          `La base tiene ${ficha.modalidadesCalendario} modalidad(es) con reglas de calendario, ` +
+          `asi que se esperaban ${solapasEsperadas} subsolapas y hay ${modalidades.length}`,
+        ).toBe(solapasEsperadas);
+      });
+    }
 
     if (ficha.politicas) {
       await paso(page, 'Las politicas coinciden con las de la base', async () => {

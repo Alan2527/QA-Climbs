@@ -1,6 +1,6 @@
 {
   "_nota": "Linea base de los importes tal como los muestra el tarifario. Capturada con tools/capturar-lineabase.spec.ts y consolidada con tools/consolidar-lineabase.mjs (npm run lineabase). Si un cambio del sistema altera un importe, el recargo por idioma o la marca TARIFA EXTENDIDA, la comparacion falla.",
-  "_capturada": "2026-08-31",
+  "_capturada": "2026-09-01",
   "_ambiente": "QA",
   "items": {
     "cenaShow": {
@@ -1787,7 +1787,7 @@
             "TPL"
           ],
           [
-            "31/08/2026 - 19/09/2026",
+            "<HOY> - 19/09/2026",
             "USD 4,910",
             "USD 2,582",
             "USD 2,084"
@@ -1908,7 +1908,7 @@
             "TPL"
           ],
           [
-            "31/08/2026 - 19/09/2026",
+            "<HOY> - 19/09/2026",
             "USD 4,196",
             "USD 2,206",
             "USD 1,790"
@@ -2021,7 +2021,7 @@
             "TPL"
           ],
           [
-            "31/08/2026 - 19/09/2026",
+            "<HOY> - 19/09/2026",
             "USD 4,228",
             "USD 2,236",
             "USD 1,820"
@@ -2134,7 +2134,7 @@
             "TPL"
           ],
           [
-            "31/08/2026 - 19/09/2026",
+            "<HOY> - 19/09/2026",
             "USD 4,196",
             "USD 2,206",
             "USD 1,790"
