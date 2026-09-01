@@ -11,7 +11,7 @@
     "allure:open": "allure open allure-report",
     "allure:serve": "allure serve allure-results   (requiere Java + CLI de Allure)",
     "report": "playwright show-report",
-    "lineabase": "playwright test --config=playwright.lineabase.config.ts"
+    "lineabase": "playwright test --config=playwright.lineabase.config.ts && node tools/consolidar-lineabase.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",

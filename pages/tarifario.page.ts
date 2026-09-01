@@ -16,6 +16,12 @@ import { esperarFinDeCarga } from '../utils/pasos';
  *   Online/js/mainws.js                    -> loadTariffs / pagedPick / pagedSearch
  */
 export class TarifarioPage {
+  /**
+   * Solapas de idioma. Matchea los dos prefijos que existen en el modulo:
+   * "srl-" (servicios) y "trl-" (paquetes).
+   */
+  static readonly SOLAPAS_IDIOMA = "[class*='-lang-tabs-']";
+
   constructor(private readonly page: Page) {}
 
   // --- Filtros de la barra superior ---
@@ -349,6 +355,32 @@ export class TarifarioPage {
   }
 
   /**
+   * Texto del detalle que esta abierto en pantalla, sea la ficha de un servicio
+   * o el modal de un hotel, paquete, oferta o crucero.
+   *
+   * Hay dos formas de mostrarlo y el metodo cubre las dos:
+   *   - con solapas (.svc-panel[data-tab]), que es lo que arma ServiceSheet para
+   *     los servicios y RenderHotelSheet para los hoteles;
+   *   - sin solapas, y entonces el texto esta directo en el cuerpo del modal,
+   *     que es el caso de paquetes, ofertas y cruceros.
+   */
+  async textoDelDetalleAbierto(campo: 'Detail' | 'TechnicalSheet'): Promise<string> {
+    const solapa = campo === 'TechnicalSheet' ? 'technical' : 'description';
+    const panel = this.page.locator(`${this.fichaPanel}[data-tab="${solapa}"]`);
+
+    if (await panel.count()) return this.contenidoDeSolapa(solapa);
+
+    if (campo === 'TechnicalSheet') {
+      throw new Error('Se esperaba una solapa de ficha tecnica y la pantalla no la muestra');
+    }
+
+    const cuerpo = this.page.locator('.modal.in .modal-body').first();
+    await expect(cuerpo).toBeVisible({ timeout: 15_000 });
+    return (await cuerpo.innerText()).replace(/\s+/g, ' ').trim();
+  }
+
+
+  /**
    * Boton "Ver detalle" de la card, para poder resaltarlo cuando no abre el modal.
    */
   locatorBotonVerDetalle(container: string): Locator {
@@ -356,10 +388,77 @@ export class TarifarioPage {
       .locator("a:has-text('Ver detalle'), a:has-text('Ver Detalle')").first();
   }
 
-  /** Cierra el modal de detalle abierto. */
+
+  /**
+   * Descarga el tarifario en Word y devuelve la descarga de Playwright.
+   *
+   * El flujo esta en ExportWordModal.ascx: el boton llama a downloadWord(), que
+   * abre el modal de eleccion de agencia solo si el usuario es admin y esta
+   * simulando; en cualquier otro caso baja directo. Despues confirmDownload()
+   * pide /advisorws/downloadWordTourTariff/ y arma la descarga con un blob.
+   *
+   * Antes esto se verificaba solo por presencia del onclick: el boton podia
+   * estar y el archivo no bajar nunca.
+   */
+  async descargarWord(container: string) {
+    const boton = this.locatorBotonWord(container);
+    await expect(boton).toBeVisible({ timeout: 30_000 });
+
+    // La espera se arma antes del click: la descarga puede resolverse enseguida.
+    const descarga = this.page.waitForEvent('download', { timeout: 90_000 });
+    await boton.click();
+
+    const modal = this.page.locator('#modalDownloadWord');
+    await modal.waitFor({ state: 'visible', timeout: 3_000 }).catch(() => {});
+    if (await modal.isVisible().catch(() => false)) {
+      await modal.locator('.btn-download').click();
+    }
+
+    return descarga;
+  }
+
+  /** Boton de descarga Word, para resaltarlo si la descarga no arranca. */
+  locatorBotonWord(container: string): Locator {
+    return this.contenedor(container).locator('.btn-download-word').first();
+  }
+
+
+  /**
+   * Descarga la ficha del servicio en PDF y devuelve la descarga de Playwright.
+   *
+   * downloadServiceSheetPdf() (Online/js/service-sheet.js) pide
+   * /advisorws/createservicesheetpdf/ y arma la descarga con un blob, con el
+   * nombre ficha-<ServiceID>.pdf. El boton vive dentro de la ficha, asi que
+   * esto se llama con la ficha abierta.
+   */
+  async descargarPdfFicha(container: string) {
+    const boton = this.locatorBotonPdf(container);
+    await expect(boton).toBeVisible({ timeout: 30_000 });
+
+    const descarga = this.page.waitForEvent('download', { timeout: 90_000 });
+    await boton.click();
+    return descarga;
+  }
+
+  /** Boton de descarga PDF de la ficha, para resaltarlo si no baja nada. */
+  locatorBotonPdf(container: string): Locator {
+    return this.contenedor(container).locator('.tariff-pdf-btn').first();
+  }
+
+  /**
+   * Cierra el modal de detalle abierto, con su propio boton de cierre.
+   *
+   * Antes se cerraba con Escape y la espera se tragaba el error: el modal
+   * quedaba a medias (aria-hidden="true" pero conservando la clase "in"),
+   * seguia tapando la pantalla y hacia fallar el click al boton de descarga
+   * Word del paso siguiente. Ahora se usa el boton que trae el markup
+   * (data-dismiss="modal") y si no cierra, falla.
+   */
   async cerrarModalDetalle(modal: Locator) {
-    await this.page.keyboard.press('Escape');
-    await modal.waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => {});
+    const cerrar = modal.locator('.modal-header .close[data-dismiss="modal"]').first();
+    if (await cerrar.count()) await cerrar.click();
+    else await this.page.keyboard.press('Escape');
+    await modal.waitFor({ state: 'hidden', timeout: 15_000 });
   }
 
 
@@ -419,6 +518,14 @@ export class TarifarioPage {
       tagRecomendado:   await hay('.featured-tag'),
       observaciones:    (await c.locator('.tariff-obs-item').count()) > 0,
       iconosTooltips:   (await c.locator('.tariff-op-item').count()) > 0,
+      // Copia titulo + cuerpo del detalle al portapapeles. Lo tienen los cinco
+      // controles, asi que se exige en las siete pestanias. Ojo que en los
+      // servicios este mismo boton dice "Copiar todo".
+      copiar:           await hay('.tariff-copy-btn'),
+      // Estos dos son solo de la ficha de servicios (ServiceTariffControl.ascx):
+      // copiar la solapa abierta y bajar la ficha en PDF.
+      copiarSolapa:     await hay('.tariff-copy-tab-btn'),
+      descargaPdf:      await hay('.tariff-pdf-btn'),
     };
   }
 
@@ -438,15 +545,19 @@ export class TarifarioPage {
   /**
    * Captura los importes tal como se ven, con una tabla por solapa de idioma.
    *
-   * Los servicios con recargo por idioma muestran solapas
-   * (.srl-lang-tabs-{InstanceId}, ver ServiceTariffDetailControl.ascx) y el
-   * precio cambia entre ellas, asi que hay que recorrerlas todas.
+   * Hay dos controles que muestran solapas y cada uno usa su propio prefijo:
+   *   .srl-lang-tabs-{InstanceId}  ServiceTariffDetailControl.ascx  (servicios)
+   *   .trl-lang-tabs-{InstanceId}  NewTourTariffDetailControl.ascx  (paquetes)
+   *
+   * El selector matchea los dos. Antes solo miraba "srl-" y Paquetes caia al
+   * caso sin solapas: se capturaba unicamente la tabla en Español y los precios
+   * de Inglés y Portugués quedaban sin validar.
    */
   async capturarTarifas(container: string): Promise<{
     porIdioma: Record<string, string[][]>; solapasIdioma: number; tarifaExtendida: number;
   }> {
     const porIdioma: Record<string, string[][]> = {};
-    const solapas = this.page.locator("[class*='srl-lang-tabs-'] > *");
+    const solapas = this.page.locator(`${TarifarioPage.SOLAPAS_IDIOMA} > *`);
     const cantidad = await solapas.count();
 
     if (cantidad > 0) {
@@ -481,6 +592,9 @@ export class TarifarioPage {
       tagRecomendado:   '.featured-tag',
       observaciones:    '.tariff-obs-item',
       iconosTooltips:   '.tariff-op-item',
+      copiar:           '.tariff-copy-btn',
+      copiarSolapa:     '.tariff-copy-tab-btn',
+      descargaPdf:      '.tariff-pdf-btn',
     };
     return c.locator(mapa[clave] ?? '.tariff-card');
   }
@@ -493,7 +607,7 @@ export class TarifarioPage {
 
   /** Vuelve a la solapa de idioma indicada, para capturar el fallo donde ocurrio. */
   async volverASolapaIdioma(nombre: string) {
-    const solapas = this.page.locator("[class*='srl-lang-tabs-'] > *");
+    const solapas = this.page.locator(`${TarifarioPage.SOLAPAS_IDIOMA} > *`);
     const total = await solapas.count();
     for (let i = 0; i < total; i++) {
       if ((await solapas.nth(i).innerText()).trim() === nombre) {

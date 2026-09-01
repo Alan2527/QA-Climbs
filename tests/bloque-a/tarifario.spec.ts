@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import * as fs from 'fs';
 import { TarifarioPage } from '../../pages/tarifario.page';
 import {
   paso, adjuntarTexto, precioMostrado, importeANumero, resaltarYCapturar,
@@ -54,6 +55,40 @@ test.describe('Tarifario', () => {
   const norm = (x: string) => x.trim().toLowerCase();
 
   /**
+   * Compara el texto del detalle que muestra la pantalla contra el que tiene la
+   * base, linea por linea.
+   *
+   * Se exige que cada linea de la base este presente, en vez de comparar la
+   * cadena entera: el campo guarda HTML y el navegador lo renderiza con sus
+   * propios saltos y espacios, asi que una igualdad estricta daria rojo por
+   * diferencias de formato que no le importan a nadie. Con este criterio, en
+   * cambio, un parrafo que falta o que cambio si falla.
+   */
+  async function compararTextoDelDetalle(
+    t: TarifarioPage, cfg: any, campo: 'Detail' | 'TechnicalSheet',
+  ) {
+    const esperadas: string[] = cfg.detalleEsperado?.[campo];
+    if (!esperadas?.length) return;
+
+    const enPantalla = await t.textoDelDetalleAbierto(campo);
+    const plano = norm(enPantalla);
+    const faltantes = esperadas.filter((linea) => !plano.includes(norm(linea)));
+
+    await adjuntarTexto(`Detalle ${campo}: base vs pantalla`,
+      'fuente: ' + (cfg.detalleEsperado._fuente ?? '(sin documentar)') + SALTO +
+      `lineas esperadas: ${esperadas.length}` + SALTO +
+      `lineas ausentes:  ${faltantes.length}` + SALTO + SALTO +
+      'ESPERADO (base):' + SALTO + esperadas.join(SALTO) + SALTO + SALTO +
+      'EN PANTALLA:' + SALTO + enPantalla.slice(0, 4000));
+
+    expect(faltantes.join(SALTO + '  - '),
+      `La pantalla no muestra ${faltantes.length} de las ${esperadas.length} lineas ` +
+      `que tiene la base en ${campo}`,
+    ).toBe('');
+  }
+
+
+  /**
    * Valida el popup "Ver Detalle" contra lo que hay en la base.
    * Las solapas son condicionales: si el dato no esta cargado, no se renderiza.
    */
@@ -89,14 +124,51 @@ test.describe('Tarifario', () => {
       expect(noIncluye.length, 'NO INCLUYE muestra items que la base no tiene').toBe(ficha.noIncluye.length);
     });
 
+    await paso(page, 'La descripcion coincide con la de la base', async () => {
+      await compararTextoDelDetalle(t, cfg, 'Detail');
+    });
+
     await paso(page, 'La ficha tecnica muestra los idiomas de la base', async () => {
       const tecnica = await t.contenidoDeSolapa('technical');
       await adjuntarTexto('Ficha tecnica en pantalla', tecnica);
       for (const idioma of ficha.idiomas) {
         expect(norm(tecnica), `Falta el idioma "${idioma}" en la ficha tecnica`).toContain(norm(idioma));
       }
-      await t.cerrarFichaDetalle();
     });
+
+    // Va ultimo y con el popup todavia abierto: el boton vive adentro de la
+    // ficha, y si fallara antes taparia la validacion de la ficha tecnica.
+    if (cfg.elementos?.descargaPdf) {
+      await paso(page, 'El boton Descargar PDF baja la ficha', async () => {
+        let descarga;
+        try {
+          descarga = await t.descargarPdfFicha(cfg.container);
+        } catch (error) {
+          await resaltarYCapturar(page, t.locatorBotonPdf(cfg.container),
+            'FALLA: el boton Descargar PDF no bajo ningun archivo',
+            t.locatorCard(cfg.container));
+          throw error;
+        }
+
+        const nombre = descarga.suggestedFilename();
+        const ruta = await descarga.path();
+        const bytes = ruta ? fs.statSync(ruta).size : 0;
+        // Un PDF valido empieza con "%PDF".
+        const firma = ruta ? fs.readFileSync(ruta).subarray(0, 4).toString('latin1') : '';
+
+        await adjuntarTexto('Ficha en PDF descargada',
+          'nombre: ' + nombre + SALTO +
+          'bytes:  ' + bytes + SALTO +
+          'firma:  ' + JSON.stringify(firma) + '  (un PDF valido empieza con %PDF)');
+
+        expect(nombre, `El archivo descargado no es un .pdf: "${nombre}"`).toMatch(/\.pdf$/i);
+        expect(bytes, 'El PDF descargado esta vacio').toBeGreaterThan(0);
+        expect(firma, 'El archivo descargado no es un PDF valido').toBe('%PDF');
+      });
+    }
+
+
+    await t.cerrarFichaDetalle();
   }
 
 
@@ -134,7 +206,60 @@ test.describe('Tarifario', () => {
         expect(texto, 'El modal no muestra la descripcion de la base')
           .toContain(esperado.descripcion);
       }
+
+      // Cuerpo completo contra la base. En Hoteles son dos solapas: la
+      // descripcion sale de HotelDetail.Detail y la ficha tecnica de
+      // HotelTechnicalSheet.Content, que es otra tabla.
+      await compararTextoDelDetalle(t, cfg, 'Detail');
+      if (cfg.detalleEsperado?.TechnicalSheet) {
+        await compararTextoDelDetalle(t, cfg, 'TechnicalSheet');
+      }
+
       await t.cerrarModalDetalle(modal);
+    });
+  }
+
+
+  /**
+   * Valida que el boton de descarga Word baje un archivo de verdad.
+   *
+   * Solo corre en las pestanias que tienen el boton segun la matriz (Paquetes y
+   * Ofertas). Antes se verificaba unicamente que el onclick estuviera en el
+   * markup: el boton podia estar y el archivo no bajar nunca.
+   */
+  async function validarDescargaWord(page: Page, t: TarifarioPage, cfg: any) {
+    if (!cfg.elementos?.descargaWord) return;
+
+    await paso(page, 'El boton de descarga Word baja el archivo', async () => {
+      let descarga;
+      try {
+        descarga = await t.descargarWord(cfg.container);
+      } catch (error) {
+        await resaltarYCapturar(
+          page,
+          t.locatorBotonWord(cfg.container),
+          'FALLA: el boton de descarga Word no bajo ningun archivo',
+          t.locatorCard(cfg.container),
+        );
+        throw error;
+      }
+
+      const nombre = descarga.suggestedFilename();
+      const ruta = await descarga.path();
+      const bytes = ruta ? fs.statSync(ruta).size : 0;
+
+      // Un .docx es un ZIP: tiene que empezar con "PK". Sin esto, un endpoint
+      // que devuelve una pagina de error con nombre .docx pasaria como valido.
+      const firma = ruta ? fs.readFileSync(ruta).subarray(0, 2).toString('latin1') : '';
+
+      await adjuntarTexto('Archivo descargado',
+        'nombre: ' + nombre + SALTO +
+        'bytes:  ' + bytes + SALTO +
+        'firma:  ' + JSON.stringify(firma) + '  (un .docx es un ZIP, empieza con PK)');
+
+      expect(nombre, `El archivo descargado no es un .docx: "${nombre}"`).toMatch(/\.docx$/i);
+      expect(bytes, 'El archivo descargado esta vacio').toBeGreaterThan(0);
+      expect(firma, 'El archivo descargado no es un .docx valido').toBe('PK');
     });
   }
 
@@ -386,6 +511,7 @@ test.describe('Tarifario', () => {
     const t = await validarItem(page, T.paquetes as Config, 'Paquetes');
     await validarImportes(page, t, 'paquetes', T.paquetes);
     await validarModalDetalle(page, t, T.paquetes);
+    await validarDescargaWord(page, t, T.paquetes);
     await paso(page, 'El paquete muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.paquetes.container);
       for (const c of T.paquetes.ciudades) {
@@ -503,6 +629,7 @@ test.describe('Tarifario', () => {
     const t = await validarItem(page, T.ofertas as Config, 'Ofertas');
     await validarImportes(page, t, 'ofertas', T.ofertas);
     await validarModalDetalle(page, t, T.ofertas);
+    await validarDescargaWord(page, t, T.ofertas);
     await paso(page, 'La oferta muestra sus dos ciudades', async () => {
       const texto = await t.textoDe(T.ofertas.container);
       for (const c of T.ofertas.ciudades) {

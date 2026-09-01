@@ -44,8 +44,9 @@ CityID 5000, CurrencyID 1 (USD), markup del header **M 0.50**.
 
 ## BLOQUE A — Tarifario: terminado
 
-7 tests, uno por pestaña. **6 en verde**, Cruceros en rojo por dos defectos reales
-de la aplicación (ver Hallazgos).
+7 tests, uno por pestaña. **3 en verde y 4 en rojo**, todos los rojos por defectos
+reales de la aplicación (ver Hallazgos): Cruceros arrastra dos, y las tres pestañas
+de servicios fallan en la descarga del PDF de la ficha.
 
 ### Recorrido de cada test
 
@@ -68,6 +69,9 @@ Sin atajos por URL, como lo haría un usuario:
 | 7 | El botón pasa de Ver Tarifario a Cerrar Tarifario |
 | 8 | Importes contra la línea base, solapa por solapa y fila por fila |
 | 9+ | Popup de detalle: solapas, incluye / no incluye, idiomas |
+| 9+ | Texto del detalle contra la base, línea por línea |
+| 9+ | Descarga Word: que el archivo baje de verdad (sólo Paquetes y Ofertas) |
+| 9+ | Descarga PDF de la ficha (sólo las tres pestañas de servicios) |
 
 ### Matriz de componentes por pestaña
 
@@ -82,6 +86,9 @@ si aparece un componente que esa pestaña no debería tener, también falla.
 | Proveedores | si | si | — | — | — |
 | Descarga Word | — | — | si | si | — |
 | Cotizar y reservar (nunca se clickea) | — | — | si | si | — |
+| Botón Copiar | si | si | si | si | si |
+| Botón Copiar solapa | si | — | — | — | — |
+| Botón Descargar PDF | si | — | — | — | — |
 | Tag RECOMENDADO | — | si | — | — | — |
 | Observaciones destacadas | si | — | — | — | — |
 | Iconos + tooltips | si | — | — | — | — |
@@ -89,6 +96,14 @@ si aparece un componente que esa pestaña no debería tener, también falla.
 > **"Cotizar y reservar" se verifica por presencia y jamás se clickea**: navega a
 > `ShoppingCartPage.aspx` y saca al test del tarifario. Fue la causa de varios
 > fallos hasta que se acotaron los selectores al contenedor de la pestaña.
+
+> **La descarga Word sí se ejecuta.** El botón llama a `downloadWord()`
+> (`ExportWordModal.ascx`), que abre el modal de elección de agencia sólo si el
+> usuario es admin y está simulando; para el resto baja directo pidiendo
+> `/advisorws/downloadWordTourTariff/`. El test captura la descarga y verifica
+> nombre `.docx`, tamaño mayor a cero y que el archivo empiece con `PK`: un
+> `.docx` es un ZIP, así que un endpoint que devolviera una página de error con
+> nombre `.docx` no pasaría. Hoy bajan ~139 KB en las dos pestañas.
 
 ### Validación de importes
 
@@ -102,6 +117,13 @@ Se captura **una tabla por solapa de idioma**, porque el precio cambia entre ell
 en Cena Show la tarifa Regular pasa de **USD 137 (Español) a USD 152 (Inglés)** por
 el recargo por idioma. También se cuenta la marca TARIFA EXTENDIDA.
 
+Hay **dos controles que muestran solapas y cada uno usa su propio prefijo de clase**:
+`srl-lang-tabs-` en `ServiceTariffDetailControl.ascx` (servicios) y `trl-lang-tabs-`
+en `NewTourTariffDetailControl.ascx` (paquetes). El selector matchea los dos. Cuando
+sólo miraba `srl-`, Paquetes caía al caso sin solapas y se validaba únicamente la
+tabla en Español: 38 de sus 57 filas quedaban sin comparar, y el recargo por idioma
+del paquete es real — en Inglés está USD 30 a 32 por encima en 17 de las 19 filas.
+
 | Pestaña | Solapas idioma | TARIFA EXTENDIDA | Filas |
 |---|---|---|---|
 | Cena Show | 3 | 5 | 18 |
@@ -109,12 +131,31 @@ el recargo por idioma. También se cuenta la marca TARIFA EXTENDIDA.
 | Traslados | 3 | 0 | 30 |
 | Hoteles | — | 189 | 105 |
 | Cruceros | — | 0 | 136 |
-| Paquetes | — | 0 | 19 |
+| Paquetes | 3 | 0 | 57 |
 | Ofertas | — | 0 | 19 |
 
 **Cena Show tiene además validación con fórmula** contra `ServiceRate`:
 `ceil(TotalRate / markup)`. Es el caso de control: detecta un cálculo mal hecho hoy,
 no sólo un cambio respecto de ayer.
+
+#### Por qué no se extiende la fórmula a las otras pestañas
+
+Estuvo anotado como pendiente y **se decidió no hacerlo**. La fórmula agrega valor
+sólo si el sistema ya estuviera calculando mal en el momento de capturar: en ese
+caso la línea base guardaría el valor incorrecto como bueno y no lo detectaría
+nunca. Verificado que **hoy el cálculo es correcto**, la línea base quedó con
+valores correctos y alcanza para detectar cualquier regresión posterior.
+
+En Paquetes y Ofertas además estaba bloqueado: `sp_TourRates` llena la tabla
+`TempRates`, que es de donde lee la aplicación, y el login `herrera_qa` no tiene
+`EXECUTE` sobre el SP — entra a la base como `guest`, sin usuario propio.
+
+> **La contrapartida está en la regeneración.** `npm run lineabase` vuelve a tomar
+> como buenos los importes que la pantalla muestre en ese momento. Si se regenera
+> con un cálculo ya roto, el error queda consagrado como línea base. Por eso el
+> consolidador imprime un resumen y marca las pestañas cuyas solapas o filas
+> cambiaron: **hay que mirar ese resumen antes de commitear una línea base nueva**,
+> no regenerarla a ciegas.
 
 Regenerar la línea base cuando se cambien datos a propósito:
 
@@ -122,8 +163,41 @@ Regenerar la línea base cuando se cambien datos a propósito:
 npm run lineabase
 ```
 
+Son **dos pasos encadenados**: `capturar-lineabase.spec.ts` deja un archivo por
+pestaña en `lineabase/`, y `consolidar-lineabase.mjs` los vuelca a
+`data/importes-lineabase.json`, que es lo que leen los tests. Antes el script
+corría sólo el primero: dejaba las siete capturas nuevas y la suite seguía
+comparando contra la línea base vieja. El consolidador imprime un resumen y marca
+la pestaña cuyas solapas o filas cambiaron respecto de la anterior.
+
 El capturador vive en `tools/`, fuera de `tests/`, para que no corra con la suite
 ni aparezca en el reporte: no es un test de regresión, es una herramienta.
+
+### Validación del texto del detalle
+
+El cuerpo del detalle se compara contra la base, no contra una captura de pantalla:
+es la única forma de detectar que el front muestre un texto distinto del que está
+cargado. Los datos esperados viven en `detalleEsperado` dentro de `candidatos.json`,
+con su origen anotado en `_fuente`.
+
+| Ítem | Superficie | Campo de la base |
+|---|---|---|
+| Paquetes 5059 | modal | `ReceptiveTourDetail.Detail` |
+| Ofertas 5060 | modal | `ReceptiveTourDetail.Detail` |
+| Cruceros 14 | modal | `CruiseDetail.Detail` |
+| Hoteles 5003 | modal, dos solapas | `HotelDetail.Detail` + `HotelTechnicalSheet.Content` |
+| Excursiones 5, Traslados 1223, Cena Show 163 | ficha | `ServiceDetail.Detail` |
+
+Todos filtran por `LanguageID = 1` (Español). Hoteles es el único que necesita dos
+tablas: `HotelDetail` **no tiene** las columnas `Name` ni `TechnicalSheet` — el
+título sale de la tabla `Hotel` y la ficha técnica de `HotelTechnicalSheet.Content`,
+filtrada además por `Status = 1`.
+
+Se exige que **cada línea de la base esté presente** en pantalla, en vez de comparar
+la cadena entera: el campo guarda HTML y el navegador lo renderiza con sus propios
+saltos y espacios, así que una igualdad estricta daría rojo por diferencias de
+formato que no le importan a nadie. Con este criterio, un párrafo que falta o que
+cambió sí falla.
 
 ### Resaltado de fallos
 
@@ -132,6 +206,26 @@ recuadro rojo y hace scroll hasta centrarlo. En diferencias de importes se seña
 la fila exacta y se vuelve a la solapa de idioma donde ocurrió.
 
 ---
+
+## Notas sobre la base de QA
+
+- **Las tablas no comparten intercalación.** Un `UNION` o un `JOIN` por texto entre
+  tablas de módulos distintos falla con el error 451 (`No se puede resolver el
+  conflicto de intercalación entre 'SQL_Latin1_General_CP1_CI_AS' y
+  'Modern_Spanish_CI_AS'`). Se resuelve agregando `COLLATE DATABASE_DEFAULT` a las
+  columnas de texto. Va a volver a aparecer en el Bloque C, que cruza bastante
+  texto entre módulos.
+- **`OBJECT_NAME()` necesita el segundo parámetro** cuando se consulta otra base:
+  `OBJECT_NAME(c.object_id, DB_ID('qa'))`. Sin él devuelve NULL aunque
+  `OBJECT_ID('qa.dbo.Tabla')` sí resuelva.
+- **El login `herrera_qa` entra como `guest`**: no tiene usuario propio en `qa`.
+  Por eso no puede ejecutar procedimientos (`HAS_PERMS_BY_NAME` sobre
+  `sp_TourRates` devuelve 0). Si alguna vez se pide el permiso, conviene avisar que
+  crear el usuario le haría **perder** lo que hoy le da `guest`.
+- **Hay idiomas cargados que el portal no ofrece**: además de ES/EN/PT (1, 2, 3)
+  existen filas con `LanguageID` 4 (italiano) y 6. En Paquetes y Ofertas el italiano
+  está incluso **publicado**. También hay filas vacías o en NULL, como
+  `HotelDetail` del hotel 5003 en idioma 4.
 
 ## Datos de prueba en QA
 
@@ -213,7 +307,52 @@ El assert es **soft**: el tarifario ya quedó desplegado y con filas en el paso 
 que el test sigue y valida los importes y el modal en la misma corrida. Con un assert
 duro cortaba en el paso 7 y tapaba el hallazgo 1.
 
-### 3. El tarifario muestra amenities con `Published = 0`
+### 3. La ficha de servicios nunca descarga el PDF
+
+Clic en **Descargar PDF** en la ficha de cualquier servicio: el archivo no baja
+nunca y el botón queda clavado en **"Generando..." y deshabilitado**. Hay que
+recargar la página para poder reintentar.
+
+`Online/js/service-sheet.js`, `downloadServiceSheetPdf()`, pide el PDF con:
+
+```js
+$.ajax({ type: 'GET', url: '/advisorws/createservicesheetpdf/?service=' + id,
+         xhrFields: { responseType: 'blob' }, success: ..., error: ... })
+```
+
+**El sitio usa jQuery 1.12.4, que no soporta `xhrFields.responseType = 'blob'`.**
+Al terminar la petición, el transporte de jQuery intenta leer `responseText`, que
+con `responseType='blob'` lanza excepción, y no dispara `success` ni `error`: el
+deferred no se resuelve nunca y por eso el botón queda a medias.
+
+Verificado en la página de QA, sobre el servicio 5:
+
+```
+jquery: 1.12.4
+ajax:   NINGUN CALLBACK a los 25s
+fetch:  ok http=200 tipo=application/pdf size=98578
+```
+
+**El endpoint está perfecto**: responde 200 con un PDF válido de 98.578 bytes. Con
+`fetch` baja sin problema — que es exactamente lo que usa la descarga Word de
+Paquetes y Ofertas, y por eso ésa sí funciona, en el mismo navegador y la misma
+página. Afecta a Excursiones, Traslados y Cena Show.
+
+### 4. El tarifario no respeta `Published` en las tablas de detalle
+
+Cena Show y Traslados tienen `ServiceDetail.Published = 0` en los tres idiomas y
+sin embargo el texto se muestra en pantalla.
+
+No es un problema de esos dos ítems: **el flag no se consulta en ningún lado**.
+
+- `ServiceSheetBuilder.cs:54` → `Where(o => o.ServiceID == serviceId && !o.Deleted)`
+- `ServiceDetailManager.cs:10` y `:31` → sólo `Deleted == false`
+- `ReceptiveTourDetailManager.LoadByTourAndLanguage` → sólo `LanguageID` y el ID
+
+Que Paquetes, Ofertas, Cruceros y Hoteles no lo evidencien es sólo porque están
+en `Published = 1`. Es el mismo patrón del hallazgo 5.
+
+### 5. El tarifario muestra amenities con `Published = 0`
 
 Detectado con "Pick up y drop off en hotel" en el Café de los Angelitos. Se
 publicaron las que quedaban para que el dato sea coherente, pero conviene consultarlo.
@@ -224,17 +363,42 @@ publicaron las que quedaban para que el dato sea coherente, pero conviene consul
 
 ### Bloque A — pendientes menores
 
-- **Importes con fórmula** en las otras seis pestañas. Hoy sólo Cena Show valida
-  contra la base; el resto compara contra la línea base, que detecta cambios pero no
-  un error de cálculo actual. Para Paquetes y Ofertas hace falta **permiso de
-  `EXECUTE` sobre `sp_TourRates`**, que el usuario `herrera_qa` no tiene.
 - **Tooltips de operatividad**: salen de `ServiceCalendar` (campos `Monday`…`Sunday`
   más rango de fechas). Falta armar el texto esperado y compararlo.
-- **Popup de detalle en Paquetes, Hoteles, Ofertas y Cruceros**: hoy sólo se valida
-  título y descripción. Los tres servicios sí validan las cinco solapas.
 - **Leyenda "Más observaciones disponibles en el detalle"**: depende de
   `op.HasMoreObservations`, cuyo criterio vive en `ServiceOperativityData`, que no
   está en el repo del WEB. Se adjunta al reporte pero no se exige.
+
+### Multiidioma del portal: diferido a propósito
+
+Los siete tests corren en **Español** y así quedan por ahora. No es un olvido:
+se decidió esperar a tener Bloques B y C armados y recién ahí evaluar si conviene
+recorrer los tres idiomas dentro de los tests que ya existen, en vez de sumar un
+test aparte que después habría que rehacer.
+
+Conviene no confundir dos mecanismos que se llaman igual:
+
+- **Solapas del tarifario** (`srl-lang-tabs-` / `trl-lang-tabs-`): cambian **sólo
+  los importes**. `setTourLanguage` reconstruye el `tbody` de las tablas desde
+  `langRates` y no toca el modal, el título ni la descripción. **Esto ya se valida
+  en los tres idiomas** en las cuatro pestañas que tienen solapas.
+- **Toggle del encabezado** (`a.header-flug`, dice ES): cambia
+  `AdvisorContext.Current.WorkingLanguage`, que es de donde sale el texto del modal
+  y de la card. **Esto es lo que queda sin validar.**
+
+Cuando se encare, hay dos cosas para medir antes de escribir el test:
+
+1. Si al cambiar el idioma se pierden los resultados de la búsqueda del tarifario.
+   Si el toggle hace postback y los conserva, no hay que rehacer filtros y buscador
+   en cada vuelta.
+2. **Si el idioma queda persistido del lado del servidor para el usuario.** Los
+   siete tests comparten `Pablo@amv.travel` y el mismo `storageState`: si el idioma
+   persiste, el test que lo cambie rompe a los demás y hay que restaurar Español al
+   terminar y correrlo al final.
+
+Lo que hay que exigir no es sólo que el texto coincida con el de la base para ese
+idioma, sino que **no sea el español**: el defecto típico es que el filtro por
+idioma no aplique y el modal caiga al texto por defecto.
 
 ### BLOQUE B — Reservas (no empezado)
 
@@ -324,3 +488,12 @@ qa-e2e/
   como corresponde, se anota el contexto en `_hallazgoConocido` y se acepta el rojo.
 - **Los selectores salen del código fuente** (`WEB/src/AMV.Travel/Web`), nunca se
   inventan. Si hace falta uno que no está en el código, se pide el `outerHTML`.
+- **Un selector que sirve para una pestaña no sirve para todas**: hay componentes
+  compartidos con prefijos de clase distintos por control. Antes de dar por buena
+  una cobertura, verificar en el markup de cada `*TariffControl.ascx` que el
+  selector matchee, y contrastar contra lo que la línea base capturó.
+- **Las esperas de cierre no se tragan el error.** Cerrar un modal con `Escape` y
+  un `.catch(() => {})` dejaba el modal a medias — `aria-hidden="true"` pero con
+  la clase `in` puesta — tapando la pantalla y haciendo fallar el paso siguiente
+  por un motivo que no tenía nada que ver. Se cierra con el botón que trae el
+  markup (`data-dismiss="modal"`) y se exige que quede oculto.

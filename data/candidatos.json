@@ -61,11 +61,20 @@
         "descargaWord": true,
         "tagRecomendado": false,
         "observaciones": false,
-        "iconosTooltips": false
+        "iconosTooltips": false,
+        "copiar": true,
+        "copiarSolapa": false,
+        "descargaPdf": false
       },
       "imagen": "31082026121993.jpg",
       "serviciosCantidad": 3,
-      "ciudadesCantidad": 2
+      "ciudadesCantidad": 2,
+      "detalleEsperado": {
+        "_fuente": "ReceptiveTourDetail.Detail por ReceptiveTourID y LanguageID = 1",
+        "Detail": [
+          "Paquete de datos fijos para pruebas automatizadas. No modificar."
+        ]
+      }
     },
     "excursiones": {
       "tab": "a-excursions",
@@ -169,9 +178,30 @@
         "descargaWord": false,
         "tagRecomendado": false,
         "observaciones": true,
-        "iconosTooltips": true
+        "iconosTooltips": true,
+        "copiar": true,
+        "copiarSolapa": true,
+        "descargaPdf": true
       },
-      "imagen": "31082026162503.jpg"
+      "imagen": "31082026162503.jpg",
+      "detalleEsperado": {
+        "_fuente": "ServiceDetail.Detail por ServiceID y LanguageID = 1",
+        "Detail": [
+          "SALIDAS: Diarias",
+          "HORARIO: 8.45/ 9 a 14hs aproximadamente",
+          "DURACIÓN: 5hs",
+          "OPERATIVIDAD: Todo el año. Excepto el 1 de Mayo, el 25 de diciembre y el 01 de enero",
+          "MENORES: Consultar",
+          "IDIOMAS: Español, Ingles y Portugués",
+          "OBSERVACIONES:",
+          "* En regular pick up por los hoteles, drop off en Puerto Madero, Galerías pacifico y Obelisco",
+          "* En privado pick up y drop off en hoteles. Navegación en barco compartido. Tour sujeto a modificaciones.",
+          "* Vea suplemento por hoteles ubicados en el barrio de Palermo.",
+          "A solo 36 kilómetros de la vibrante ciudad de Buenos Aires, te espera un verdadero paraíso natural: el Delta del Paraná, ubicado en la ciudad de Tigre. Este exuberante rincón de la naturaleza se convierte en el pulmón verde de la región, conocido simplemente como \"El Delta\". En nuestro paseo clásico, te invitamos a navegar por los cinco principales ríos que componen la primera sección de las islas del Delta del Paraná. A medida que exploramos estos ríos, descubrirás la vida típica de los isleños y sus fascinantes costumbres. Después de esta enriquecedora navegación, continuaremos con un recorrido panorámico que te llevará a los puntos más destacados de la ciudad de Tigre. No te pierdas la oportunidad de admirar el Paseo Victorica y el impresionante Museo de Arte de Tigre, un elegante edificio construido a finales del siglo XIX que alberga un tesoro de la cultura. Y, por supuesto, no podemos olvidar el encantador Puerto de Frutos, donde tendrás tiempo libre para explorar y realizar compras. Aquí, encontrarás una gran variedad de productos locales y artesanías, lo que hace de este lugar un verdadero paraíso para los amantes de las compras.",
+          "Incluye: Transporte, Guía, navegación en servicio compartido",
+          "No incluye: Almuerzo"
+        ]
+      }
     },
     "hoteles": {
       "tab": "a-hotels",
@@ -224,13 +254,25 @@
         "descargaWord": false,
         "tagRecomendado": true,
         "observaciones": false,
-        "iconosTooltips": false
+        "iconosTooltips": false,
+        "copiar": true,
+        "copiarSolapa": false,
+        "descargaPdf": false
       },
       "imagen": "31082026182308.jpg",
       "ubicacion": "Recoleta",
       "categoria": "Lujo",
       "desayuno": "Buffet americano",
-      "habitaciones": 9
+      "habitaciones": 9,
+      "detalleEsperado": {
+        "_fuente": "HotelDetail.Detail + HotelTechnicalSheet.Content por HotelID y LanguageID = 1",
+        "Detail": [
+          "Ubicado en el barrio selecto de Recoleta, área de rico patrimonio francés, nuestro hotel de lujo en Buenos Aires, Palacio Duhau - Park Hyatt Buenos Aires se encuentra en Avenida Alvear, cerca de MALBA (Museo de Arte Latinoamericano de Buenos Aires), MNBA (Museo Nacional de Bellas Artes) y Teatro Colón. Ambientado en un edificio que une el resplandor del antiguo palacio francés del 1934 con decoraciones modernas del artista Celedonio Lohidoy, este hotel de 5 estrellas de Buenos Aires respira aun la elegancia del periodo belle-époque. Rodeado por residencias distintas y tiendas lujosas, Palacio Duhau es un boutique hotel que brinda un jardín exuberante invitando a vivir experiencias inolvidables, junto con el clásico Paseo de las Artes, galería y colección de arte privada."
+        ],
+        "TechnicalSheet": [
+          "Hotel de prueba."
+        ]
+      }
     },
     "traslados": {
       "tab": "a-transfers",
@@ -327,9 +369,24 @@
         "descargaWord": false,
         "tagRecomendado": false,
         "observaciones": true,
-        "iconosTooltips": true
+        "iconosTooltips": true,
+        "copiar": true,
+        "copiarSolapa": true,
+        "descargaPdf": true
       },
-      "imagen": "31082026202880.jpg"
+      "imagen": "31082026202880.jpg",
+      "detalleEsperado": {
+        "_fuente": "ServiceDetail.Detail por ServiceID y LanguageID = 1",
+        "Detail": [
+          "- Servicio de traslado desde el aeropuerto internacional de Ezeiza hasta hotel centrico.",
+          "- Duración aproximada del servicio: 45 minutos.",
+          "- Fechas especiales: El 24/12, 25/12, 31/12 y 01/01 (favor de consultar las tarifas).",
+          "- Observaciones:",
+          "* Servicio de guia en español incluido.",
+          "*Los barrios de Núñez, Belgrano, Palermo se cobran como conexión. Otras zonas solicitar cotización.",
+          "*1 maleta mediana y 1 bolso de mano por persona."
+        ]
+      }
     },
     "cenaShow": {
       "tab": "a-shows",
@@ -427,9 +484,28 @@
         "descargaWord": false,
         "tagRecomendado": false,
         "observaciones": true,
-        "iconosTooltips": true
+        "iconosTooltips": true,
+        "copiar": true,
+        "copiarSolapa": true,
+        "descargaPdf": true
       },
-      "imagen": "31082026245403.jpg"
+      "imagen": "31082026245403.jpg",
+      "detalleEsperado": {
+        "_fuente": "ServiceDetail.Detail por ServiceID y LanguageID = 1",
+        "Detail": [
+          "SALIDAS: Diarias./ No válidas para 24 y 31/12",
+          "HORARIO: 20 hs Cena / Solo show 21:15 horas.",
+          "DURACIÓN: 4 horas (aproximadamente).",
+          "POLÍTICA DE MENORES: de 3 a 11 años abonan tarifa de menores",
+          "OBSERVACIONES: tarifas no aplican para cenas de Navidad y Año Nuevo. Vea suplemento por hoteles ubicados en el barrio de Palermo.",
+          "El Café de los Angelitos es un símbolo histórico del tango en Buenos Aires, con más de cien años de tradición. Ofrece un espectáculo de tango de primer nivel, con 21 artistas, siete parejas de baile, dos cantantes y un Quinteto, en un show de 1 hora y 20 minutos. Desde sus inicios en los suburbios, el tango ha evolucionado y hoy atrae a nuevas generaciones con variantes modernas como el Tango Electrónico. El café, visitado por figuras como Carlos Gardel, es un lugar emblemático lleno de fotografías históricas y una decoración que recrea el ambiente del siglo 20. Es una parada obligatoria para quienes desean experimentar la esencia del tango porteño.",
+          "INCLUYE:",
+          "* Opciones de entrada, plato principal y postre",
+          "* Bebidas: gaseosas, agua mineral, cerveza y vinos de Bodega Salentein. En caso de elegir CENA SHOW VIP incluye también espumante Alyda van Salentein.",
+          "* Todos los servicios incluyen traslados en servicio regular",
+          "* Traslados"
+        ]
+      }
     },
     "cruceros": {
       "tab": "a-cruises",
@@ -496,10 +572,56 @@
         "descargaWord": false,
         "tagRecomendado": false,
         "observaciones": false,
-        "iconosTooltips": false
+        "iconosTooltips": false,
+        "copiar": true,
+        "copiarSolapa": false,
+        "descargaPdf": false
       },
       "imagen": "31082026272428.jpg",
-      "cabinasCantidad": 6
+      "cabinasCantidad": 6,
+      "detalleEsperado": {
+        "_fuente": "CruiseDetail.Detail por CruiseID y LanguageID = 1",
+        "Detail": [
+          "Día 1: Punta Arenas - Check In y Zarpe",
+          "Entre las 13:00 y 17:00 hrs. realizaremos el check-in en el Muelle Prat (EPA), Av. Costanera del Estrecho de Magallanes 1398, Punta Arenas - Chile, para luego embarcar a las 18:00 hrs.",
+          "Una vez a bordo, nos reuniremos en la quinta cubierta, para hacer un brindis de bienvenida y conocer al Capitán y su tripulación. Posteriormente, la nave zarpará hacia el extremo Sur, a través del mítico Estrecho de Magallanes y del Canal Beagle, nos internaremos por la Patagonia y los fiordos de Tierra del Fuego.",
+          "Día 2: Bahía Ainsworth - Islotes Tuckers",
+          "Llegaremos a las inmediaciones del Glaciar Marinelli en la Bahía Ainsworth. Aprenderemos cómo resurge la vida después del retiro de los hielos. Emprenderemos una caminata a través",
+          "del maravilloso bosque magallánico subantártico. Visitaremos los Islotes Tuckers donde, desde los Zodiacs, avistaremos pingüinos de Magallanes y cormoranes.",
+          "*Debido al ciclo migratorio de los pingüinos, en septiembre y abril esta excursión es reemplazada por una caminata cercana a un glaciar en Bahía Brookes.",
+          "Día 3: Glaciar Pía - Avenida de los Glaciares",
+          "Navegaremos por el brazo Noroeste del Canal Beagle para ingresar y desembarcar en el Fiordo Pía. Realizaremos una excursión hasta el mirador desde donde se puede observar el glaciar homónimo, cuya lengua principal se extiende desde lo alto del cordón montañoso hasta el mar. Después de esta inolvidable experiencia, continuaremos nuestra navegación bajo la majestuosa mirada de la \"Avenida de los Glaciares\" para disfrutar desde el barco, las espectaculares panorámicas.",
+          "Día 4: Cabo de Hornos - Bahía Wulaia",
+          "Llegaremos al Parque Nacional Cabo de Hornos, donde desembarcaremos si las condiciones climáticas lo permiten para vivir la magia de caminar por uno de los puntos más australes del mundo, rodeado de encanto y de leyendas.",
+          "Por la tarde desembarcaremos en Bahía Wulaia, sitio histórico que fue uno de los asentamientos más grandes de los nativos canoeros Yámanas. Llegaremos hasta un mirador, caminando a través del bosque magallánico en el que crecen lengas, coigües, canelos y helechos, entre otras especies.",
+          "Día 5: Ushuaia",
+          "Arribo a Ushuaia, la ciudad argentina más importante de Tierra del Fuego y la más austral del mundo.",
+          "Desembarco a las 08:30 horas",
+          "INCLUYE:",
+          "*Desayunos, almuerzos y comidas.",
+          "*Bar abierto.",
+          "*Excursiones diarias a tierra, de acuerdo a lo programado por cada barco.",
+          "*Whisky y chocolate caliente durante las excursiones.",
+          "*Actividades al interior del barco.",
+          "NO INCLUYE:",
+          "*Traslados pre y post crucero.",
+          "*Compras en tienda a bordo.",
+          "* Tasas de Embarque (USD 145.- por persona)",
+          "* Propinas. Recomendamos U$25 por pax por noche, pero queda a criterio de cada pasajero.",
+          "QUÉ LLEVAR:",
+          "▪ Zapatos de treking impermeables.",
+          "▪ Calcetines térmicos.",
+          "▪ Chaqueta resistente al agua.",
+          "▪ Pantalones resistentes al agua.",
+          "▪ Camisetas de manga larga.",
+          "▪ Polar y primera capa térmica.",
+          "▪ Guantes.",
+          "▪ Bufanda o cuello.",
+          "▪ Gorro.",
+          "▪ Anteojos de sol.",
+          "▪ Protector solar"
+        ]
+      }
     },
     "ofertas": {
       "tab": "a-opportunities",
@@ -549,11 +671,20 @@
         "descargaWord": true,
         "tagRecomendado": false,
         "observaciones": false,
-        "iconosTooltips": false
+        "iconosTooltips": false,
+        "copiar": true,
+        "copiarSolapa": false,
+        "descargaPdf": false
       },
       "imagen": "31082026282177.jpg",
       "serviciosCantidad": 3,
-      "ciudadesCantidad": 2
+      "ciudadesCantidad": 2,
+      "detalleEsperado": {
+        "_fuente": "ReceptiveTourDetail.Detail por ReceptiveTourID y LanguageID = 1",
+        "Detail": [
+          "Oferta de datos fijos para pruebas automatizadas. No modificar."
+        ]
+      }
     }
   },
   "_deepLink": {

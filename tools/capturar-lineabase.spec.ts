@@ -43,7 +43,8 @@ for (const [clave, cfg] of Object.entries(T)) {
     const salida: any = { item: cfg.nombre, id: cfg.id, porIdioma: {}, tarifaExtendida: 0 };
 
     // Solapas de idioma (recargo por idioma): se captura la tabla de cada una.
-    const solapas = page.locator("[class*='srl-lang-tabs-'] > *");
+    // Los dos prefijos que existen: "srl-" (servicios) y "trl-" (paquetes).
+    const solapas = page.locator("[class*='-lang-tabs-'] > *");
     const cantidad = await solapas.count();
     if (cantidad > 0) {
       for (let i = 0; i < cantidad; i++) {
