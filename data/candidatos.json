@@ -178,7 +178,11 @@
             "descripcion": ""
           }
         ],
-        "_fuenteAmenities": "ServiceToServiceAmenity + ServiceAmenityDetail + ServiceAmenityObservation por ServiceID y LanguageID = 1"
+        "_fuenteAmenities": "ServiceToServiceAmenity + ServiceAmenityDetail + ServiceAmenityObservation por ServiceID y LanguageID = 1",
+        "_fuenteFicha": "ServiceInfo.MeetingPoint, .DropOff y .CancellationPolicy por ServiceID y LanguageID = 1",
+        "puntoDeEncuentro": "Desde el hotel",
+        "dropOff": "Puente de la Mujer (Puerto Madero) /Av. Córdoba y Florida (Galerías Pacifico) /Av. Córdoba y Pellegrini /Av. Córdoba y Cerrito / Cerrito y Juncal / Cerrito y Corrientes / 9 de Julio y Av. De Mayo / Corrientes y Florida. En caso de ser en servicio regular estos puntos pueden ser modificados por el guia de la excursion dependiendo las condiciones del trafico en el dia del paseo.",
+        "politicas": "Las cancelaciones con anterioridad de 24hs. no ocasionará ningún tipo de gastos, de lo contrario se cobrará el 100% del servicio"
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
@@ -423,7 +427,11 @@
             "descripcion": "La botella de agua no está incluida en el servicio"
           }
         ],
-        "_fuenteAmenities": "ServiceToServiceAmenity + ServiceAmenityDetail + ServiceAmenityObservation por ServiceID y LanguageID = 1"
+        "_fuenteAmenities": "ServiceToServiceAmenity + ServiceAmenityDetail + ServiceAmenityObservation por ServiceID y LanguageID = 1",
+        "_fuenteFicha": "ServiceInfo.MeetingPoint, .DropOff y .CancellationPolicy por ServiceID y LanguageID = 1",
+        "puntoDeEncuentro": "Aeropuerto Ezeiza",
+        "dropOff": "Hoteles céntricos",
+        "politicas": "Cancelación sin cargo hasta 24 horas antes del inicio del servicio. Dentro de las 24 horas se aplica el 100% de penalidad."
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
@@ -590,7 +598,11 @@
             "descripcion": ""
           }
         ],
-        "_fuenteAmenities": "ServiceToServiceAmenity + ServiceAmenityDetail + ServiceAmenityObservation por ServiceID y LanguageID = 1"
+        "_fuenteAmenities": "ServiceToServiceAmenity + ServiceAmenityDetail + ServiceAmenityObservation por ServiceID y LanguageID = 1",
+        "_fuenteFicha": "ServiceInfo.MeetingPoint, .DropOff y .CancellationPolicy por ServiceID y LanguageID = 1",
+        "puntoDeEncuentro": "Desde hotel",
+        "dropOff": "Al hotel",
+        "politicas": "Cancelación sin cargo hasta 24 horas antes del inicio del servicio. Dentro de las 24 horas se aplica el 100% de penalidad."
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",

@@ -145,13 +145,39 @@ test.describe('Tarifario', () => {
       await compararTextoDelDetalle(t, cfg, 'Detail');
     });
 
-    await paso(page, 'La ficha tecnica muestra los idiomas de la base', async () => {
+    await paso(page, 'La ficha tecnica coincide con la base', async () => {
       const tecnica = await t.contenidoDeSolapa('technical');
-      await adjuntarTexto('Ficha tecnica en pantalla', tecnica);
+      await adjuntarTexto('Ficha tecnica: base vs pantalla',
+        'fuente: ' + (ficha._fuenteFicha ?? '(sin documentar)') + SALTO + SALTO +
+        'idiomas esperados:   ' + ficha.idiomas.join(', ') + SALTO +
+        'punto de encuentro:  ' + (ficha.puntoDeEncuentro ?? '(sin dato)') + SALTO +
+        'drop-off:            ' + (ficha.dropOff ?? '(sin dato)') + SALTO + SALTO +
+        'EN PANTALLA:' + SALTO + tecnica);
+
       for (const idioma of ficha.idiomas) {
         expect(norm(tecnica), `Falta el idioma "${idioma}" en la ficha tecnica`).toContain(norm(idioma));
       }
+      if (ficha.puntoDeEncuentro) {
+        expect(norm(tecnica), 'La ficha tecnica no muestra el punto de encuentro de la base')
+          .toContain(norm(ficha.puntoDeEncuentro));
+      }
+      if (ficha.dropOff) {
+        expect(norm(tecnica), 'La ficha tecnica no muestra el drop-off de la base')
+          .toContain(norm(ficha.dropOff));
+      }
     });
+
+    if (ficha.politicas) {
+      await paso(page, 'Las politicas coinciden con las de la base', async () => {
+        const politicas = await t.contenidoDeSolapa('policies');
+        await adjuntarTexto('Politicas: base vs pantalla',
+          'ESPERADO (ServiceInfo.CancellationPolicy):' + SALTO + ficha.politicas + SALTO + SALTO +
+          'EN PANTALLA:' + SALTO + politicas);
+
+        expect(norm(politicas), 'La solapa Politicas no muestra el texto de la base')
+          .toContain(norm(ficha.politicas));
+      });
+    }
 
     // Va ultimo y con el popup todavia abierto: el boton vive adentro de la
     // ficha, y si fallara antes taparia la validacion de la ficha tecnica.
