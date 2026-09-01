@@ -1,6 +1,12 @@
 # Estado de la suite E2E — AMV Travel (QA)
 
-Documento de traspaso. Última actualización: **2026-08-31**.
+Documento de traspaso. Última actualización: **2026-09-01**.
+
+> **Para retomar en otra conversación:** leer este archivo entero y el `CLAUDE.md`
+> de la carpeta padre. El Bloque A está terminado; lo que sigue es el **Bloque B —
+> Reservas**. Antes de arrancar, mirar las dos secciones marcadas con ⚠️: los datos
+> de QA que hay que restaurar y los hallazgos abiertos que explican por qué la
+> suite no está toda en verde.
 
 ## Qué es esto
 
@@ -44,9 +50,27 @@ CityID 5000, CurrencyID 1 (USD), markup del header **M 0.50**.
 
 ## BLOQUE A — Tarifario: terminado
 
-7 tests, uno por pestaña. **3 en verde y 4 en rojo**, todos los rojos por defectos
-reales de la aplicación (ver Hallazgos): Cruceros arrastra dos, y las tres pestañas
-de servicios fallan en la descarga del PDF de la ficha.
+7 tests, uno por pestaña. **Terminado.**
+
+Con los datos de QA en su estado original, el resultado esperado es **3 en verde y
+4 en rojo**, y los cuatro rojos son defectos reales de la aplicación (ver
+Hallazgos): Cruceros arrastra dos, y las tres pestañas de servicios fallan en la
+descarga del PDF de la ficha.
+
+| Pestaña | Estado esperado | Motivo |
+|---|---|---|
+| Paquetes | verde | |
+| Hoteles | verde | |
+| Ofertas | verde | |
+| Excursiones | rojo | hallazgo 3 (PDF) |
+| Traslados | rojo | hallazgo 3 (PDF) |
+| Cena Show | rojo | hallazgo 3 (PDF) |
+| Cruceros | rojo | hallazgos 1 y 2 |
+
+> **Un fallo no corta el test.** Las comparaciones se registran con `expect.soft`,
+> así una corrida muestra todos los hallazgos juntos en vez de frenar en el
+> primero. El fallo duro se reserva para lo que impide continuar de verdad: que no
+> abra un modal, que no cargue una pestaña.
 
 ### Recorrido de cada test
 
@@ -366,6 +390,27 @@ importes en `data/importes-lineabase.json`.
 
 ---
 
+## ⚠️ Datos de QA modificados a propósito — hay que restaurarlos
+
+El 2026-09-01 se editaron datos en QA **a propósito**, para comprobar que la suite
+detecta los cambios. Sirvió: encontró varios huecos reales de las comparaciones.
+Pero **hasta que se restauren, esas pestañas van a seguir en rojo por un motivo
+que no es un defecto de la aplicación.**
+
+| Ítem | Qué se cambió | Valor original |
+|---|---|---|
+| Hotel 5003 | `HotelDetail.Detail` con `editado!` antepuesto | el texto sin ese prefijo |
+| Excursión 5 | observación de la amenity **Bebidas** con `EDITADO!` antepuesto | `Bebidas a cargo del pasajero durante la navegación` |
+| Cena Show 163 | primera observación destacada con `editado!` antepuesto | `No aplica para cenas de Navidad y Año Nuevo` |
+| Paquete 5059 | nombre con `EDITADO!` antepuesto | `AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia (6 días / 5 noches)` |
+| Traslado 1223 | recargo por idioma llevado al **200%** | **10%** |
+
+Los valores originales están en `data/candidatos.json` y en
+`data/importes-lineabase.json`, así que **la propia suite es la verificación**:
+cuando esas pestañas dejen de fallar por estos motivos, el dato quedó restaurado.
+Ojo con el paquete: el prefijo se aplicó también en `ReceptiveTourDetail`, así que
+el nombre hay que revisarlo en los dos lugares.
+
 ## Hallazgos abiertos
 
 No están redactados como bug porque no hay US contra la cual citarlos.
@@ -482,8 +527,11 @@ publicaron las que quedaban para que el dato sea coherente, pero conviene consul
 
 ### Auditoría de cobertura de la pantalla (2026-09-01)
 
-Barrido del markup del tarifario contra lo que valida la suite. Lo que quedó sin
-cubrir, ordenado por dónde está en la pantalla:
+Barrido del markup del tarifario contra lo que valida la suite. De acá salieron
+las validaciones de proveedores, las cinco solapas del detalle, la barra de
+operatividad y la descripción de la card, que ya están hechas. **Esto es lo que
+quedó sin cubrir**, ordenado por dónde está en la pantalla — es el material para
+una futura ampliación del Bloque A, no algo que bloquee el Bloque B:
 
 **Filtros y cabecera** (`TariffFilterControl.ascx`)
 
@@ -574,7 +622,7 @@ Lo que hay que exigir no es sólo que el texto coincida con el de la base para e
 idioma, sino que **no sea el español**: el defecto típico es que el filtro por
 idioma no aplique y el modal caiga al texto por defecto.
 
-### BLOQUE B — Reservas (no empezado)
+### BLOQUE B — Reservas (no empezado) — es lo que sigue
 
 Cuatro tipos: **multidestino, sólo hotel, sólo servicio y sólo oferta**. En todos hay
 que guardar los datos con los que se generó la reserva y validar que **en el BO se
@@ -586,6 +634,45 @@ conserven todos, idénticos**.
   AMV está en `IntegrationHotelMatch` y **no se valida mirando la UI**: hay que ir a
   la base. Si el match está mal, la reserva se emite con el hotel equivocado y en
   pantalla se ve perfecta.
+
+#### Diferencias con el Bloque A que cambian el planteo
+
+El Bloque A es de **sólo lectura**: navega, mira y compara. El B **escribe**, y eso
+trae tres problemas que no existían hasta ahora y conviene resolver antes de
+escribir el primer test.
+
+1. **Cada corrida deja una reserva.** No se puede reusar un file emitido, así que
+   cada test genera el suyo. Hay que decidir cómo se los identifica — el prefijo
+   `AUTO-QA NO TOCAR` sirve para los datos maestros, pero para las reservas hace
+   falta algo por corrida — y quién los limpia.
+2. **El dato esperado lo genera el propio test**, no la base. En el Bloque A el
+   esperado salía de una tabla; acá sale de lo que el test cargó en el formulario.
+   Ese objeto es el que después hay que buscar en el BO.
+3. **Son dos aplicaciones.** El portal emite y el BO recibe, con credenciales
+   distintas (`BO_USER` / `BO_PASS`, ya están en el `.env` y en el CI). Hay que ver
+   si conviene un `storageState` por aplicación, como el que ya existe para el
+   front.
+
+#### Lo que sí se puede reusar tal cual
+
+- `paso()`, `adjuntarTexto()` y `resaltarYCapturar()` de `utils/pasos.ts`, con la
+  numeración automática y la captura en fallo.
+- `esperarFinDeCarga()`, que es lo que hace andar todo esto contra ASP.NET.
+- El patrón de `conResaltado`: comparar, y si falla marcar la zona y registrar el
+  fallo con `expect.soft` para no cortar el test.
+- Toda la sección **Convenciones** de este documento, que no es específica del
+  tarifario.
+
+#### Por dónde empezar
+
+Antes de automatizar nada, hacer el recorrido a mano una vez y anotar en qué
+pantalla se carga cada dato y con qué nombre aparece después en el BO. Sin ese
+mapeo, la comparación "se conservan todos, idénticos" no se puede escribir.
+
+El orden sugerido es de menor a mayor: **sólo servicio** primero, que es el más
+corto y ya tiene datos de prueba cargados del Bloque A; después sólo hotel, sólo
+oferta, y multidestino al final, que es el más largo y el único con su propio
+módulo.
 
 ### BLOQUE C — Cobranzas (no empezado)
 
@@ -617,6 +704,31 @@ Lo que el PM no pidió y conviene sumar:
 5. **Bandejas de no asignados** (`UnassignedInvoices`, `UnassignedPayorders`) como
    validación negativa.
 
+### Temas abiertos fuera del código
+
+- **Mover el repo a Azure Repos.** Lo pidió el PM para que lo use todo el equipo.
+  La organización ya existe (`AmvTravel`, se ve en el `azure-pipelines.yml` del
+  WEB, que referencia `AmvTravel/TemplatesDevops`). Es Git igual que GitHub, así
+  que el repo se mueve con la historia completa. Lo que hay que rehacer es el CI:
+  `.github/workflows/qa-e2e.yml` no sirve, hay que traducirlo a
+  `azure-pipelines.yml`. Lo único sin equivalente directo es **GitHub Pages**,
+  donde hoy se publica el Allure; la alternativa recomendada es agregar el reporter
+  `junit` de Playwright y `PublishTestResults@2`, que llena la **solapa Tests** de
+  la corrida — nativa, con histórico y detección de flakiness — y dejar el Allure
+  como artefacto del pipeline. Antes de avanzar hay que confirmar con DevOps qué
+  pool de agentes usan (el del WEB lo define el template) y dónde viven los
+  secretos del resto de los pipelines.
+  Verificado que el `.env` **nunca se commiteó** y está en `.gitignore` desde el
+  principio, así que mover la historia es seguro.
+- **Azure Test Plans no se usa y por ahora no conviene.** Es el módulo que se
+  vincula a las historias. Asociar cada test automatizado a un caso de prueba
+  agrega mantenimiento, y sobre todo **la suite está pensada por pantalla y no por
+  historia**: es regresión del tarifario, no la verificación de una US puntual.
+  Queda como segundo paso si el PM pide trazabilidad US ↔ automatizados.
+- **El permiso de `EXECUTE` sobre `sp_TourRates`** quedó sin pedir, y ya no hace
+  falta: se decidió no extender la validación con fórmula (ver Validación de
+  importes).
+
 ### Dato útil para el bloque C
 
 En la suite vieja de Selenium, `bo_payorder_page.py` usa `lnkAsignarTotal`, que es
@@ -640,7 +752,9 @@ qa-e2e/
 ├── tests/
 │   ├── auth.setup.ts                     login único, reusado por storageState
 │   └── bloque-a/tarifario.spec.ts        los 7 tests
-├── tools/capturar-lineabase.spec.ts      regenera la línea base (npm run lineabase)
+├── tools/
+│   ├── capturar-lineabase.spec.ts        captura los importes de cada pestaña
+│   └── consolidar-lineabase.mjs          los vuelca a data/ (los dos: npm run lineabase)
 ├── utils/pasos.ts                        pasos, esperas, resaltado, formato
 └── .github/workflows/qa-e2e.yml          CI con Allure en GitHub Pages
 ```
