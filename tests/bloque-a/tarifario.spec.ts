@@ -221,6 +221,57 @@ test.describe('Tarifario', () => {
 
 
   /**
+   * Abre el modal de Proveedores y compara su tabla con la base.
+   *
+   * Solo corre en las pestanias que tienen el boton segun la matriz (los tres
+   * servicios y Hoteles). Antes se verificaba unicamente que el boton existiera:
+   * el modal no se abria nunca y las cuatro columnas de la tabla no se
+   * comparaban con nada.
+   */
+  async function validarProveedores(page: Page, t: TarifarioPage, cfg: any) {
+    const esperado = cfg.proveedoresEsperados;
+    if (!cfg.elementos?.proveedores || !esperado?.filas) return;
+
+    await paso(page, 'El modal de Proveedores muestra los datos de la base', async () => {
+      let filas: string[][];
+      try {
+        filas = await t.abrirModalProveedores(cfg.container);
+      } catch (error) {
+        await resaltarYCapturar(page, t.locatorBotonProveedores(cfg.container),
+          'FALLA: el boton de Proveedores no abrio el modal',
+          t.locatorCard(cfg.container));
+        throw error;
+      }
+
+      // El endpoint devuelve [] si el usuario no es WebUserTypeID = 1, y ahi la
+      // tabla queda vacia. Se distingue de "no hay proveedores cargados".
+      const comoTexto = (f: any[]) => f.map((c) => String(c).trim()).join(' | ');
+      const enPantalla = filas.map(comoTexto);
+      const deLaBase = esperado.filas.map(comoTexto);
+
+      await adjuntarTexto('Proveedores: base vs pantalla',
+        'fuente: ' + esperado._fuente + SALTO +
+        'columnas: ' + esperado._columnas.join(' | ') + SALTO + SALTO +
+        'ESPERADO (' + deLaBase.length + '):' + SALTO + deLaBase.join(SALTO) + SALTO + SALTO +
+        'EN PANTALLA (' + enPantalla.length + '):' + SALTO + enPantalla.join(SALTO));
+
+      expect(enPantalla.length,
+        `El modal muestra ${enPantalla.length} proveedores y la base tiene ${deLaBase.length}`,
+      ).toBe(deLaBase.length);
+
+      // Fila por fila y en orden: la aplicacion las ordena por DisplayOrder, asi
+      // que un cambio de orden tambien es un hallazgo.
+      for (let i = 0; i < deLaBase.length; i++) {
+        expect(enPantalla[i], `Cambio la fila ${i + 1} del modal de Proveedores`)
+          .toBe(deLaBase[i]);
+      }
+
+      await t.cerrarModalProveedores();
+    });
+  }
+
+
+  /**
    * Valida que el boton de descarga Word baje un archivo de verdad.
    *
    * Solo corre en las pestanias que tienen el boton segun la matriz (Paquetes y
@@ -524,6 +575,7 @@ test.describe('Tarifario', () => {
     const t = await validarItem(page, T.excursiones as Config, 'Excursiones');
     await validarImportes(page, t, 'excursiones', T.excursiones);
     await validarCard(page, t, T.excursiones);
+    await validarProveedores(page, t, T.excursiones);
     await validarFichaDetalle(page, t, T.excursiones);
   });
 
@@ -531,6 +583,7 @@ test.describe('Tarifario', () => {
     const thoteles = await validarItem(page, T.hoteles as Config, 'Hoteles');
     await validarImportes(page, thoteles, 'hoteles', T.hoteles);
     await validarCard(page, thoteles, T.hoteles);
+    await validarProveedores(page, thoteles, T.hoteles);
     await validarModalDetalle(page, thoteles, T.hoteles);
   });
 
@@ -538,6 +591,7 @@ test.describe('Tarifario', () => {
     const t = await validarItem(page, T.traslados as Config, 'Traslados');
     await validarImportes(page, t, 'traslados', T.traslados);
     await validarCard(page, t, T.traslados);
+    await validarProveedores(page, t, T.traslados);
     await validarFichaDetalle(page, t, T.traslados);
   });
 
@@ -605,6 +659,7 @@ test.describe('Tarifario', () => {
     });
 
     await validarCard(page, t, cfg);
+    await validarProveedores(page, t, cfg);
     await validarFichaDetalle(page, t, cfg);
   });
 

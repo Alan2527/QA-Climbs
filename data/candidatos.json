@@ -201,6 +201,23 @@
           "Incluye: Transporte, Guía, navegación en servicio compartido",
           "No incluye: Almuerzo"
         ]
+      },
+      "proveedoresEsperados": {
+        "_fuente": "BO_ServiceSupplier + BO_Supplier + BO_Operator por ServiceID, Published = 1 y Deleted = 0, ordenado por DisplayOrder",
+        "_columnas": [
+          "importancia",
+          "proveedor",
+          "operador",
+          "observacion"
+        ],
+        "filas": [
+          [
+            1,
+            "EXPEDICIONES",
+            "Expediciones",
+            "IMPORT DEFAULT"
+          ]
+        ]
       }
     },
     "hoteles": {
@@ -271,6 +288,23 @@
         ],
         "TechnicalSheet": [
           "Hotel de prueba."
+        ]
+      },
+      "proveedoresEsperados": {
+        "_fuente": "BO_HotelSupplier + BO_Supplier + BO_Operator por HotelID, Published = 1 y Deleted = 0, ordenado por DisplayOrder",
+        "_columnas": [
+          "importancia",
+          "proveedor",
+          "operador",
+          "observacion"
+        ],
+        "filas": [
+          [
+            1,
+            "PARK HYATT BUE",
+            "",
+            "IMPORT DEFAULT"
+          ]
         ]
       }
     },
@@ -385,6 +419,35 @@
           "* Servicio de guia en español incluido.",
           "*Los barrios de Núñez, Belgrano, Palermo se cobran como conexión. Otras zonas solicitar cotización.",
           "*1 maleta mediana y 1 bolso de mano por persona."
+        ]
+      },
+      "proveedoresEsperados": {
+        "_fuente": "BO_ServiceSupplier + BO_Supplier + BO_Operator por ServiceID, Published = 1 y Deleted = 0, ordenado por DisplayOrder",
+        "_columnas": [
+          "importancia",
+          "proveedor",
+          "operador",
+          "observacion"
+        ],
+        "filas": [
+          [
+            1,
+            "MAX BAIRES - EMANUELLI",
+            "Emanuelli - Ejecutivo",
+            "IMPORT"
+          ],
+          [
+            2,
+            "BARON",
+            "Baron Tour",
+            ""
+          ],
+          [
+            3,
+            "TURISMO EL PUENTE",
+            "Turismo El Puente",
+            ""
+          ]
         ]
       }
     },
@@ -504,6 +567,23 @@
           "* Bebidas: gaseosas, agua mineral, cerveza y vinos de Bodega Salentein. En caso de elegir CENA SHOW VIP incluye también espumante Alyda van Salentein.",
           "* Todos los servicios incluyen traslados en servicio regular",
           "* Traslados"
+        ]
+      },
+      "proveedoresEsperados": {
+        "_fuente": "BO_ServiceSupplier + BO_Supplier + BO_Operator por ServiceID, Published = 1 y Deleted = 0, ordenado por DisplayOrder",
+        "_columnas": [
+          "importancia",
+          "proveedor",
+          "operador",
+          "observacion"
+        ],
+        "filas": [
+          [
+            1,
+            "CAFE DE LOS ANGELITOS",
+            "Cafe de los angelitos",
+            ""
+          ]
         ]
       }
     },

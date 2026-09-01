@@ -72,6 +72,7 @@ Sin atajos por URL, como lo haría un usuario:
 | 9+ | Texto del detalle contra la base, línea por línea |
 | 9+ | Descarga Word: que el archivo baje de verdad (sólo Paquetes y Ofertas) |
 | 9+ | Descarga PDF de la ficha (sólo las tres pestañas de servicios) |
+| 9+ | Modal de Proveedores: la tabla completa contra la base |
 
 ### Matriz de componentes por pestaña
 
@@ -92,6 +93,12 @@ si aparece un componente que esa pestaña no debería tener, también falla.
 | Tag RECOMENDADO | — | si | — | — | — |
 | Observaciones destacadas | si | — | — | — | — |
 | Iconos + tooltips | si | — | — | — | — |
+
+> **El botón de Proveedores lleva la clase `.btn-download-word`** en
+> `ServiceTariffControl.ascx:57`, la misma del botón de descarga Word de Paquetes
+> y Ofertas. Por eso `locatorBotonWord` apunta por `[onclick*='downloadWord']` y no
+> por la clase: si fuera por clase, en un servicio se le haría clic a Proveedores
+> creyendo que se descarga un Word.
 
 > **"Cotizar y reservar" se verifica por presencia y jamás se clickea**: navega a
 > `ShoppingCartPage.aspx` y saca al test del tarifario. Fue la causa de varios
@@ -198,6 +205,28 @@ la cadena entera: el campo guarda HTML y el navegador lo renderiza con sus propi
 saltos y espacios, así que una igualdad estricta daría rojo por diferencias de
 formato que no le importan a nadie. Con este criterio, un párrafo que falta o que
 cambió sí falla.
+
+### Modal de Proveedores
+
+Lo tienen los tres servicios y Hoteles. Se abre y se compara **la tabla entera**,
+fila por fila y en orden: la aplicación las ordena por `DisplayOrder`, así que un
+cambio de orden también falla.
+
+| Ítem | Tabla de origen | Filas |
+|---|---|---|
+| Excursiones 5 | `BO_ServiceSupplier` | 1 |
+| Cena Show 163 | `BO_ServiceSupplier` | 1 |
+| Traslados 1223 | `BO_ServiceSupplier` | 3 |
+| Hoteles 5003 | `BO_HotelSupplier` | 1 |
+
+Unidas a `BO_Supplier` y `BO_Operator`, filtrando `Published = 1` y `Deleted = 0`.
+Las cuatro columnas del modal son `DisplayOrder`, `Supplier.Name`, `Operator.Name`
+y `Comment`.
+
+> **El endpoint devuelve `[]` si el usuario no es `WebUserTypeID = 1`**
+> (`AdvisorHelperService.LoadServiceSuppliers`). Pablo lo es, así que la tabla trae
+> datos; con otro usuario el modal se vería vacío y la comparación fallaría por un
+> motivo que no es el que se está buscando.
 
 ### Resaltado de fallos
 
@@ -338,7 +367,24 @@ fetch:  ok http=200 tipo=application/pdf size=98578
 Paquetes y Ofertas, y por eso ésa sí funciona, en el mismo navegador y la misma
 página. Afecta a Excursiones, Traslados y Cena Show.
 
-### 4. El tarifario no respeta `Published` en las tablas de detalle
+### 4. El modal de Proveedores está duplicado en el DOM
+
+`ViewSuppliersModal.ascx` está incluido por `ServiceTariffControl.ascx` **y** por
+`HotelTariffControl.ascx`, y tiene sus ids escritos a mano. Como el tarifario
+renderiza los dos controles en la misma página, quedan **dos elementos con el mismo
+`id`**: `#modalViewSuppliers`, `#suppliersTableBody` y `#suppliersLoading`.
+
+Hoy funciona de casualidad: `openSuppliersModal` usa `document.getElementById` y
+jQuery resuelve `$('#id')` igual, y ambos devuelven **el primero** del documento.
+Así que los botones de Servicios y los de Hoteles terminan manejando la misma
+instancia, y la segunda es markup muerto. Es HTML inválido y queda a merced del
+orden de renderizado.
+
+Se detectó porque Playwright falla con *strict mode violation* al resolver el id a
+dos elementos. El test toma `.first()` a propósito, para hacer lo mismo que hace la
+aplicación.
+
+### 5. El tarifario no respeta `Published` en las tablas de detalle
 
 Cena Show y Traslados tienen `ServiceDetail.Published = 0` en los tres idiomas y
 sin embargo el texto se muestra en pantalla.
@@ -352,7 +398,7 @@ No es un problema de esos dos ítems: **el flag no se consulta en ningún lado**
 Que Paquetes, Ofertas, Cruceros y Hoteles no lo evidencien es sólo porque están
 en `Published = 1`. Es el mismo patrón del hallazgo 5.
 
-### 5. El tarifario muestra amenities con `Published = 0`
+### 6. El tarifario muestra amenities con `Published = 0`
 
 Detectado con "Pick up y drop off en hotel" en el Café de los Angelitos. Se
 publicaron las que quedaban para que el dato sea coherente, pero conviene consultarlo.
@@ -360,6 +406,53 @@ publicaron las que quedaban para que el dato sea coherente, pero conviene consul
 ---
 
 ## Lo que queda por hacer
+
+### Auditoría de cobertura de la pantalla (2026-09-01)
+
+Barrido del markup del tarifario contra lo que valida la suite. Lo que quedó sin
+cubrir, ordenado por dónde está en la pantalla:
+
+**Filtros y cabecera** (`TariffFilterControl.ascx`)
+
+- `#tariffResultCount` — el contador *"90 paquetes en Buenos Aires"*. Está
+  declarado en el page object como `contadorResultados` y **nunca se usa**.
+- `#tariffClearFilters` — el botón Limpiar. Idem, declarado como
+  `btnLimpiarFiltros` y sin usar.
+- `#tariffCategoryTags` — los chips de categoría de Hoteles (Lujo, 5*, 4* Superior,
+  4*, 3* Superior, 3*, Boutique, Apart Hotel).
+- `#tsfFilterToggle` — el filtro Proveedor.
+- `ddResident` — un tercer filtro del control, con `Visible="false"` por defecto.
+
+**Pestañas**
+
+- Hay **ocho, no siete**: existe `phTravelSaleTab` / `#travel-sale`, también con
+  `Visible="false"`. Sin cobertura.
+- `.tariff-update-btn` (`arefresh-*`) — el botón de refresco de cada pestaña, uno
+  por cada una. Sin cobertura.
+
+**Card**
+
+- **El carrusel de imágenes.** Es un `Repeater` de `WebImageDTO`, así que una card
+  puede tener varias imágenes. Se valida sólo el `src` de la primera: ni la
+  cantidad ni la navegación.
+- **La barra de operatividad desglosada**: duración, idiomas y calendario. Hoy sólo
+  se cuenta que haya al menos un `tariff-op-item`.
+
+**Ficha y modal de detalle** — de las cinco solapas hay una completa, una a medias
+y tres vacías:
+
+| Solapa | Estado | Fuente para completarla |
+|---|---|---|
+| Descripción | completa | `ServiceDetail.Detail` |
+| Ficha Técnica | **a medias**: sólo se exige que aparezcan los nombres de los idiomas | `ServiceObservation` + `ServiceObservationDetail`, `ServiceMonth`, `ServiceInfo.MeetingPoint` y `.DropOff`, `ServiceDuration` |
+| Salidas | **vacía** | `ServiceCalendar` + `ServiceCalendarTime` + `ServiceCalendarDetail`, con modalidades Regular/Privado por `RateTypeId` |
+| Incluye / No incluye | **a medias**: los nombres sí, pero `amenitiesDeLaFicha` toma sólo la primera línea del `<li>` y descarta la descripción de cada ítem | `ServiceAmenityObservation` |
+| Políticas | **vacía** | `ServiceInfo.CancellationPolicy` |
+
+**Transversales**
+
+- **Modo oscuro**: no hay ninguna validación, y el `CLAUDE.md` lo pide para el
+  portal online.
 
 ### Bloque A — pendientes menores
 

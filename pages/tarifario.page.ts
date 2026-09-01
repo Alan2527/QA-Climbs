@@ -417,9 +417,59 @@ export class TarifarioPage {
     return descarga;
   }
 
-  /** Boton de descarga Word, para resaltarlo si la descarga no arranca. */
+  /**
+   * Boton de descarga Word, para resaltarlo si la descarga no arranca.
+   *
+   * Va por el onclick y no por la clase: en ServiceTariffControl.ascx:57 el
+   * boton de Proveedores tambien lleva .btn-download-word, asi que por clase se
+   * clickearia Proveedores creyendo que se descarga un Word.
+   */
   locatorBotonWord(container: string): Locator {
-    return this.contenedor(container).locator('.btn-download-word').first();
+    return this.contenedor(container).locator("[onclick*='downloadWord']").first();
+  }
+
+
+  /**
+   * Abre el modal de Proveedores y devuelve sus filas.
+   *
+   * openSuppliersModal() (ViewSuppliersModal.ascx) pide
+   * /advisorws/loadservicesuppliers/ o /loadhotelsuppliers/ con fetch y arma el
+   * tbody a mano, con cuatro celdas: importancia, proveedor, operador y
+   * observacion. El endpoint devuelve [] si el usuario no es WebUserTypeID = 1.
+   */
+  async abrirModalProveedores(container: string): Promise<string[][]> {
+    const boton = this.locatorBotonProveedores(container);
+    await expect(boton).toBeVisible({ timeout: 30_000 });
+    await boton.click();
+
+    // Se toma el primero a proposito. ViewSuppliersModal.ascx esta incluido por
+    // ServiceTariffControl y por HotelTariffControl, y tiene los ids escritos a
+    // mano, asi que en el tarifario hay DOS #modalViewSuppliers en el DOM. El
+    // propio openSuppliersModal usa document.getElementById, que devuelve el
+    // primero: los botones de Servicios y de Hoteles manejan la misma instancia.
+    const modal = this.page.locator('#modalViewSuppliers').first();
+    await expect(modal).toBeVisible({ timeout: 30_000 });
+
+    // El cuerpo se llena por fetch: hay que esperar a que deje de cargar.
+    await this.page.locator('#suppliersLoading').first()
+      .waitFor({ state: 'hidden', timeout: 30_000 });
+
+    return modal.locator('#suppliersTableBody tr').evaluateAll((filas) =>
+      filas.map((f) => Array.from(f.querySelectorAll('td'))
+        .map((c) => (c as HTMLElement).innerText.replace(/\s+/g, ' ').trim())),
+    );
+  }
+
+  /** Cierra el modal de Proveedores con su propio boton. */
+  async cerrarModalProveedores() {
+    const modal = this.page.locator('#modalViewSuppliers').first();
+    await modal.locator('.close-custom-suppliers').click();
+    await modal.waitFor({ state: 'hidden', timeout: 15_000 });
+  }
+
+  /** Boton de Proveedores de la card, para resaltarlo si el modal no abre. */
+  locatorBotonProveedores(container: string): Locator {
+    return this.contenedor(container).locator("[onclick*='openSuppliersModal']").first();
   }
 
 
