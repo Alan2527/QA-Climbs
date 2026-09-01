@@ -115,10 +115,12 @@ test.describe('Tarifario', () => {
     await paso(page, 'Abrir el popup Ver Detalle', async () => {
       await t.abrirFichaDetalle(cfg.container);
       const solapas = await t.solapasDeLaFicha();
-      await adjuntarTexto('Solapas de la ficha', solapas.join(', '));
-      for (const esperada of ficha.solapas) {
-        expect(solapas, `La ficha tiene que mostrar la solapa "${esperada}"`).toContain(esperada);
-      }
+      await adjuntarTexto('Solapas de la ficha',
+        'esperadas: ' + ficha.solapas.join(', ') + SALTO +
+        'en pantalla: ' + solapas.join(', '));
+      // Exactas: si apareciera una solapa de mas, tambien es un hallazgo.
+      expect(solapas, 'La ficha tiene que mostrar exactamente las solapas de la base')
+        .toEqual(ficha.solapas);
     });
 
     await paso(page, 'Incluye / No incluye coincide con la base', async () => {
@@ -163,33 +165,56 @@ test.describe('Tarifario', () => {
     });
 
     await paso(page, 'La ficha tecnica coincide con la base', async () => {
-      const tecnica = await t.contenidoDeSolapa('technical');
+      const { observaciones, campos } = await t.fichaTecnicaEstructurada();
+      const valorDe = (etiqueta: string) =>
+        campos.find((c) => norm(c.etiqueta).includes(norm(etiqueta)))?.valor ?? '';
+
       await adjuntarTexto('Ficha tecnica: base vs pantalla',
         'fuente: ' + (ficha._fuenteFicha ?? '(sin documentar)') + SALTO + SALTO +
-        'idiomas esperados:   ' + ficha.idiomas.join(', ') + SALTO +
-        'punto de encuentro:  ' + (ficha.puntoDeEncuentro ?? '(sin dato)') + SALTO +
-        'drop-off:            ' + (ficha.dropOff ?? '(sin dato)') + SALTO + SALTO +
-        'EN PANTALLA:' + SALTO + tecnica);
+        'OBSERVACIONES esperadas:' + SALTO +
+        (ficha.observaciones ?? []).map((o: any) =>
+          `  ${o.prioritaria ? '[destacada] ' : '             '}${o.texto}`).join(SALTO) + SALTO +
+        'OBSERVACIONES en pantalla:' + SALTO +
+        observaciones.map((o) =>
+          `  ${o.prioritaria ? '[destacada] ' : '             '}${o.texto}`).join(SALTO) + SALTO + SALTO +
+        'CAMPOS en pantalla:' + SALTO +
+        campos.map((c) => `  ${c.etiqueta}: ${c.valor}`).join(SALTO));
 
-      for (const idioma of ficha.idiomas) {
-        expect(norm(tecnica), `La ficha tecnica tiene que mostrar el idioma "${idioma}"`).toContain(norm(idioma));
+      // Observaciones: exactas, en orden y con su marca de prioridad. Se compara
+      // la lista entera y no cada una por separado, para que una observacion de
+      // mas o un texto agregado tambien falle.
+      if (ficha.observaciones) {
+        expect(observaciones.map((o) => `${o.prioritaria ? '*' : '-'} ${norm(o.texto)}`),
+          'Las observaciones tienen que coincidir con las de la base',
+        ).toEqual(ficha.observaciones.map((o: any) =>
+          `${o.prioritaria ? '*' : '-'} ${norm(o.texto)}`));
+      }
+
+      // Los idiomas se muestran unidos por coma: se compara el campo completo.
+      if (ficha.idiomasEnFicha) {
+        expect(norm(valorDe('Idiomas')),
+          `El campo Idiomas tiene que ser exactamente "${ficha.idiomasEnFicha}"`,
+        ).toBe(norm(ficha.idiomasEnFicha));
       }
       if (ficha.puntoDeEncuentro) {
-        expect(norm(tecnica), 'La ficha tecnica tiene que mostrar el punto de encuentro de la base')
-          .toContain(norm(ficha.puntoDeEncuentro));
+        expect(norm(valorDe('Punto de encuentro')),
+          'El punto de encuentro tiene que ser exactamente el de la base',
+        ).toBe(norm(ficha.puntoDeEncuentro));
       }
       if (ficha.dropOff) {
-        expect(norm(tecnica), 'La ficha tecnica tiene que mostrar el drop-off de la base')
-          .toContain(norm(ficha.dropOff));
+        expect(norm(valorDe('Drop')),
+          'El drop-off tiene que ser exactamente el de la base',
+        ).toBe(norm(ficha.dropOff));
       }
-      for (const obs of ficha.observaciones ?? []) {
-        expect(norm(tecnica), `La ficha tecnica tiene que mostrar la observacion "${obs}"`)
-          .toContain(norm(obs));
-      }
-      // Una duracion por modalidad (ServiceDuration.RateTypeID): Regular y Privado.
-      for (const dur of ficha.duraciones ?? []) {
-        expect(norm(tecnica), `La ficha tecnica tiene que mostrar la duracion "${dur}"`)
-          .toContain(norm(dur));
+
+      // La duracion se muestra con las dos modalidades juntas y el formato lo
+      // pone el control ("Regular 02:00 Hs - Privado 04:00 Hs"). Se comparan los
+      // valores, que son el dato de la base, y no la etiqueta que los rodea.
+      if (ficha.duraciones) {
+        const enPantalla = (valorDe('Duracion') || valorDe('Duración')).match(/\d{1,2}:\d{2}/g) ?? [];
+        expect(enPantalla,
+          `La duracion tiene que mostrar exactamente ${ficha.duraciones.join(' y ')}`,
+        ).toEqual(ficha.duraciones);
       }
     });
 
@@ -223,8 +248,10 @@ test.describe('Tarifario', () => {
           'ESPERADO (ServiceInfo.CancellationPolicy):' + SALTO + ficha.politicas + SALTO + SALTO +
           'EN PANTALLA:' + SALTO + politicas);
 
-        expect(norm(politicas), 'La solapa Politicas tiene que mostrar el texto de la base')
-          .toContain(norm(ficha.politicas));
+        // El panel contiene solo la politica, asi que se compara completa.
+        expect(norm(politicas.replace(/\s+/g, ' ')),
+          'La solapa Politicas tiene que mostrar exactamente el texto de la base',
+        ).toBe(norm(ficha.politicas));
       });
     }
 
@@ -291,13 +318,15 @@ test.describe('Tarifario', () => {
       const texto = (await modal.innerText()).replace(/\s+/g, ' ').trim();
       await adjuntarTexto('Contenido del modal', texto.slice(0, 2000));
 
-      expect(texto, `El modal tiene que mostrar el titulo "${esperado.titulo}"`)
-        .toContain(esperado.titulo);
+      // El titulo se compara contra su propio h3 y por igualdad, no buscandolo
+      // dentro del texto completo del modal.
+      const titulo = (await modal.locator('.modal-header .tariff-header-title-h3')
+        .first().innerText()).replace(/\s+/g, ' ').trim();
+      expect(norm(titulo), `El titulo del modal tiene que ser "${esperado.titulo}"`)
+        .toBe(norm(esperado.titulo));
 
-      if (esperado.descripcion) {
-        expect(texto, 'El modal tiene que mostrar la descripcion de la base')
-          .toContain(esperado.descripcion);
-      }
+      // La descripcion no se comprueba aparte: compararTextoDelDetalle compara el
+      // cuerpo completo en los dos sentidos unas lineas mas abajo.
 
       // Cuerpo completo contra la base. En Hoteles son dos solapas: la
       // descripcion sale de HotelDetail.Detail y la ficha tecnica de
@@ -431,12 +460,9 @@ test.describe('Tarifario', () => {
         'tag: ' + JSON.stringify(tag));
 
       if (card.observacionesDestacadas) {
-        for (const esperada of card.observacionesDestacadas) {
-          expect(obs.join(' | '), `La card tiene que mostrar la observacion destacada "${esperada}"`)
-            .toContain(esperada);
-        }
-        expect(obs.length, 'La card tiene que mostrar exactamente las observaciones destacadas de la base')
-          .toBe(card.observacionesDestacadas.length);
+        expect(obs.map((x: string) => norm(x)),
+          'La card tiene que mostrar exactamente las observaciones destacadas de la base',
+        ).toEqual(card.observacionesDestacadas.map((x: string) => norm(x)));
       }
 
       // La leyenda "Mas observaciones disponibles en el detalle" depende de
@@ -516,8 +542,11 @@ test.describe('Tarifario', () => {
 
       if (card.tagRecomendado) {
         expect(tag, 'La card tiene que mostrar el tag RECOMENDADO').not.toBeNull();
-        expect((tag ?? '').toUpperCase(), 'El tag tiene que decir RECOMENDADO')
-          .toContain(card.tagRecomendado.toUpperCase());
+        // Se sacan los caracteres que no son letras: el tag lleva el glifo de
+        // una corona adelante, que innerText devuelve junto con el texto.
+        const soloLetras = (x: string) => x.replace(/[^\p{L} ]/gu, '').trim().toUpperCase();
+        expect(soloLetras(tag ?? ''), 'El tag tiene que decir exactamente RECOMENDADO')
+          .toBe(card.tagRecomendado.toUpperCase());
       }
     });
   }
@@ -561,7 +590,12 @@ test.describe('Tarifario', () => {
       // La imagen tiene que ser la cargada en la base, no el placeholder.
       if (cfg.imagen) {
         expect(src, 'La card tiene que mostrar una imagen').not.toBeNull();
-        expect(src ?? '', `La imagen tiene que ser ${cfg.imagen}`).toContain(cfg.imagen);
+        // Anclado al final: el src es una ruta, asi que se exige que termine con
+        // el archivo esperado y no que lo contenga en cualquier posicion.
+        const archivo = (src ?? '').split('?')[0];
+        expect(archivo.endsWith(cfg.imagen),
+          `La imagen tiene que ser ${cfg.imagen} y el src es "${src}"`,
+        ).toBe(true);
       }
     });
   }
@@ -693,8 +727,11 @@ test.describe('Tarifario', () => {
         'esperado despues:     ' + btn.textoDesplegado +
         (btn._hallazgoConocido ? SALTO + SALTO + 'HALLAZGO CONOCIDO: ' + btn._hallazgoConocido : ''));
 
-      expect(botonesAntes.join(' | '), `Antes de desplegar, el boton tiene que decir "${btn.textoInicial}"`)
-        .toContain(btn.textoInicial);
+      // Igual que el tag: el boton trae el chevron adelante o atras del texto.
+      const soloLetras = (x: string) => x.replace(/[^\p{L} ]/gu, '').trim();
+      expect(botonesAntes.map(soloLetras),
+        `Antes de desplegar, el boton tiene que decir exactamente "${btn.textoInicial}"`,
+      ).toEqual(botonesAntes.map(() => btn.textoInicial));
 
       if (!hayCerrar) {
         await resaltarYCapturar(page, tarifario.locatorDeComponente(cfg.container, 'botonTarifario'),

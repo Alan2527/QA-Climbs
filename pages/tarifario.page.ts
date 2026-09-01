@@ -320,6 +320,50 @@ export class TarifarioPage {
   }
 
   /**
+   * Ficha tecnica leida por partes, para poder compararla campo por campo.
+   *
+   * RenderTechnical (ServiceSheetControl.ascx.cs:157) arma dos bloques: las
+   * observaciones, cada una en un .svc-observation con la clase is-priority
+   * cuando corresponde, y un <dl class="svc-fields"> con pares dt/dd para
+   * duracion, temporada, idiomas, punto de encuentro y drop-off.
+   *
+   * Leerlo asi permite comparar cada valor por igualdad en vez de buscarlo
+   * dentro del texto completo del panel, que es lo que dejaba pasar agregados.
+   */
+  async fichaTecnicaEstructurada(): Promise<{
+    observaciones: { texto: string; prioritaria: boolean }[];
+    campos: { etiqueta: string; valor: string }[];
+  }> {
+    await this.abrirSolapa('technical');
+    const panel = this.page.locator(`${this.fichaPanel}[data-tab="technical"]`).first();
+
+    return panel.evaluate((el) => {
+      const limpio = (x: string) => (x ?? '').replace(/\s+/g, ' ').trim();
+
+      const observaciones = Array.from(el.querySelectorAll('.svc-observation')).map((o) => {
+        const span = o.querySelector('span:not(.svc-observation-dot)') as HTMLElement | null;
+        return {
+          texto: limpio(span ? span.innerText : (o as HTMLElement).innerText),
+          prioritaria: o.classList.contains('is-priority'),
+        };
+      });
+
+      const campos: { etiqueta: string; valor: string }[] = [];
+      el.querySelectorAll('.svc-fields dt').forEach((dt) => {
+        const dd = dt.nextElementSibling;
+        if (dd && dd.tagName === 'DD') {
+          campos.push({
+            etiqueta: limpio((dt as HTMLElement).innerText),
+            valor: limpio((dd as HTMLElement).innerText),
+          });
+        }
+      });
+
+      return { observaciones, campos };
+    });
+  }
+
+  /**
    * Listas de "Incluye" y "No incluye" de la solapa de amenities, con la
    * descripcion de cada item.
    *

@@ -623,10 +623,30 @@ qa-e2e/
 - **Comparar por igualdad, no por contención.** `toContain` detecta que falte o
   que cambie algo, pero **no detecta lo que se agrega**: si a un texto esperado se
   le antepone o se le agrega una palabra, la cadena original sigue estando adentro
-  y el assert pasa. Apareció dos veces —en el detalle del hotel y en los tooltips
-  de la card— y las dos se arreglaron igual: comparando en los dos sentidos, o
-  leyendo el markup estructurado (`<strong>` y `<li>`) para comparar listas exactas
-  en lugar de una cadena concatenada.
+  y el assert pasa. Apareció en el detalle del hotel y en los tooltips de la card,
+  y se corrigió en toda la suite: comparando en los dos sentidos, o leyendo el
+  markup estructurado (`<dt>/<dd>`, `<strong>`, `<li>`, `.svc-observation`) para
+  comparar valores y listas exactas en lugar de una cadena concatenada.
+
+  Se compara **por igualdad todo lo que sale de la base**: solapas de la ficha,
+  observaciones con su marca de prioridad, idiomas, punto de encuentro, drop-off,
+  duraciones, políticas, título del modal, cuerpo del detalle, tooltips, tabla de
+  proveedores, importes y observaciones destacadas de la card.
+
+  Quedan **cuatro contenciones a propósito**, y conviene no "arreglarlas":
+
+  - Buscar el nombre del ítem o las ciudades dentro del texto de la card: es una
+    región compuesta, exigir igualdad sería fijar en el test todo el layout.
+  - La comprobación negativa de la temporada (`not.toContain` de un mes que no
+    opera).
+  - El `src` de la imagen, que va anclado al final de la ruta con `endsWith`.
+  - La lista de amenities, donde cada ítem se compara exacto y además se exige la
+    cantidad, que es equivalente a comparar la lista entera.
+
+  Tampoco se comparan los textos que son **recursos de la aplicación** y no datos
+  de la base — el tooltip "Duración estimada del servicio", el título
+  "Operatividad", las etiquetas de las columnas: fijarlos en el test sería copiar
+  un literal del código y no validar nada.
 - **El mensaje del `expect` se escribe como el requisito, no como el fallo.**
   Playwright lo usa como título del paso en el reporte tanto cuando pasa como
   cuando falla, así que un mensaje redactado para el error se lee al revés en

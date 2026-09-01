@@ -185,9 +185,18 @@
         "politicas": "Las cancelaciones con anterioridad de 24hs. no ocasionará ningún tipo de gastos, de lo contrario se cobrará el 100% del servicio",
         "_fuenteOperatividad": "ServiceObservation + ServiceObservationDetail (LanguageID = 1), ServiceDuration por RateTypeID y ServiceMonth",
         "observaciones": [
-          "Sujeto a modificaciones según condiciones del río",
-          "Traer ropa cómoda y calzado antideslizante",
-          "La navegación puede reprogramarse por mal tiempo"
+          {
+            "texto": "Sujeto a modificaciones según condiciones del río",
+            "prioritaria": true
+          },
+          {
+            "texto": "Traer ropa cómoda y calzado antideslizante",
+            "prioritaria": true
+          },
+          {
+            "texto": "La navegación puede reprogramarse por mal tiempo",
+            "prioritaria": false
+          }
         ],
         "duraciones": [
           "02:00",
@@ -206,7 +215,8 @@
           12
         ],
         "modalidadesCalendario": 2,
-        "_fuenteModalidades": "RateTypeID distintos y no nulos en ServiceCalendar con Published = 1 y Deleted = 0. Con una sola modalidad el control renderiza el contenido pelado y no dibuja subsolapas."
+        "_fuenteModalidades": "RateTypeID distintos y no nulos en ServiceCalendar con Published = 1 y Deleted = 0. Con una sola modalidad el control renderiza el contenido pelado y no dibuja subsolapas.",
+        "idiomasEnFicha": "Español, English, Portuguese"
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
@@ -471,9 +481,18 @@
         "politicas": "Cancelación sin cargo hasta 24 horas antes del inicio del servicio. Dentro de las 24 horas se aplica el 100% de penalidad.",
         "_fuenteOperatividad": "ServiceObservation + ServiceObservationDetail (LanguageID = 1), ServiceDuration por RateTypeID y ServiceMonth",
         "observaciones": [
-          "Depende de las condiciones del tráfico",
-          "Consultar por adicionales fuera del radio céntrico",
-          "El punto de encuentro se confirma 24 hs antes"
+          {
+            "texto": "Depende de las condiciones del tráfico",
+            "prioritaria": true
+          },
+          {
+            "texto": "Consultar por adicionales fuera del radio céntrico",
+            "prioritaria": true
+          },
+          {
+            "texto": "El punto de encuentro se confirma 24 hs antes",
+            "prioritaria": false
+          }
         ],
         "duraciones": [
           "01:30",
@@ -490,7 +509,8 @@
           11
         ],
         "modalidadesCalendario": 2,
-        "_fuenteModalidades": "RateTypeID distintos y no nulos en ServiceCalendar con Published = 1 y Deleted = 0. Con una sola modalidad el control renderiza el contenido pelado y no dibuja subsolapas."
+        "_fuenteModalidades": "RateTypeID distintos y no nulos en ServiceCalendar con Published = 1 y Deleted = 0. Con una sola modalidad el control renderiza el contenido pelado y no dibuja subsolapas.",
+        "idiomasEnFicha": "Español, English, Portuguese"
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
@@ -676,9 +696,18 @@
         "politicas": "Cancelación sin cargo hasta 24 horas antes del inicio del servicio. Dentro de las 24 horas se aplica el 100% de penalidad.",
         "_fuenteOperatividad": "ServiceObservation + ServiceObservationDetail (LanguageID = 1), ServiceDuration por RateTypeID y ServiceMonth",
         "observaciones": [
-          "No aplica para cenas de Navidad y Año Nuevo",
-          "Consultar suplemento por hoteles en Palermo",
-          "El orden del espectáculo puede variar"
+          {
+            "texto": "No aplica para cenas de Navidad y Año Nuevo",
+            "prioritaria": true
+          },
+          {
+            "texto": "Consultar suplemento por hoteles en Palermo",
+            "prioritaria": true
+          },
+          {
+            "texto": "El orden del espectáculo puede variar",
+            "prioritaria": false
+          }
         ],
         "duraciones": [
           "02:00",
@@ -696,7 +725,8 @@
           12
         ],
         "modalidadesCalendario": 1,
-        "_fuenteModalidades": "RateTypeID distintos y no nulos en ServiceCalendar con Published = 1 y Deleted = 0. Con una sola modalidad el control renderiza el contenido pelado y no dibuja subsolapas."
+        "_fuenteModalidades": "RateTypeID distintos y no nulos en ServiceCalendar con Published = 1 y Deleted = 0. Con una sola modalidad el control renderiza el contenido pelado y no dibuja subsolapas.",
+        "idiomasEnFicha": "Español, English, Portuguese"
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
