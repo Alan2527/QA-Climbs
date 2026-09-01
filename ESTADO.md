@@ -242,6 +242,28 @@ comparación exacta de meses ya la hace la solapa Salidas contra `ServiceMonth`.
 > verificado en QA sobre el hotel 5003. Antes el esperado estaba escrito a mano
 > sin trazabilidad.
 
+### Descripción de la card
+
+La card muestra el mismo campo que el modal pero **recortado**: `TruncateDetail`
+corta en 250 o 400 caracteres y agrega `...` (`ServiceTariffControl.ascx.cs:206`).
+Por eso no se compara por igualdad sino **por prefijo**: el texto de la card tiene
+que ser el comienzo exacto del de la base. Detecta lo mismo — una palabra agregada
+adelante deja de ser el comienzo, un cambio en el medio deja de coincidir — sin
+depender de dónde corta.
+
+**Hay dos estructuras distintas y hay que tratarlas por separado:**
+
+| Control | Markup | Dónde está la descripción |
+|---|---|---|
+| Servicios | `<p class="tariff-service-description">` | todo el párrafo; el link "Ver Detalle" vive **afuera**, en la barra de operatividad |
+| Hoteles, Paquetes, Ofertas, Cruceros | `<p>[etiquetas/ciudades]<br />Detalle<a>Ver detalle</a></p>` | lo que va después del último `<br>`, sin el link |
+
+> La primera versión buscaba "el párrafo que contiene un `<a>`". En servicios ese
+> párrafo **no tiene link**, así que caía al `.tariff-detail` entero y se traía las
+> observaciones y la barra de operatividad: fallaba en las siete pestañas. La
+> estructura estaba en el markup de cada control desde el principio; el error fue
+> suponerla en vez de leerla.
+
 ### Modal de Proveedores
 
 Lo tienen los tres servicios y Hoteles. Se abre y se compara **la tabla entera**,

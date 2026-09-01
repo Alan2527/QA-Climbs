@@ -749,35 +749,44 @@ export class TarifarioPage {
   }
 
   /**
-   * Solo la descripcion de la card, sin las etiquetas ni el link "Ver detalle".
+   * Solo la descripcion de la card, sin las etiquetas, las ciudades ni el link.
    *
-   * La card muestra el mismo campo que el modal pero recortado, y ademas rodeado
-   * de otras cosas: en Hoteles va precedido por "Ubicacion: X Desayuno: Y" y
-   * seguido del link al detalle. Para poder compararlo hay que quedarse solo con
-   * la descripcion.
+   * Hay dos estructuras distintas y hay que tratarlas por separado:
    *
-   * Se toma el parrafo que contiene el link de detalle y se descartan los nodos
-   * hasta el ultimo <br>, que es donde terminan las etiquetas, mas el propio
-   * link. Se resuelve por estructura y no por los textos de las etiquetas,
-   * que son recursos de la aplicacion y cambian con el idioma.
+   *   Servicios (ServiceTariffControl.ascx:42)
+   *     <p class="tariff-service-description">TruncateDetail(...)</p>
+   *     El link "Ver Detalle" NO esta adentro: vive en la barra de operatividad.
+   *
+   *   Hoteles, Paquetes, Ofertas y Cruceros
+   *     <p>[etiquetas y/o <strong>ciudades</strong>]<br />Detalle<a>Ver detalle</a></p>
+   *     Aca la descripcion es lo que va despues del ultimo <br>, sin el link.
+   *
+   * La primera version de este metodo buscaba "el parrafo que contiene un <a>",
+   * y en servicios ese parrafo no tiene link: caia al .tariff-detail entero y se
+   * traia las observaciones y la barra de operatividad, asi que no coincidia
+   * nunca. De ahi que fallara en las siete pestanias.
    */
   async descripcionDeLaCard(container: string): Promise<string> {
     return this.contenedor(container).evaluate((cont) => {
       const limpio = (x: string) => (x ?? '').replace(/\s+/g, ' ').trim();
+      const fueraDelModal = (e: Element) => !e.closest('.modal');
 
-      const zona = Array.from(cont.querySelectorAll('.tariff-detail p, .tariff-detail'))
-        .find((e) => !e.closest('.modal') && e.querySelector('a')) as HTMLElement | undefined;
-      if (!zona) return '';
+      const propio = Array.from(cont.querySelectorAll('.tariff-service-description'))
+        .find(fueraDelModal) as HTMLElement | undefined;
+      if (propio) return limpio(propio.innerText);
 
-      const hijos = Array.from(zona.childNodes);
-      const ultimoBr = hijos.map((n) => (n as HTMLElement).nodeName).lastIndexOf('BR');
+      const parrafo = Array.from(cont.querySelectorAll('.tours-details-menu-bottom p'))
+        .find(fueraDelModal) as HTMLElement | undefined;
+      if (!parrafo) return '';
+
+      const hijos = Array.from(parrafo.childNodes);
+      const ultimoBr = hijos.map((n) => n.nodeName).lastIndexOf('BR');
       const desde = ultimoBr >= 0 ? ultimoBr + 1 : 0;
 
       const partes = hijos.slice(desde).map((n) => {
         if (n.nodeType === Node.TEXT_NODE) return n.textContent ?? '';
         const el = n as HTMLElement;
-        // El link "Ver detalle" no es parte de la descripcion.
-        if (el.tagName === 'A') return '';
+        if (el.tagName === 'A') return '';   // el link no es parte del texto
         return el.innerText ?? el.textContent ?? '';
       });
 

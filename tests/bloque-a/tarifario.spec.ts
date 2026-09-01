@@ -476,6 +476,46 @@ test.describe('Tarifario', () => {
 
 
   /**
+   * La descripcion de la card tiene que ser el COMIENZO del texto de la base.
+   *
+   * La card muestra el mismo campo que el modal pero recortado: TruncateDetail
+   * corta en 250 o 400 caracteres y agrega "..." (ServiceTariffControl.ascx.cs:206),
+   * y en los otros controles el recorte viene hecho de antes. Por eso no se puede
+   * comparar por igualdad y se compara por prefijo, que detecta lo mismo: una
+   * palabra agregada adelante deja de ser el comienzo, y un cambio en el medio
+   * deja de coincidir, sin depender de donde corta.
+   */
+  async function validarDescripcionDeLaCard(page: Page, t: TarifarioPage, cfg: any) {
+    const esperadas: string[] = cfg.detalleEsperado?.Detail;
+    if (!esperadas?.length) return;
+
+    await paso(page, 'La descripcion de la card coincide con la base', async () => {
+      const enPantalla = await t.descripcionDeLaCard(cfg.container);
+      const compacto = (x: string) => norm(x.replace(/\s+/g, ' '));
+      // El recorte deja puntos suspensivos al final que no son parte del dato.
+      const recortada = compacto(enPantalla).replace(/[.\s]+$/, '');
+      const completa = compacto(esperadas.join(' '));
+
+      await adjuntarTexto('Descripcion de la card: base vs pantalla',
+        'EN LA BASE (completa, ' + completa.length + ' car):' + SALTO +
+        esperadas.join(' ').slice(0, 1200) + SALTO + SALTO +
+        'EN LA CARD (recortada, ' + recortada.length + ' car):' + SALTO +
+        enPantalla.slice(0, 1200));
+
+      await conResaltado(page, t.locatorDescripcionDeLaCard(cfg.container),
+        'la descripcion de la card no coincide', () => {
+          expect(enPantalla, 'La card tiene que mostrar una descripcion').not.toBe('');
+          expect(completa.startsWith(recortada),
+            'La descripcion de la card tiene que ser el comienzo de la de la base.' + SALTO +
+            'en la base: ' + completa.slice(0, 160) + SALTO +
+            'en la card: ' + recortada.slice(0, 160),
+          ).toBe(true);
+        });
+    });
+  }
+
+
+  /**
    * Valida los elementos de la card contra la base:
    *   - observaciones destacadas -> ServiceObservation con IsPriority = 1
    *   - leyenda "Mas observaciones disponibles en el detalle"
@@ -771,6 +811,7 @@ test.describe('Tarifario', () => {
     });
 
     await validarElementos(page, tarifario, cfg);
+    await validarDescripcionDeLaCard(page, tarifario, cfg);
 
     // El estado del boton se guarda para validarlo en su propio paso.
     let botonesAntes: string[] = [];
