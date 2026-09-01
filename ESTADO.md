@@ -270,6 +270,17 @@ Cuando una validación falla, la captura del reporte marca el elemento con un
 recuadro rojo y hace scroll hasta centrarlo. En diferencias de importes se señala
 la fila exacta y se vuelve a la solapa de idioma donde ocurrió.
 
+Está aplicado en **todas** las comparaciones, no sólo en los componentes de la
+card y en los importes: nombre del ítem, observaciones destacadas, barra de
+operatividad y sus tooltips, tag, cuerpo del detalle, ficha técnica, políticas y
+tabla de proveedores. Se resuelve con el helper `conResaltado`, que corre la
+comparación y, si falla, marca la zona antes de propagar el error.
+
+> **Los tooltips se fuerzan a visible antes de capturar.** Sólo se muestran al
+> pasar el mouse, así que en una captura no salían nunca: el reporte marcaba en
+> rojo un icono y no se veía el texto que estaba mal. `resaltarYCapturar` los
+> despliega cuando están dentro del elemento resaltado.
+
 ---
 
 ## Notas sobre la base de QA
@@ -633,15 +644,21 @@ qa-e2e/
   duraciones, políticas, título del modal, cuerpo del detalle, tooltips, tabla de
   proveedores, importes y observaciones destacadas de la card.
 
-  Quedan **cuatro contenciones a propósito**, y conviene no "arreglarlas":
+  Quedan **tres contenciones a propósito**, y conviene no "arreglarlas":
 
-  - Buscar el nombre del ítem o las ciudades dentro del texto de la card: es una
-    región compuesta, exigir igualdad sería fijar en el test todo el layout.
+  - Buscar las ciudades dentro del texto de la card: es una región compuesta,
+    exigir igualdad sería fijar en el test todo el layout.
   - La comprobación negativa de la temporada (`not.toContain` de un mes que no
     opera).
   - El `src` de la imagen, que va anclado al final de la ruta con `endsWith`.
   - La lista de amenities, donde cada ítem se compara exacto y además se exige la
     cantidad, que es equivalente a comparar la lista entera.
+
+  > **El nombre del ítem estuvo mal clasificado como región compuesta.** Se
+  > comparaba con `toContain` contra el texto completo de la pestaña, así que
+  > anteponerle una palabra al nombre del paquete no se detectaba. El nombre es un
+  > campo propio: ahora se lee del `<h2>` de la card, descartando el badge de
+  > categoría o duración (`span.tariff-category-tag`), y se compara por igualdad.
 
   Tampoco se comparan los textos que son **recursos de la aplicación** y no datos
   de la base — el tooltip "Duración estimada del servicio", el título

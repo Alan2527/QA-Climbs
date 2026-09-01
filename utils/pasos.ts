@@ -173,6 +173,24 @@ export async function resaltarYCapturar(
         e.style.outlineOffset = '2px';
         e.style.boxShadow = '0 0 0 6px rgba(225, 29, 72, 0.25)';
       }
+
+      // Los tooltips solo se ven al pasar el mouse, asi que en una captura no
+      // salen nunca: si el elemento resaltado tiene uno adentro, se fuerza a
+      // mostrarlo. Sin esto, el reporte marcaba en rojo un icono y no se veia el
+      // texto que estaba mal.
+      e.querySelectorAll('.tariff-op-tooltip').forEach((t) => {
+        const tip = t as HTMLElement;
+        tip.style.display = 'block';
+        tip.style.visibility = 'visible';
+        tip.style.opacity = '1';
+        tip.style.position = 'static';
+        tip.style.background = '#111827';
+        tip.style.color = '#f9fafb';
+        tip.style.padding = '6px 10px';
+        tip.style.borderRadius = '6px';
+        tip.style.marginTop = '6px';
+      });
+
       e.scrollIntoView({ block: 'center', inline: 'center' });
     });
   };

@@ -830,6 +830,55 @@ export class TarifarioPage {
     return this.ambitoTarifas(container).locator('table:visible tr').nth(indice);
   }
 
+  /**
+   * Nombre del item tal como lo muestra la card.
+   *
+   * El titulo de la card es un <h2> en los cinco controles, con el badge de
+   * categoria o duracion en un span.tariff-category-tag adentro, que se descarta.
+   * Se excluyen los titulos que esten dentro de un .modal: el modal de detalle
+   * repite el nombre en un h3 y vive dentro del mismo contenedor.
+   */
+  async nombreDelItem(container: string): Promise<string> {
+    return this.contenedor(container).evaluate((cont) => {
+      const titulos = Array.from(cont.querySelectorAll('h2'))
+        .filter((h) => !h.closest('.modal'));
+      if (!titulos.length) return '';
+      const copia = titulos[0].cloneNode(true) as HTMLElement;
+      copia.querySelectorAll('.tariff-category-tag').forEach((b) => b.remove());
+      return (copia.textContent ?? '').replace(/\s+/g, ' ').trim();
+    });
+  }
+
+  /** Titulo de la card, para resaltarlo cuando el nombre no coincide. */
+  locatorTituloDeLaCard(container: string): Locator {
+    return this.contenedor(container).locator('h2').first();
+  }
+
+  /** Locators de las zonas que se resaltan cuando falla una comparacion. */
+  locatorObservaciones(container: string): Locator {
+    return this.contenedor(container).locator('.tariff-obs-item');
+  }
+
+  locatorBarraOperatividad(container: string): Locator {
+    return this.contenedor(container).locator('.tariff-operativity-bar, .tariff-op-item').first();
+  }
+
+  locatorTag(container: string): Locator {
+    return this.contenedor(container).locator('.featured-tag').first();
+  }
+
+  locatorPanelDeSolapa(clave: string): Locator {
+    return this.page.locator(`${this.fichaPanel}[data-tab="${clave}"]`).first();
+  }
+
+  locatorCuerpoDelModal(): Locator {
+    return this.page.locator('.modal.in .modal-body').first();
+  }
+
+  locatorTablaProveedores(): Locator {
+    return this.page.locator('#suppliersTableBody').first();
+  }
+
   async textoDe(container: string): Promise<string> {
     return (await this.contenedor(container).innerText()).trim();
   }

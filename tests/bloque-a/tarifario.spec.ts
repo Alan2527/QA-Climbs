@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, Page, Locator } from '@playwright/test';
 import * as fs from 'fs';
 import { TarifarioPage } from '../../pages/tarifario.page';
 import {
@@ -55,6 +55,24 @@ test.describe('Tarifario', () => {
   const norm = (x: string) => x.trim().toLowerCase();
 
   /**
+   * Corre una comparacion y, si falla, marca en rojo la zona de la pantalla que
+   * la origino antes de propagar el error.
+   *
+   * Sin esto el reporte mostraba el diff pero la captura era una pantalla entera
+   * sin senalar nada, y habia que buscar a ojo donde estaba la diferencia.
+   */
+  async function conResaltado(
+    page: Page, locator: Locator, etiqueta: string, fn: () => void | Promise<void>,
+  ) {
+    try {
+      await fn();
+    } catch (error) {
+      await resaltarYCapturar(page, locator, `FALLA: ${etiqueta}`);
+      throw error;
+    }
+  }
+
+  /**
    * Compara el texto del detalle que muestra la pantalla contra el que tiene la
    * base, linea por linea.
    *
@@ -65,7 +83,7 @@ test.describe('Tarifario', () => {
    * cambio, un parrafo que falta o que cambio si falla.
    */
   async function compararTextoDelDetalle(
-    t: TarifarioPage, cfg: any, campo: 'Detail' | 'TechnicalSheet',
+    page: Page, t: TarifarioPage, cfg: any, campo: 'Detail' | 'TechnicalSheet',
   ) {
     const esperadas: string[] = cfg.detalleEsperado?.[campo];
     if (!esperadas?.length) return;
@@ -93,15 +111,22 @@ test.describe('Tarifario', () => {
       'ESPERADO (base):' + SALTO + esperadas.join(SALTO) + SALTO + SALTO +
       'EN PANTALLA:' + SALTO + enPantalla.slice(0, 4000));
 
-    expect(faltantes.join(SALTO + '  - '),
-      `El detalle ${campo} tiene que mostrar las ${esperadas.length} lineas de la base ` +
-      `(faltan ${faltantes.length})`,
-    ).toBe('');
+    const zona = (await t.locatorPanelDeSolapa(campo === 'TechnicalSheet' ? 'technical' : 'description')
+      .count()) > 0
+      ? t.locatorPanelDeSolapa(campo === 'TechnicalSheet' ? 'technical' : 'description')
+      : t.locatorCuerpoDelModal();
 
-    expect(sobrantes.join(SALTO + '  - '),
-      `El detalle ${campo} no tiene que mostrar texto que la base no tiene ` +
-      `(sobran ${sobrantes.length} linea(s))`,
-    ).toBe('');
+    await conResaltado(page, zona, `el detalle ${campo} no coincide con la base`, () => {
+      expect(faltantes.join(SALTO + '  - '),
+        `El detalle ${campo} tiene que mostrar las ${esperadas.length} lineas de la base ` +
+        `(faltan ${faltantes.length})`,
+      ).toBe('');
+
+      expect(sobrantes.join(SALTO + '  - '),
+        `El detalle ${campo} no tiene que mostrar texto que la base no tiene ` +
+        `(sobran ${sobrantes.length} linea(s))`,
+      ).toBe('');
+    });
   }
 
 
@@ -161,7 +186,7 @@ test.describe('Tarifario', () => {
     });
 
     await paso(page, 'La descripcion coincide con la de la base', async () => {
-      await compararTextoDelDetalle(t, cfg, 'Detail');
+      await compararTextoDelDetalle(page, t, cfg, 'Detail');
     });
 
     await paso(page, 'La ficha tecnica coincide con la base', async () => {
@@ -184,10 +209,13 @@ test.describe('Tarifario', () => {
       // la lista entera y no cada una por separado, para que una observacion de
       // mas o un texto agregado tambien falle.
       if (ficha.observaciones) {
-        expect(observaciones.map((o) => `${o.prioritaria ? '*' : '-'} ${norm(o.texto)}`),
-          'Las observaciones tienen que coincidir con las de la base',
-        ).toEqual(ficha.observaciones.map((o: any) =>
-          `${o.prioritaria ? '*' : '-'} ${norm(o.texto)}`));
+        await conResaltado(page, t.locatorPanelDeSolapa('technical'),
+          'las observaciones de la ficha tecnica no coinciden', () => {
+            expect(observaciones.map((o) => `${o.prioritaria ? '*' : '-'} ${norm(o.texto)}`),
+              'Las observaciones tienen que coincidir con las de la base',
+            ).toEqual(ficha.observaciones.map((o: any) =>
+              `${o.prioritaria ? '*' : '-'} ${norm(o.texto)}`));
+          });
       }
 
       // Los idiomas se muestran unidos por coma: se compara el campo completo.
@@ -249,9 +277,12 @@ test.describe('Tarifario', () => {
           'EN PANTALLA:' + SALTO + politicas);
 
         // El panel contiene solo la politica, asi que se compara completa.
-        expect(norm(politicas.replace(/\s+/g, ' ')),
-          'La solapa Politicas tiene que mostrar exactamente el texto de la base',
-        ).toBe(norm(ficha.politicas));
+        await conResaltado(page, t.locatorPanelDeSolapa('policies'),
+          'las politicas no coinciden', () => {
+            expect(norm(politicas.replace(/\s+/g, ' ')),
+              'La solapa Politicas tiene que mostrar exactamente el texto de la base',
+            ).toBe(norm(ficha.politicas));
+          });
       });
     }
 
@@ -331,9 +362,9 @@ test.describe('Tarifario', () => {
       // Cuerpo completo contra la base. En Hoteles son dos solapas: la
       // descripcion sale de HotelDetail.Detail y la ficha tecnica de
       // HotelTechnicalSheet.Content, que es otra tabla.
-      await compararTextoDelDetalle(t, cfg, 'Detail');
+      await compararTextoDelDetalle(page, t, cfg, 'Detail');
       if (cfg.detalleEsperado?.TechnicalSheet) {
-        await compararTextoDelDetalle(t, cfg, 'TechnicalSheet');
+        await compararTextoDelDetalle(page, t, cfg, 'TechnicalSheet');
       }
 
       await t.cerrarModalDetalle(modal);
@@ -376,9 +407,12 @@ test.describe('Tarifario', () => {
         'ESPERADO (' + deLaBase.length + '):' + SALTO + deLaBase.join(SALTO) + SALTO + SALTO +
         'EN PANTALLA (' + enPantalla.length + '):' + SALTO + enPantalla.join(SALTO));
 
-      expect(enPantalla.length,
-        `El modal tiene que mostrar ${deLaBase.length} proveedores`,
-      ).toBe(deLaBase.length);
+      await conResaltado(page, t.locatorTablaProveedores(),
+        'la tabla de proveedores no coincide', () => {
+          expect(enPantalla.length,
+            `El modal tiene que mostrar ${deLaBase.length} proveedores`,
+          ).toBe(deLaBase.length);
+        });
 
       // Fila por fila y en orden: la aplicacion las ordena por DisplayOrder, asi
       // que un cambio de orden tambien es un hallazgo.
@@ -460,9 +494,12 @@ test.describe('Tarifario', () => {
         'tag: ' + JSON.stringify(tag));
 
       if (card.observacionesDestacadas) {
-        expect(obs.map((x: string) => norm(x)),
-          'La card tiene que mostrar exactamente las observaciones destacadas de la base',
-        ).toEqual(card.observacionesDestacadas.map((x: string) => norm(x)));
+        await conResaltado(page, t.locatorObservaciones(cfg.container),
+          'las observaciones destacadas no coinciden', () => {
+            expect(obs.map((x: string) => norm(x)),
+              'La card tiene que mostrar exactamente las observaciones destacadas de la base',
+            ).toEqual(card.observacionesDestacadas.map((x: string) => norm(x)));
+          });
       }
 
       // La leyenda "Mas observaciones disponibles en el detalle" depende de
@@ -489,12 +526,16 @@ test.describe('Tarifario', () => {
         // contencion, agregarle una palabra a un tooltip no se detectaba, porque
         // el texto esperado seguia estando adentro.
 
+        const zonaBarra = t.locatorBarraOperatividad(cfg.container);
+
         // La card muestra la duracion de la modalidad Regular.
+        await conResaltado(page, zonaBarra, 'la duracion de la barra no coincide', () => {
         const itemDuracion = barra.find((x) => x.texto === card.duracionRegular);
         expect(itemDuracion,
           `La barra de operatividad tiene que mostrar la duracion "${card.duracionRegular}" ` +
           `y muestra: ${barra.map((x) => x.texto).filter(Boolean).join(' | ')}`,
         ).toBeDefined();
+        });
 
         // El tooltip de idiomas trae la lista completa, un <li> por idioma.
         // Como conjunto, no por orden: el orden de la lista no es algo que salga
@@ -502,11 +543,13 @@ test.describe('Tarifario', () => {
         const mismoConjunto = (a: string[], b: string[]) =>
           a.length === b.length &&
           a.map(norm).sort().join('|') === b.map(norm).sort().join('|');
-        const itemIdiomas = barra.find((x) => mismoConjunto(x.items, idiomas));
-        expect(itemIdiomas,
-          `El tooltip de idiomas tiene que listar exactamente ${idiomas.join(', ')}. ` +
-          `Listas en pantalla: ${JSON.stringify(barra.map((x) => x.items))}`,
-        ).toBeDefined();
+        await conResaltado(page, zonaBarra, 'el tooltip de idiomas no coincide', () => {
+          const itemIdiomas = barra.find((x) => mismoConjunto(x.items, idiomas));
+          expect(itemIdiomas,
+            `El tooltip de idiomas tiene que listar exactamente ${idiomas.join(', ')}. ` +
+            `Listas en pantalla: ${JSON.stringify(barra.map((x) => x.items))}`,
+          ).toBeDefined();
+        });
 
         // Los tooltips de amenities destacadas: nombre y observacion, exactos y
         // sin que sobre ninguno. Solo aparecen las de ServiceAmenity.IsPriority = 1.
@@ -518,16 +561,20 @@ test.describe('Tarifario', () => {
           const deLaBase = destacadas.map((a) =>
             `${a.nombre} -- ${a.descripcion}`.trim());
 
-          expect(enPantalla.map(norm).sort(),
-            'Los tooltips de amenities destacadas tienen que coincidir con la base',
-          ).toEqual(deLaBase.map(norm).sort());
+          await conResaltado(page, zonaBarra, 'los tooltips de amenities no coinciden', () => {
+            expect(enPantalla.map(norm).sort(),
+              'Los tooltips de amenities destacadas tienen que coincidir con la base',
+            ).toEqual(deLaBase.map(norm).sort());
+          });
         }
 
         // El resumen de temporada no puede nombrar un mes que la base no opera.
         // No se compara la cadena entera porque el control la abrevia en rangos
         // ("Ene-Mar, May-Jul"), y reconstruir ese formato seria reimplementarlo.
         const calendario = barra.find((x) => x.esCalendario);
-        expect(calendario, 'La card tiene que mostrar el item de operatividad').toBeDefined();
+        await conResaltado(page, zonaBarra, 'falta el item de operatividad', () => {
+          expect(calendario, 'La card tiene que mostrar el item de operatividad').toBeDefined();
+        });
         if (calendario && meses.length) {
           const ABREV = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
                          'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -545,8 +592,10 @@ test.describe('Tarifario', () => {
         // Se sacan los caracteres que no son letras: el tag lleva el glifo de
         // una corona adelante, que innerText devuelve junto con el texto.
         const soloLetras = (x: string) => x.replace(/[^\p{L} ]/gu, '').trim().toUpperCase();
-        expect(soloLetras(tag ?? ''), 'El tag tiene que decir exactamente RECOMENDADO')
-          .toBe(card.tagRecomendado.toUpperCase());
+        await conResaltado(page, t.locatorTag(cfg.container), 'el tag no coincide', () => {
+          expect(soloLetras(tag ?? ''), 'El tag tiene que decir exactamente RECOMENDADO')
+            .toBe(card.tagRecomendado.toUpperCase());
+        });
       }
     });
   }
@@ -682,11 +731,20 @@ test.describe('Tarifario', () => {
     });
 
     await paso(page, 'El item aparece con su nombre exacto', async () => {
+      // Contra el <h2> de la card y por IGUALDAD. Antes se buscaba el nombre
+      // dentro del texto completo de la pestania: agregarle una palabra adelante
+      // no se detectaba porque el nombre original seguia estando adentro.
+      const nombre = await tarifario.nombreDelItem(cfg.container);
       const texto = await tarifario.textoDe(cfg.container);
       await adjuntarTexto('Esperado', `ID: ${cfg.id}\nNombre: ${cfg.nombre}`);
-      await adjuntarTexto('Obtenido en pantalla', texto.slice(0, 3000));
-      expect(texto, `La pestania tiene que mostrar "${cfg.nombre}"`)
-        .toContain(cfg.nombre);
+      await adjuntarTexto('Obtenido en pantalla',
+        'titulo de la card: ' + nombre + SALTO + SALTO + texto.slice(0, 3000));
+
+      await conResaltado(page, tarifario.locatorTituloDeLaCard(cfg.container),
+        'el nombre del item no coincide', () => {
+          expect(norm(nombre), `El titulo de la card tiene que ser "${cfg.nombre}"`)
+            .toBe(norm(cfg.nombre));
+        });
     });
 
     await validarElementos(page, tarifario, cfg);
