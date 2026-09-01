@@ -1,0 +1,19 @@
+fuente: ServiceDetail.Detail por ServiceID y LanguageID = 1
+lineas esperadas: 11
+lineas ausentes:  0
+
+ESPERADO (base):
+SALIDAS: Diarias./ No válidas para 24 y 31/12
+HORARIO: 20 hs Cena / Solo show 21:15 horas.
+DURACIÓN: 4 horas (aproximadamente).
+POLÍTICA DE MENORES: de 3 a 11 años abonan tarifa de menores
+OBSERVACIONES: tarifas no aplican para cenas de Navidad y Año Nuevo. Vea suplemento por hoteles ubicados en el barrio de Palermo.
+El Café de los Angelitos es un símbolo histórico del tango en Buenos Aires, con más de cien años de tradición. Ofrece un espectáculo de tango de primer nivel, con 21 artistas, siete parejas de baile, dos cantantes y un Quinteto, en un show de 1 hora y 20 minutos. Desde sus inicios en los suburbios, el tango ha evolucionado y hoy atrae a nuevas generaciones con variantes modernas como el Tango Electrónico. El café, visitado por figuras como Carlos Gardel, es un lugar emblemático lleno de fotografías históricas y una decoración que recrea el ambiente del siglo 20. Es una parada obligatoria para quienes desean experimentar la esencia del tango porteño.
+INCLUYE:
+* Opciones de entrada, plato principal y postre
+* Bebidas: gaseosas, agua mineral, cerveza y vinos de Bodega Salentein. En caso de elegir CENA SHOW VIP incluye también espumante Alyda van Salentein.
+* Todos los servicios incluyen traslados en servicio regular
+* Traslados
+
+EN PANTALLA:
+SALIDAS: Diarias./ No válidas para 24 y 31/12 HORARIO: 20 hs Cena / Solo show 21:15 horas. DURACIÓN: 4 horas (aproximadamente). POLÍTICA DE MENORES: de 3 a 11 años abonan tarifa de menores OBSERVACIONES: tarifas no aplican para cenas de Navidad y Año Nuevo. Vea suplemento por hoteles ubicados en el barrio de Palermo. El Café de los Angelitos es un símbolo histórico del tango en Buenos Aires, con más de cien años de tradición. Ofrece un espectáculo de tango de primer nivel, con 21 artistas, siete parejas de baile, dos cantantes y un Quinteto, en un show de 1 hora y 20 minutos. Desde sus inicios en los suburbios, el tango ha evolucionado y hoy atrae a nuevas generaciones con variantes modernas como el Tango Electrónico. El café, visitado por figuras como Carlos Gardel, es un lugar emblemático lleno de fotografías históricas y una decoración que recrea el ambiente del siglo 20. Es una parada obligatoria para quienes desean experimentar la esencia del tango porteño. INCLUYE: * Opciones de entrada, plato principal y postre * Bebidas: gaseosas, agua mineral, cerveza y vinos de Bodega Salentein. En caso de elegir CENA SHOW VIP incluye también espumante Alyda van Salentein. * Todos los servicios incluyen traslados en servicio regular * Traslados

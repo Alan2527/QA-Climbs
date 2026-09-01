@@ -1,0 +1,4 @@
+observaciones destacadas: ["Depende de las condiciones del tráfico","Consultar por adicionales fuera del radio céntrico"]
+mas observaciones: null
+tooltips (5): ["Duración estimada del servicio","IdiomasEspañolEnglishPortuguese","Operatividad• Días: Todos los dias• Temporada: enero a febrero, abril a mayo, julio a agosto, octubre a noviembre","AlmuerzoTexto de prueba.","BebidasTexto de prueba 2."]
+tag: null
