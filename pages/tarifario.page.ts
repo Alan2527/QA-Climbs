@@ -306,10 +306,15 @@ export class TarifarioPage {
     );
   }
 
-  /** Abre una solapa de la ficha y devuelve su texto. */
-  async contenidoDeSolapa(clave: string): Promise<string> {
+  /** Hace clic en una solapa de la ficha, si esa solapa existe. */
+  private async abrirSolapa(clave: string) {
     const solapa = this.page.locator(`${this.fichaSolapas}[data-tab="${clave}"]`);
     if (await solapa.count()) await solapa.click();
+  }
+
+  /** Abre una solapa de la ficha y devuelve su texto. */
+  async contenidoDeSolapa(clave: string): Promise<string> {
+    await this.abrirSolapa(clave);
     const panel = this.page.locator(`${this.fichaPanel}[data-tab="${clave}"]`);
     return (await panel.innerText()).replace(/\s+/g, ' ').trim();
   }
@@ -424,7 +429,14 @@ export class TarifarioPage {
     const solapa = campo === 'TechnicalSheet' ? 'technical' : 'description';
     const panel = this.page.locator(`${this.fichaPanel}[data-tab="${solapa}"]`);
 
-    if (await panel.count()) return this.contenidoDeSolapa(solapa);
+    if (await panel.count()) {
+      // Hay que abrir la solapa antes de leerla: los paneles que no estan
+      // activos van ocultos y innerText devuelve vacio.
+      await this.abrirSolapa(solapa);
+      // Se devuelve con los saltos, a diferencia de contenidoDeSolapa, porque el
+      // comparador los necesita para separar en lineas.
+      return (await panel.first().innerText()).trim();
+    }
 
     if (campo === 'TechnicalSheet') {
       throw new Error('Se esperaba una solapa de ficha tecnica y la pantalla no la muestra');
@@ -432,7 +444,8 @@ export class TarifarioPage {
 
     const cuerpo = this.page.locator('.modal.in .modal-body').first();
     await expect(cuerpo).toBeVisible({ timeout: 15_000 });
-    return (await cuerpo.innerText()).replace(/\s+/g, ' ').trim();
+    // Sin colapsar: el comparador necesita los saltos para separar en lineas.
+    return (await cuerpo.innerText()).trim();
   }
 
 

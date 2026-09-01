@@ -71,19 +71,36 @@ test.describe('Tarifario', () => {
     if (!esperadas?.length) return;
 
     const enPantalla = await t.textoDelDetalleAbierto(campo);
-    const plano = norm(enPantalla);
-    const faltantes = esperadas.filter((linea) => !plano.includes(norm(linea)));
+
+    // Se compara en los dos sentidos. Solo con "cada linea de la base esta en
+    // pantalla" no se detectan los AGREGADOS: si a una linea se le antepone una
+    // palabra, la original sigue contenida y la comparacion pasaba igual.
+    const compacto = (x: string) => norm(x.replace(/\s+/g, ' '));
+    const enLineas = (x: string) =>
+      x.split(String.fromCharCode(10)).map((l) => l.trim()).filter(Boolean);
+
+    const pantallaPlano = compacto(enPantalla);
+    const basePlano = compacto(esperadas.join(' '));
+
+    const faltantes = esperadas.filter((linea) => !pantallaPlano.includes(compacto(linea)));
+    const sobrantes = enLineas(enPantalla).filter((linea) => !basePlano.includes(compacto(linea)));
 
     await adjuntarTexto(`Detalle ${campo}: base vs pantalla`,
       'fuente: ' + (cfg.detalleEsperado._fuente ?? '(sin documentar)') + SALTO +
       `lineas esperadas: ${esperadas.length}` + SALTO +
-      `lineas ausentes:  ${faltantes.length}` + SALTO + SALTO +
+      `lineas ausentes:  ${faltantes.length}` + SALTO +
+      `lineas de mas:    ${sobrantes.length}` + SALTO + SALTO +
       'ESPERADO (base):' + SALTO + esperadas.join(SALTO) + SALTO + SALTO +
       'EN PANTALLA:' + SALTO + enPantalla.slice(0, 4000));
 
     expect(faltantes.join(SALTO + '  - '),
       `El detalle ${campo} tiene que mostrar las ${esperadas.length} lineas de la base ` +
       `(faltan ${faltantes.length})`,
+    ).toBe('');
+
+    expect(sobrantes.join(SALTO + '  - '),
+      `El detalle ${campo} no tiene que mostrar texto que la base no tiene ` +
+      `(sobran ${sobrantes.length} linea(s))`,
     ).toBe('');
   }
 

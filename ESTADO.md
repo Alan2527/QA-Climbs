@@ -208,11 +208,18 @@ tablas: `HotelDetail` **no tiene** las columnas `Name` ni `TechnicalSheet` — e
 título sale de la tabla `Hotel` y la ficha técnica de `HotelTechnicalSheet.Content`,
 filtrada además por `Status = 1`.
 
-Se exige que **cada línea de la base esté presente** en pantalla, en vez de comparar
-la cadena entera: el campo guarda HTML y el navegador lo renderiza con sus propios
-saltos y espacios, así que una igualdad estricta daría rojo por diferencias de
-formato que no le importan a nadie. Con este criterio, un párrafo que falta o que
-cambió sí falla.
+La comparación va **en los dos sentidos**: cada línea de la base tiene que estar en
+pantalla, y cada línea de la pantalla tiene que estar en la base. No se compara la
+cadena entera porque el campo guarda HTML y el navegador lo renderiza con sus
+propios saltos y espacios, así que una igualdad estricta daría rojo por diferencias
+de formato que no le importan a nadie.
+
+> **El sentido inverso es el que detecta los agregados**, y faltaba. Con sólo
+> "cada línea de la base está en pantalla", anteponer una palabra a un párrafo no
+> se detectaba: la línea original seguía contenida y la comparación pasaba. Se
+> descubrió en una prueba de escritorio, agregando la palabra "editado" delante de
+> la descripción del hotel 5003: el test seguía en verde. Los borrados y las
+> modificaciones en el medio sí los detectaba desde el principio.
 
 ### Barra de operatividad de la card
 
