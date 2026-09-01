@@ -137,6 +137,7 @@
         "solapas": [
           "description",
           "technical",
+          "calendar",
           "amenities",
           "policies"
         ],
@@ -146,16 +147,38 @@
           "Portuguese"
         ],
         "incluye": [
-          "Guía de Turismo",
-          "Navegación",
-          "Traslados",
-          "Bebidas"
+          {
+            "nombre": "Bebidas",
+            "descripcion": "Bebidas a cargo del pasajero durante la navegación"
+          },
+          {
+            "nombre": "Guía de Turismo",
+            "descripcion": ""
+          },
+          {
+            "nombre": "Navegación",
+            "descripcion": "Navegación en catamarán compartido por el Delta"
+          },
+          {
+            "nombre": "Traslados",
+            "descripcion": ""
+          }
         ],
         "noIncluye": [
-          "Drop off en hotel",
-          "Otro servicio no especificado",
-          "Almuerzo"
-        ]
+          {
+            "nombre": "Almuerzo",
+            "descripcion": "El almuerzo no está incluido, hay parada en restaurante"
+          },
+          {
+            "nombre": "Drop off en hotel",
+            "descripcion": ""
+          },
+          {
+            "nombre": "Otro servicio no especificado",
+            "descripcion": ""
+          }
+        ],
+        "_fuenteAmenities": "ServiceToServiceAmenity + ServiceAmenityDetail + ServiceAmenityObservation por ServiceID y LanguageID = 1"
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
@@ -363,6 +386,7 @@
         "solapas": [
           "description",
           "technical",
+          "calendar",
           "amenities",
           "policies"
         ],
@@ -372,15 +396,34 @@
           "Portuguese"
         ],
         "incluye": [
-          "Traslados",
-          "Guía de Turismo",
-          "Drop off en hotel",
-          "Almuerzo"
+          {
+            "nombre": "Almuerzo",
+            "descripcion": "Texto de prueba."
+          },
+          {
+            "nombre": "Drop off en hotel",
+            "descripcion": ""
+          },
+          {
+            "nombre": "Guía de Turismo",
+            "descripcion": ""
+          },
+          {
+            "nombre": "Traslados",
+            "descripcion": "Vehículo con aire acondicionado y chofer bilingüe"
+          }
         ],
         "noIncluye": [
-          "Botella de agua",
-          "Bebidas"
-        ]
+          {
+            "nombre": "Bebidas",
+            "descripcion": "Texto de prueba 2."
+          },
+          {
+            "nombre": "Botella de agua",
+            "descripcion": "La botella de agua no está incluida en el servicio"
+          }
+        ],
+        "_fuenteAmenities": "ServiceToServiceAmenity + ServiceAmenityDetail + ServiceAmenityObservation por ServiceID y LanguageID = 1"
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
@@ -506,6 +549,7 @@
         "solapas": [
           "description",
           "technical",
+          "calendar",
           "amenities",
           "policies"
         ],
@@ -515,16 +559,38 @@
           "Portuguese"
         ],
         "incluye": [
-          "Pick Up y Drop Off en hotel",
-          "Cena",
-          "Bebidas",
-          "Traslados"
+          {
+            "nombre": "Bebidas",
+            "descripcion": "Copa de bienvenida y bebidas libres durante la cena"
+          },
+          {
+            "nombre": "Cena",
+            "descripcion": ""
+          },
+          {
+            "nombre": "Pick up y drop off en hotel",
+            "descripcion": ""
+          },
+          {
+            "nombre": "Traslados",
+            "descripcion": ""
+          }
         ],
         "noIncluye": [
-          "Guía de Turismo",
-          "Tasas y/o impuestos",
-          "Almuerzo"
-        ]
+          {
+            "nombre": "Almuerzo",
+            "descripcion": "Texto de prueba."
+          },
+          {
+            "nombre": "Guía de Turismo",
+            "descripcion": ""
+          },
+          {
+            "nombre": "Tasas y/o impuestos",
+            "descripcion": ""
+          }
+        ],
+        "_fuenteAmenities": "ServiceToServiceAmenity + ServiceAmenityDetail + ServiceAmenityObservation por ServiceID y LanguageID = 1"
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",

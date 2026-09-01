@@ -311,12 +311,27 @@ export class TarifarioPage {
     return (await panel.innerText()).replace(/\s+/g, ' ').trim();
   }
 
-  /** Listas de "Incluye" y "No incluye" de la solapa de amenities. */
-  async amenitiesDeLaFicha(): Promise<{ incluye: string[]; noIncluye: string[] }> {
+  /**
+   * Listas de "Incluye" y "No incluye" de la solapa de amenities, con la
+   * descripcion de cada item.
+   *
+   * El markup es <li><i/><span>NOMBRE<span>DESCRIPCION</span></span></li>
+   * (ServiceSheetControl.ascx.cs:354), y el span interno va con display:block,
+   * asi que en innerText la descripcion queda como segunda linea. Antes se
+   * tomaba solo la primera y la descripcion no se validaba contra nada.
+   */
+  async amenitiesDeLaFicha(): Promise<{
+    incluye: { nombre: string; descripcion: string }[];
+    noIncluye: { nombre: string; descripcion: string }[];
+  }> {
     await this.contenidoDeSolapa('amenities');
     const leer = async (clase: string) =>
       this.page.locator(`.${clase} li`).evaluateAll((els) =>
-        els.map((e) => (e as HTMLElement).innerText.split(String.fromCharCode(10))[0].trim()).filter(Boolean),
+        els.map((e) => {
+          const lineas = (e as HTMLElement).innerText
+            .split(String.fromCharCode(10)).map((x) => x.trim()).filter(Boolean);
+          return { nombre: lineas[0] ?? '', descripcion: lineas.slice(1).join(' ') };
+        }).filter((x) => x.nombre),
       );
     return {
       incluye: await leer('svc-amenity-included'),

@@ -106,22 +106,39 @@ test.describe('Tarifario', () => {
 
     await paso(page, 'Incluye / No incluye coincide con la base', async () => {
       const { incluye, noIncluye } = await t.amenitiesDeLaFicha();
-      await adjuntarTexto(
-        'Amenities: base vs pantalla',
-        'INCLUYE esperado: ' + ficha.incluye.join(', ') + SALTO +
-        'INCLUYE pantalla: ' + incluye.join(', ') + SALTO + SALTO +
-        'NO INCLUYE esperado: ' + ficha.noIncluye.join(', ') + SALTO +
-        'NO INCLUYE pantalla: ' + noIncluye.join(', '),
-      );
 
-      for (const a of ficha.incluye) {
-        expect(incluye.map(norm), `Falta "${a}" en INCLUYE`).toContain(norm(a));
-      }
-      for (const a of ficha.noIncluye) {
-        expect(noIncluye.map(norm), `Falta "${a}" en NO INCLUYE`).toContain(norm(a));
-      }
-      expect(incluye.length, 'INCLUYE muestra items que la base no tiene').toBe(ficha.incluye.length);
-      expect(noIncluye.length, 'NO INCLUYE muestra items que la base no tiene').toBe(ficha.noIncluye.length);
+      // Se compara nombre Y descripcion: la descripcion es un span aparte dentro
+      // del mismo <li> y antes se descartaba, asi que un texto mal cargado o
+      // pisado no lo detectaba nadie.
+      type Amenity = { nombre: string; descripcion: string };
+      const comoTexto = (a: Amenity) =>
+        a.descripcion ? `${a.nombre} -- ${a.descripcion}` : a.nombre;
+
+      const lista = (xs: Amenity[]) => xs.map(comoTexto).join(SALTO + '  ');
+
+      await adjuntarTexto('Amenities: base vs pantalla',
+        'fuente: ' + (ficha._fuenteAmenities ?? '(sin documentar)') + SALTO + SALTO +
+        'INCLUYE esperado:' + SALTO + '  ' + lista(ficha.incluye) + SALTO +
+        'INCLUYE pantalla:' + SALTO + '  ' + lista(incluye) + SALTO + SALTO +
+        'NO INCLUYE esperado:' + SALTO + '  ' + lista(ficha.noIncluye) + SALTO +
+        'NO INCLUYE pantalla:' + SALTO + '  ' + lista(noIncluye));
+
+      const comparar = (esperadas: Amenity[], enPantalla: Amenity[], bloque: string) => {
+        const vistas = enPantalla.map((a) => norm(comoTexto(a)));
+        for (const a of esperadas) {
+          const buscada = norm(comoTexto(a));
+          expect(vistas,
+            a.descripcion
+              ? `En ${bloque} falta "${a.nombre}" con su descripcion "${a.descripcion}"`
+              : `Falta "${a.nombre}" en ${bloque}`,
+          ).toContain(buscada);
+        }
+        expect(enPantalla.length, `${bloque} muestra items que la base no tiene`)
+          .toBe(esperadas.length);
+      };
+
+      comparar(ficha.incluye, incluye, 'INCLUYE');
+      comparar(ficha.noIncluye, noIncluye, 'NO INCLUYE');
     });
 
     await paso(page, 'La descripcion coincide con la de la base', async () => {
