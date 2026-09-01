@@ -1,9 +1,0 @@
-fuente: HotelDetail.Detail + HotelTechnicalSheet.Content por HotelID y LanguageID = 1
-lineas esperadas: 1
-lineas ausentes:  0
-
-ESPERADO (base):
-Hotel de prueba.
-
-EN PANTALLA:
-Hotel de prueba.

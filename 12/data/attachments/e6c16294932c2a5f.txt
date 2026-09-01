@@ -1,9 +1,0 @@
-fuente: HotelDetail.Detail + HotelTechnicalSheet.Content por HotelID y LanguageID = 1
-lineas esperadas: 1
-lineas ausentes:  0
-
-ESPERADO (base):
-Ubicado en el barrio selecto de Recoleta, área de rico patrimonio francés, nuestro hotel de lujo en Buenos Aires, Palacio Duhau - Park Hyatt Buenos Aires se encuentra en Avenida Alvear, cerca de MALBA (Museo de Arte Latinoamericano de Buenos Aires), MNBA (Museo Nacional de Bellas Artes) y Teatro Colón. Ambientado en un edificio que une el resplandor del antiguo palacio francés del 1934 con decoraciones modernas del artista Celedonio Lohidoy, este hotel de 5 estrellas de Buenos Aires respira aun la elegancia del periodo belle-époque. Rodeado por residencias distintas y tiendas lujosas, Palacio Duhau es un boutique hotel que brinda un jardín exuberante invitando a vivir experiencias inolvidables, junto con el clásico Paseo de las Artes, galería y colección de arte privada.
-
-EN PANTALLA:
-editado! Ubicado en el barrio selecto de Recoleta, área de rico patrimonio francés, nuestro hotel de lujo en Buenos Aires, Palacio Duhau - Park Hyatt Buenos Aires se encuentra en Avenida Alvear, cerca de MALBA (Museo de Arte Latinoamericano de Buenos Aires), MNBA (Museo Nacional de Bellas Artes) y Teatro Colón. Ambientado en un edificio que une el resplandor del antiguo palacio francés del 1934 con decoraciones modernas del artista Celedonio Lohidoy, este hotel de 5 estrellas de Buenos Aires respira aun la elegancia del periodo belle-époque. Rodeado por residencias distintas y tiendas lujosas, Palacio Duhau es un boutique hotel que brinda un jardín exuberante invitando a vivir experiencias inolvidables, junto con el clásico Paseo de las Artes, galería y colección de arte privada.
