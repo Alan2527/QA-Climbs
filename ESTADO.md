@@ -242,6 +242,23 @@ comparación exacta de meses ya la hace la solapa Salidas contra `ServiceMonth`.
 > verificado en QA sobre el hotel 5003. Antes el esperado estaba escrito a mano
 > sin trazabilidad.
 
+### Descripción de la card
+
+La card muestra el **mismo campo que el modal pero recortado**, así que no se
+puede comparar por igualdad. Se compara **por prefijo**: el texto de la card tiene
+que ser el comienzo exacto del de la base. Eso detecta cualquier cambio — una
+palabra agregada adelante deja de ser el comienzo, y un cambio en el medio deja
+de coincidir — sin depender de dónde corta el recorte.
+
+Para aislar la descripción se toma el párrafo que contiene el link de detalle y se
+descartan los nodos hasta el último `<br>`, que es donde terminan las etiquetas
+(en Hoteles la card arranca con "Ubicación: X  Desayuno: Y"), más el propio link.
+Se resuelve **por estructura y no por el texto de las etiquetas**, que son recursos
+de la aplicación y cambian con el idioma.
+
+> Antes el texto de la card sólo se verificaba por presencia. Editando la
+> descripción del hotel, el fallo aparecía en el modal pero **no en la card**.
+
 ### Modal de Proveedores
 
 Lo tienen los tres servicios y Hoteles. Se abre y se compara **la tabla entera**,

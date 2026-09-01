@@ -100,8 +100,9 @@ test.describe('Tarifario', () => {
     const pantallaPlano = compacto(enPantalla);
     const basePlano = compacto(esperadas.join(' '));
 
+    const lineasPantalla = enLineas(enPantalla);
     const faltantes = esperadas.filter((linea) => !pantallaPlano.includes(compacto(linea)));
-    const sobrantes = enLineas(enPantalla).filter((linea) => !basePlano.includes(compacto(linea)));
+    const sobrantes = lineasPantalla.filter((linea) => !basePlano.includes(compacto(linea)));
 
     await adjuntarTexto(`Detalle ${campo}: base vs pantalla`,
       'fuente: ' + (cfg.detalleEsperado._fuente ?? '(sin documentar)') + SALTO +
@@ -117,15 +118,15 @@ test.describe('Tarifario', () => {
       : t.locatorCuerpoDelModal();
 
     await conResaltado(page, zona, `el detalle ${campo} no coincide con la base`, () => {
-      expect(faltantes.join(SALTO + '  - '),
-        `El detalle ${campo} tiene que mostrar las ${esperadas.length} lineas de la base ` +
-        `(faltan ${faltantes.length})`,
-      ).toBe('');
-
-      expect(sobrantes.join(SALTO + '  - '),
-        `El detalle ${campo} no tiene que mostrar texto que la base no tiene ` +
-        `(sobran ${sobrantes.length} linea(s))`,
-      ).toBe('');
+      // Se comparan las dos listas de lineas, no un contador contra vacio: asi el
+      // diff del reporte muestra la linea de la base y la de la pantalla una
+      // debajo de la otra, y se ve donde esta la diferencia. Comparar
+      // `sobrantes.join()` contra '' daba un diff ilegible, del estilo
+      // Expected: "" / Received: "<parrafo entero>".
+      expect(lineasPantalla.map(compacto),
+        `El detalle ${campo} tiene que coincidir con la base ` +
+        `(faltan ${faltantes.length}, sobran ${sobrantes.length})`,
+      ).toEqual(esperadas.map(compacto));
     });
   }
 
@@ -471,6 +472,45 @@ test.describe('Tarifario', () => {
 
 
   /**
+   * La descripcion de la card tiene que ser el COMIENZO del texto de la base.
+   *
+   * La card muestra el mismo campo que el modal pero recortado, asi que no se
+   * puede comparar por igualdad. Se compara por prefijo, que es lo que detecta
+   * cualquier cambio: si se le agrega una palabra adelante, deja de ser el
+   * comienzo; si se cambia algo en el medio, deja de coincidir. Antes de esto el
+   * texto de la card solo se verificaba por presencia, y editar la descripcion
+   * se detectaba en el modal pero no en la card.
+   */
+  async function validarDescripcionDeLaCard(page: Page, t: TarifarioPage, cfg: any) {
+    const esperadas: string[] = cfg.detalleEsperado?.Detail;
+    if (!esperadas?.length) return;
+
+    await paso(page, 'La descripcion de la card coincide con la base', async () => {
+      const enPantalla = await t.descripcionDeLaCard(cfg.container);
+      const compacto = (x: string) => norm(x.replace(/\s+/g, ' '));
+      // El recorte deja unos puntos suspensivos al final que no son del dato.
+      const recortada = compacto(enPantalla).replace(/[.\s]+$/, '');
+      const completa = compacto(esperadas.join(' '));
+
+      await adjuntarTexto('Descripcion de la card: base vs pantalla',
+        'EN LA BASE (completa):' + SALTO + esperadas.join(' ').slice(0, 1500) + SALTO + SALTO +
+        'EN LA CARD (recortada):' + SALTO + enPantalla.slice(0, 1500));
+
+      expect(enPantalla, 'La card tiene que mostrar una descripcion').not.toBe('');
+
+      await conResaltado(page, t.locatorDescripcionDeLaCard(cfg.container),
+        'la descripcion de la card no coincide', () => {
+          expect(completa.startsWith(recortada),
+            'La descripcion de la card tiene que ser el comienzo de la de la base.' + SALTO +
+            'en la base:  ' + completa.slice(0, 200) + SALTO +
+            'en la card:  ' + recortada.slice(0, 200),
+          ).toBe(true);
+        });
+    });
+  }
+
+
+  /**
    * Valida los elementos de la card contra la base:
    *   - observaciones destacadas -> ServiceObservation con IsPriority = 1
    *   - leyenda "Mas observaciones disponibles en el detalle"
@@ -527,9 +567,14 @@ test.describe('Tarifario', () => {
         // el texto esperado seguia estando adentro.
 
         const zonaBarra = t.locatorBarraOperatividad(cfg.container);
+        // Resalta un item puntual si se sabe cual fallo; si no, la barra entera.
+        const zonaItem = (indice: number) =>
+          indice >= 0 ? t.locatorItemDeOperatividad(cfg.container, indice) : zonaBarra;
 
-        // La card muestra la duracion de la modalidad Regular.
-        await conResaltado(page, zonaBarra, 'la duracion de la barra no coincide', () => {
+        // La card muestra la duracion de la modalidad Regular. El item de duracion
+        // es el unico sin lista en el tooltip y que no es el calendario.
+        const iDuracion = barra.findIndex((x) => !x.esCalendario && x.items.length === 0);
+        await conResaltado(page, zonaItem(iDuracion), 'la duracion no coincide', () => {
         const itemDuracion = barra.find((x) => x.texto === card.duracionRegular);
         expect(itemDuracion,
           `La barra de operatividad tiene que mostrar la duracion "${card.duracionRegular}" ` +
@@ -543,7 +588,9 @@ test.describe('Tarifario', () => {
         const mismoConjunto = (a: string[], b: string[]) =>
           a.length === b.length &&
           a.map(norm).sort().join('|') === b.map(norm).sort().join('|');
-        await conResaltado(page, zonaBarra, 'el tooltip de idiomas no coincide', () => {
+        // El de idiomas es el que lista tantos items como idiomas espera la base.
+        const iIdiomas = barra.findIndex((x) => !x.esCalendario && x.items.length > 1);
+        await conResaltado(page, zonaItem(iIdiomas), 'el tooltip de idiomas no coincide', () => {
           const itemIdiomas = barra.find((x) => mismoConjunto(x.items, idiomas));
           expect(itemIdiomas,
             `El tooltip de idiomas tiene que listar exactamente ${idiomas.join(', ')}. ` +
@@ -561,10 +608,18 @@ test.describe('Tarifario', () => {
           const deLaBase = destacadas.map((a) =>
             `${a.nombre} -- ${a.descripcion}`.trim());
 
-          await conResaltado(page, zonaBarra, 'los tooltips de amenities no coinciden', () => {
+          // Se resalta el primer tooltip de amenity que no este en la base, en vez
+          // de la barra entera: con cinco tooltips marcados habia que mirarlos
+          // todos para encontrar cual era el que no coincidia.
+          const esperadosNorm = deLaBase.map(norm);
+          const iMalo = barra.findIndex((x) =>
+            !x.esCalendario && x.titulo && x.titulo !== 'Idiomas' &&
+            !esperadosNorm.includes(norm(`${x.titulo} -- ${x.items.join(' ')}`.trim())));
+
+          await conResaltado(page, zonaItem(iMalo), 'un tooltip de amenity no coincide', () => {
             expect(enPantalla.map(norm).sort(),
               'Los tooltips de amenities destacadas tienen que coincidir con la base',
-            ).toEqual(deLaBase.map(norm).sort());
+            ).toEqual(esperadosNorm.sort());
           });
         }
 
@@ -572,18 +627,21 @@ test.describe('Tarifario', () => {
         // No se compara la cadena entera porque el control la abrevia en rangos
         // ("Ene-Mar, May-Jul"), y reconstruir ese formato seria reimplementarlo.
         const calendario = barra.find((x) => x.esCalendario);
-        await conResaltado(page, zonaBarra, 'falta el item de operatividad', () => {
+        const iCalendario = barra.findIndex((x) => x.esCalendario);
+        await conResaltado(page, zonaItem(iCalendario), 'falta el item de operatividad', () => {
           expect(calendario, 'La card tiene que mostrar el item de operatividad').toBeDefined();
         });
         if (calendario && meses.length) {
           const ABREV = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
                          'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
           const fuera = ABREV.filter((_, i) => !meses.includes(i + 1));
-          for (const mes of fuera) {
-            expect(norm(calendario.meses),
-              `La temporada no tiene que nombrar "${mes}", que la base no opera`,
-            ).not.toContain(norm(mes));
-          }
+          await conResaltado(page, zonaItem(iCalendario), 'la temporada no coincide', () => {
+            for (const mes of fuera) {
+              expect(norm(calendario.meses),
+                `La temporada no tiene que nombrar "${mes}", que la base no opera`,
+              ).not.toContain(norm(mes));
+            }
+          });
         }
       }
 
@@ -748,6 +806,7 @@ test.describe('Tarifario', () => {
     });
 
     await validarElementos(page, tarifario, cfg);
+    await validarDescripcionDeLaCard(page, tarifario, cfg);
 
     // El estado del boton se guarda para validarlo en su propio paso.
     let botonesAntes: string[] = [];

@@ -748,6 +748,48 @@ export class TarifarioPage {
     return (await loc.count()) ? (await loc.innerText()).replace(/\s+/g, ' ').trim() : '';
   }
 
+  /**
+   * Solo la descripcion de la card, sin las etiquetas ni el link "Ver detalle".
+   *
+   * La card muestra el mismo campo que el modal pero recortado, y ademas rodeado
+   * de otras cosas: en Hoteles va precedido por "Ubicacion: X Desayuno: Y" y
+   * seguido del link al detalle. Para poder compararlo hay que quedarse solo con
+   * la descripcion.
+   *
+   * Se toma el parrafo que contiene el link de detalle y se descartan los nodos
+   * hasta el ultimo <br>, que es donde terminan las etiquetas, mas el propio
+   * link. Se resuelve por estructura y no por los textos de las etiquetas,
+   * que son recursos de la aplicacion y cambian con el idioma.
+   */
+  async descripcionDeLaCard(container: string): Promise<string> {
+    return this.contenedor(container).evaluate((cont) => {
+      const limpio = (x: string) => (x ?? '').replace(/\s+/g, ' ').trim();
+
+      const zona = Array.from(cont.querySelectorAll('.tariff-detail p, .tariff-detail'))
+        .find((e) => !e.closest('.modal') && e.querySelector('a')) as HTMLElement | undefined;
+      if (!zona) return '';
+
+      const hijos = Array.from(zona.childNodes);
+      const ultimoBr = hijos.map((n) => (n as HTMLElement).nodeName).lastIndexOf('BR');
+      const desde = ultimoBr >= 0 ? ultimoBr + 1 : 0;
+
+      const partes = hijos.slice(desde).map((n) => {
+        if (n.nodeType === Node.TEXT_NODE) return n.textContent ?? '';
+        const el = n as HTMLElement;
+        // El link "Ver detalle" no es parte de la descripcion.
+        if (el.tagName === 'A') return '';
+        return el.innerText ?? el.textContent ?? '';
+      });
+
+      return limpio(partes.join(' '));
+    });
+  }
+
+  /** Zona descriptiva de la card, para resaltarla si el texto no coincide. */
+  locatorDescripcionDeLaCard(container: string): Locator {
+    return this.contenedor(container).locator('.tariff-detail').first();
+  }
+
 
   /**
    * Captura los importes tal como se ven, con una tabla por solapa de idioma.
@@ -861,6 +903,16 @@ export class TarifarioPage {
 
   locatorBarraOperatividad(container: string): Locator {
     return this.contenedor(container).locator('.tariff-operativity-bar, .tariff-op-item').first();
+  }
+
+  /**
+   * Un item concreto de la barra de operatividad, por posicion.
+   *
+   * Se usa para resaltar solo el que esta mal: marcar la barra entera obligaba a
+   * mirar los cinco tooltips para encontrar cual era el que no coincidia.
+   */
+  locatorItemDeOperatividad(container: string, indice: number): Locator {
+    return this.contenedor(container).locator('.tariff-op-item').nth(indice);
   }
 
   locatorTag(container: string): Locator {
