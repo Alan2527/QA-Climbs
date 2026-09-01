@@ -1,0 +1,17 @@
+fuente: ServiceInfo.MeetingPoint, .DropOff y .CancellationPolicy por ServiceID y LanguageID = 1
+
+OBSERVACIONES esperadas:
+  [destacada] Depende de las condiciones del tráfico
+  [destacada] Consultar por adicionales fuera del radio céntrico
+               El punto de encuentro se confirma 24 hs antes
+OBSERVACIONES en pantalla:
+  [destacada] Depende de las condiciones del tráfico
+  [destacada] Consultar por adicionales fuera del radio céntrico
+               El punto de encuentro se confirma 24 hs antes
+
+CAMPOS en pantalla:
+  Duración: Regular 01:30 Hs · Privado 00:45 Hs
+  Temporada: De Enero a Febrero y de Abril a Mayo y de Julio a Agosto y de Octubre a Noviembre
+  Idiomas: Español, English, Portuguese
+  Punto de encuentro: Aeropuerto Ezeiza
+  Drop-off: Hoteles céntricos

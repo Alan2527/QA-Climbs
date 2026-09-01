@@ -1,0 +1,10 @@
+fuente: ReceptiveTourDetail.Detail por ReceptiveTourID y LanguageID = 1
+lineas esperadas: 1
+lineas ausentes:  0
+lineas de mas:    0
+
+ESPERADO (base):
+Paquete de datos fijos para pruebas automatizadas. No modificar.
+
+EN PANTALLA:
+Paquete de datos fijos para pruebas automatizadas. No modificar.
