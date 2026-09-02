@@ -5,10 +5,19 @@ on:
     branches: [ main ]
   workflow_dispatch:
     inputs:
-      target:
-        description: 'Que correr. Ej: tests/bloque-a | tests/bloque-a/tarifario.spec.ts | -g "Ofertas"'
+      suite:
+        description: 'Que suite correr'
+        required: true
+        type: choice
+        default: 'bloque-a'
+        options:
+          - bloque-a
+          - bloque-b
+          - ambas
+      filtro:
+        description: 'Opcional: acota dentro de la suite elegida. Ej: -g "Ofertas"'
         required: false
-        default: 'tests/bloque-a'
+        default: ''
 
 permissions:
   contents: write
@@ -32,6 +41,8 @@ jobs:
       - name: Instalar navegador
         run: npx playwright install --with-deps chromium
 
+      # En push a main no hay inputs: corre bloque-a, que es el comportamiento
+      # que ya tenia el pipeline. La eleccion es para la corrida manual.
       - name: Ejecutar tests
         env:
           AMV_BASE_URL: https://qa.amv.travel
@@ -40,8 +51,17 @@ jobs:
           AMV_PASS: ${{ secrets.AMV_PASS }}
           BO_USER: ${{ secrets.BO_USER }}
           BO_PASS: ${{ secrets.BO_PASS }}
-          TARGET: ${{ github.event.inputs.target || 'tests/bloque-a' }}
-        run: npx playwright test $TARGET
+          SUITE: ${{ github.event.inputs.suite || 'bloque-a' }}
+          FILTRO: ${{ github.event.inputs.filtro }}
+        run: |
+          case "$SUITE" in
+            bloque-a) RUTA="tests/bloque-a" ;;
+            bloque-b) RUTA="tests/bloque-b" ;;
+            ambas)    RUTA="tests" ;;
+            *) echo "Suite desconocida: $SUITE"; exit 1 ;;
+          esac
+          echo "Corriendo: $RUTA $FILTRO"
+          npx playwright test $RUTA $FILTRO
 
       - name: Subir resultados de Allure
         if: always()

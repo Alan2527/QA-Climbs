@@ -1,12 +1,15 @@
 # Estado de la suite E2E — AMV Travel (QA)
 
-Documento de traspaso. Última actualización: **2026-09-01**.
+Documento de traspaso. Última actualización: **2026-09-02**.
 
 > **Para retomar en otra conversación:** leer este archivo entero y el `CLAUDE.md`
-> de la carpeta padre. El Bloque A está terminado; lo que sigue es el **Bloque B —
-> Reservas**. Antes de arrancar, mirar las dos secciones marcadas con ⚠️: los datos
-> de QA que hay que restaurar y los hallazgos abiertos que explican por qué la
-> suite no está toda en verde.
+> de la carpeta padre. El **Bloque A está terminado**. Del **Bloque B — Reservas**
+> está terminado el primero de los cuatro flujos (sólo servicio, 17 pasos y 39
+> comparaciones en verde); lo que sigue son sólo hotel, sólo oferta y
+> multidestino. Antes de
+> arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que hay que
+> restaurar y los hallazgos abiertos que explican por qué la suite no está toda
+> en verde.
 
 ## Qué es esto
 
@@ -39,9 +42,22 @@ cd C:\Users\alanh\AmvTravel\qa-e2e
 npm install
 npx playwright install chromium
 # crear el .env con AMV_USER / AMV_PASS / BO_USER / BO_PASS
-npx playwright test tests/bloque-a
+npm run test:bloque-a
+npm run test:bloque-b
+npm test                  # los dos bloques
 npm run report
 ```
+
+El Bloque B y la corrida completa van con **un solo worker** a proposito: ver
+"Por que los cuatro flujos van en un solo archivo".
+
+En **GitHub Actions** la corrida manual abre un desplegable para elegir que
+correr: `bloque-a`, `bloque-b` o `ambas`, mas un filtro opcional. El push a
+main sigue corriendo solo el Bloque A, como antes.
+
+En Allure quedan separados sin configurar nada: el arbol es proyecto > archivo >
+describe, asi que el Bloque B aparece como `chromium > bloque-b/reservas.spec.ts`,
+hermano del A y dentro de la misma pestania.
 
 Usuario de prueba: `Pablo@amv.travel` — WebUserID 332, AgencyID 1 (AMV. TRAVEL),
 CityID 5000, CurrencyID 1 (USD), markup del header **M 0.50**.
@@ -366,8 +382,18 @@ siglas QA (`assets/auto-qa-no-tocar.jpg`).
 
 Hotel secundario: **12581 Arakur Resort & Spa** (Ushuaia), usado dentro del paquete.
 
-Tarifas cargadas hasta 2031/2032. Datos esperados en `data/candidatos.json`;
-importes en `data/importes-lineabase.json`.
+Tarifas de **venta** cargadas hasta 2031/2032. Datos esperados en
+`data/candidatos.json`; importes en `data/importes-lineabase.json`.
+
+**Tarifas de costo por proveedor (2026-09-02).** El Bloque A nunca las necesito
+—el tarifario no las muestra— y estaban todas vencidas: la mas nueva terminaba en
+2023, asi que el file se generaba con costo cero. Se cargaron **8 filas** en
+`BO_ServiceCostBySupplier` para los servicios 5, 163 y 1223, una por modalidad,
+replicando la fila mas reciente de cada combinacion para no inventar importes ni
+proveedores, con vigencia `20260101`–`20321231` y `Detail` marcado con el prefijo
+`AUTO-QA NO TOCAR`. Las cinco que estaban en ARS se pasaron a USD y se les
+convirtio el importe con la cotizacion publicada del sistema (2.001), para que
+costo y venta queden en la misma moneda que el file.
 
 ### Lo que hubo que cargar porque no venía
 
@@ -622,59 +648,221 @@ Lo que hay que exigir no es sólo que el texto coincida con el de la base para e
 idioma, sino que **no sea el español**: el defecto típico es que el filtro por
 idioma no aplique y el modal caiga al texto por defecto.
 
-### BLOQUE B — Reservas (no empezado) — es lo que sigue
+## BLOQUE B — Reservas: flujo 1 terminado
 
-Cuatro tipos: **multidestino, sólo hotel, sólo servicio y sólo oferta**. En todos hay
-que guardar los datos con los que se generó la reserva y validar que **en el BO se
-conserven todos, idénticos**.
+Cuatro flujos: **sólo servicio, sólo hotel, sólo oferta y multidestino**. En todos
+se guardan los datos con los que se generó la reserva y se valida que el BO los
+conserve idénticos, **y que sigan idénticos después de generar el file**.
 
-- Multidestino vive en `Online/CustomTours/` (en el código se llama CustomTours).
-- La reserva emitida cae en la bandeja del BO: `booking/files/inbox`.
-- Hoteles de integración: `HotelWithIntegration.aspx`. El matching contra el hotel
-  AMV está en `IntegrationHotelMatch` y **no se valida mirando la UI**: hay que ir a
-  la base. Si el match está mal, la reserva se emite con el hotel equivocado y en
-  pantalla se ve perfecta.
+**Terminado el flujo 1 (sólo servicio): 17 pasos y 39 comparaciones, todo en verde.**
 
-#### Diferencias con el Bloque A que cambian el planteo
+### Los cuatro flujos entran por INICIO
 
-El Bloque A es de **sólo lectura**: navega, mira y compara. El B **escribe**, y eso
-trae tres problemas que no existían hasta ahora y conviene resolver antes de
-escribir el primer test.
+No es una preferencia, es la única puerta que da el sistema. El buscador de la
+pantalla de inicio tiene una solapa por flujo y cada una manda a otro lado:
 
-1. **Cada corrida deja una reserva.** No se puede reusar un file emitido, así que
-   cada test genera el suyo. Hay que decidir cómo se los identifica — el prefijo
-   `AUTO-QA NO TOCAR` sirve para los datos maestros, pero para las reservas hace
-   falta algo por corrida — y quién los limpia.
-2. **El dato esperado lo genera el propio test**, no la base. En el Bloque A el
-   esperado salía de una tabla; acá sale de lo que el test cargó en el formulario.
-   Ese objeto es el que después hay que buscar en el BO.
-3. **Son dos aplicaciones.** El portal emite y el BO recibe, con credenciales
-   distintas (`BO_USER` / `BO_PASS`, ya están en el `.env` y en el CI). Hay que ver
-   si conviene un `storageState` por aplicación, como el que ya existe para el
-   front.
+| Solapa de INICIO | A dónde lleva | Flujo |
+|---|---|---|
+| SERVICIOS | `serviceall.aspx` | sólo servicio |
+| HOTELES | `HotelWithIntegration.aspx` | sólo hotel |
+| OFERTAS | `customtours/main.aspx?tour={id}` | sólo oferta |
+| MULTIDESTINO | `customtours/main.aspx?tour={id}` | multidestino |
 
-#### Lo que sí se puede reusar tal cual
+En OFERTAS y MULTIDESTINO el combo del ítem decide: con "Todos" se va al listado,
+eligiendo uno se entra directo a la pantalla de armado.
 
-- `paso()`, `adjuntarTexto()` y `resaltarYCapturar()` de `utils/pasos.ts`, con la
-  numeración automática y la captura en fallo.
-- `esperarFinDeCarga()`, que es lo que hace andar todo esto contra ASP.NET.
-- El patrón de `conResaltado`: comparar, y si falla marcar la zona y registrar el
-  fallo con `expect.soft` para no cortar el test.
-- Toda la sección **Convenciones** de este documento, que no es específica del
-  tarifario.
+> **No son cuatro flujos paralelos, son dos rieles.** Servicio y hotel van por
+> `ShoppingCartPage.aspx` → `CheckOut.aspx`. Oferta, paquete y multidestino van
+> por el módulo CustomTours, que tiene su propio carrito-checkout en una sola
+> pantalla (`ShoppingCartCustomTour.aspx`). Los dos terminan en
+> `BookingHistory.aspx`. Son dos page objects, no uno.
 
-#### Por dónde empezar
+> Corrección al traspaso anterior: "Cotizar y reservar" del tarifario **no**
+> navega a `ShoppingCartPage.aspx`, va a `customtours/main.aspx`
+> (`NewTourTariffControl.ascx.cs:150`).
 
-Antes de automatizar nada, hacer el recorrido a mano una vez y anotar en qué
-pantalla se carga cada dato y con qué nombre aparece después en el BO. Sin ese
-mapeo, la comparación "se conservan todos, idénticos" no se puede escribir.
+### Los 16 pasos del flujo 1
 
-El orden sugerido es de menor a mayor: **sólo servicio** primero, que es el más
-corto y ya tiene datos de prueba cargados del Bloque A; después sólo hotel, sólo
-oferta, y multidestino al final, que es el más largo y el único con su propio
-módulo.
+```
+ 1. Vaciar el carrito y abrir la solapa SERVICIOS de INICIO
+ 2. Buscar excursiones en Buenos Aires para la fecha elegida
+ 3. Ubicar el servicio por nombre y entrar a su ficha
+ 4. Elegir la modalidad Regular con la cantidad minima de pax y reservar
+ 5. Revisar la fila del carrito y pasar a los datos de la reserva
+ 6. Cargar los pasajeros y los datos de la reserva en el checkout
+ 7. Confirmar la reserva y tomar su codigo del historial
+ 8. Abrir el detalle de la reserva en el portal y verificar los comentarios
+ 9. Entrar al BackOffice y abrir la bandeja de Reservas
+10. Ubicar la reserva en la bandeja y comparar la fila
+11. Abrir el detalle y comparar los datos de la reserva
+12. Comparar la grilla de pasajeros y el item reservado
+13. Elegir la sucursal y generar el file desde el detalle
+14. Comparar los datos del file contra los cargados en el portal
+15. Abrir el Rooming del file y comparar los pasajeros
+16. Comparar el servicio en Destinos & Servicios del file
+17. Conciliar los importes de punta a punta
+```
 
-### BLOQUE C — Cobranzas (no empezado)
+El puente entre las dos aplicaciones es el código **`BOxxxxxxxx`**, que las dos
+arman igual (`AdvisorHelper.SetBookCode` y `CodeHelper.OnlineBookingCode`). El
+test lo lee del historial después de emitir y con eso busca la fila en el BO.
+
+### Mapeo portal → BO → file
+
+Los mismos ids estáticos sirven en el detalle de la bandeja y en el file, así que
+la comparación se corre **dos veces con la misma exigencia**: si un dato se pierde
+al generar el file, el paso 13 lo marca contra el valor que cargó el portal.
+
+| Cargado en el portal | Guardado en | Mostrado en el BO |
+|---|---|---|
+| `txtPaxQuantity` | `WholesalerBook.PaxQuantity` | `txtQuantity` |
+| `txtReference` | `WholesalerBook.Reference` | `txtCustomerReference` |
+| `txtComment` | `WholesalerBook.Comment` | `txtComment` |
+| pasajero 1 | `Passenger.Name` / `Surname` / `Nationality` | `txtPaxName` / `txtPaxLastName` / `txtPaxNationality` |
+| — | compuesto | `txtMainName` = `NOMBRE/APELLIDO x cantidad` |
+| todos los pasajeros | `Passenger` | grilla `#tblPassenger`, y `#tblRooming` en el file |
+
+### Qué se compara y qué no
+
+Auditado dato por dato contra lo que la reserva y el file contienen:
+
+| Dato | Bandeja | Detalle | File |
+|---|---|---|---|
+| Servicio, modalidad y fecha | — | sí | sí |
+| Cantidad de pax | — | sí | sí |
+| Referencia | sí | sí | sí |
+| Observaciones | — | sí | sí |
+| Nombre, apellido y nacionalidad del pax principal | sí | sí | sí |
+| Todos los pasajeros: nombre, apellido, documento, nacionalidad y fecha de nacimiento | — | sí | sí (rooming) |
+| Nom. File compuesto | — | sí | sí |
+| Agencia, usuario, mail, ciudad y país | sí | — | — |
+| Importes y moneda | sí | sí | sí |
+| Comentario del ítem — Fecha(s) / Vuelo | — | — | — |
+
+**El comentario del ítem no se puede comparar en el BO.** Va a
+`WholesalerBookItemDetail` y **ninguna pantalla del BO ni del WebAdmin lo lee**:
+sus únicos consumidores son `BookingHistoryDetail.aspx` y las plantillas de mail
+(`Web/Mailing/CustomerBookingTemplate.aspx` y las de cancelación), que es como le
+llega al proveedor. **Se compara en el portal**, y por eso el paso 8 entra al detalle
+de la reserva recién emitida: ahí se imprime en `p.pdiscl`. Buscarlo sólo en el BO
+habría dejado un hueco permanente.
+
+**No queda ningún dato cargado por el test sin comparar.**
+
+El **Costo** del file no se compara a propósito: no es un dato que el portal
+cargue. Se adjunta al reporte.
+
+### Por qué ninguna comparación puede pasar en falso
+
+Un `toContain` con un esperado no vacío no puede pasar sin comparar: si el
+localizador no resuelve nada, el texto obtenido queda vacío y la comparación
+falla. Y referencia, observaciones, comentario del ítem, apellido y pasaporte
+llevan un **sello de tiempo por corrida**, así que una coincidencia no puede venir
+de datos de una corrida anterior.
+
+Quedaban **dos caminos** que podían saltear una comparación, y los dos están
+cubiertos:
+
+- `if (!i.moneda) continue` en la conciliación: es legítimo, porque la Venta del
+  file se escribe sin código de moneda. **Probado por inyección.**
+- El de los datos de contexto de la bandeja **se eliminó**: ahora exige que el
+  esperado exista antes de comparar.
+
+### Trampas verificadas contra QA
+
+Ninguna se ve leyendo el código. Todas costaron una corrida:
+
+| Dónde | Qué pasa |
+|---|---|
+| Fecha del buscador | Es un daterangepicker: **si se tipea, el widget reescribe el campo con su fecha de inicio** y la búsqueda sale con la del día. Hay que abrir el calendario y clickear el día. El paso 2 exige que la fecha viaje en la URL |
+| Listado de servicios | Pagina de a 10 con scroll infinito. Se usa el buscador por nombre de la pantalla (`#svcNameSearch`), igual que el tarifario |
+| Nombre del ítem | El `h4` corta a 27 caracteres. Y buscar "Tigre y Delta" trae **otra** excursión: hay que exigir el nombre completo |
+| Cantidad de pax | La ficha declara "Mínimo N pasajeros" pero el combo ofrece menos. Se lee el mínimo de la pantalla |
+| Carrito vacío | Con el contador en cero el ícono **no navega**. Se mira el contador antes de entrar |
+| Checkout | Arranca con un solo bloque de pasajero: hay que presionar "Añadir Pasajero". Y el ListView **no numera de corrido**, así que el prefijo del id se deriva del DOM |
+| Historial | Dos solapas, y la del código puede no ser la activa |
+| **Generar file** | Corta con *"Se debe seleccionar una sucursal"* si `ddBranch` está en -1. Es un paso del flujo, no un detalle |
+| Mayúsculas | El detalle de la bandeja pasa a mayúscula nombre, apellido y nacionalidad; **el file no**. Mismo id, dos formatos |
+| Fecha de nacimiento | El BO la arma `dia/mes/anio` sin ceros a la izquierda: `05/03/1990` se muestra `5/3/1990` |
+| Rooming | Se llena **por AJAX después** de mostrarse el modal, y sus celdas son campos editables: hay que leer los valores, no el texto |
+| Grilla del file | ListView anidado. La fila del servicio se ubica por `a.fileitemdetail`, y la columna Venta va **sin código de moneda** |
+
+### Conciliación de importes
+
+Va en **dos cadenas**, porque el sistema maneja dos números distintos y los dos
+tienen que conservarse:
+
+```
+Precio de venta   ->  ficha = carrito = V. Markup del detalle
+Costo neto        ->  historial = bandeja = item del file = Totales del file
+```
+
+**No se recalcula nada**: el total no es cantidad por precio unitario — 2 pax a
+USD 10 dan USD 19, porque el redondeo hacia arriba va sobre el total. Se captura
+el número que mostró el portal y se exige ese mismo aguas abajo. Se compara el
+**número, no el texto**: el portal escribe `USD 19` y el BO `USD 19,000`.
+
+También se compara **la moneda en todos los puntos**, que es donde aparecería un
+cruce que mirando sólo el importe no se ve.
+
+> **Consulta abierta para producto.** `WholesalerBookItem.TotalRate` es el precio
+> de venta (19) y `NetTotalCost` el neto (10). Para las reservas posteriores al
+> 20/10/2025 `LoadWholesalerData` se queda con el neto — el código lo firma como
+> *HU 2839* — y ése es el que llega al file. **El precio que pagó la agencia no
+> queda guardado en ninguna parte del file**: sólo se calcula al vuelo para la
+> columna V. Markup del detalle. Y el file toma su markup del Market de la
+> agencia, no de la reserva, así que tampoco se puede recomponer desde ahí.
+> Es decisión de negocio, no de QA.
+
+### Por qué los cuatro flujos van en un solo archivo
+
+**El carrito es del lado del servidor y está atado a la cookie de sesión.**
+`ShoppingCartManager` filtra por `CustomerSessionGUID`, que sale de
+`Advisor.WebUserSessionGUIDCookie` (`AdvisorContext.cs:402`). Como todos los tests
+reusan el mismo `storageState`, dos flujos en paralelo se pisarían el carrito.
+Por eso van juntos y con **un solo worker**, y por eso el paso 1 vacía el carrito:
+lo que quede de una corrida aparece en la siguiente.
+
+### La fecha de la reserva y la operatividad
+
+La fecha sigue siendo **hoy + 7**, y es a propósito. Se evaluó elegir el primer
+día operable y **no se puede sin salirse del flujo**: la ficha de reserva
+(`ServiceDetail.aspx`) no muestra la operatividad. Ese calendario con `data-days`
+lo arma `ServiceSheetCalendarHtml`, que es la ficha del **tarifario**.
+La persona que reserva tampoco la ve: elige el día en un calendario común.
+Hacer que el test la consultara sería hacerle hacer algo que la pantalla no ofrece.
+
+Lo que sí se hace es que, si la fecha no tiene tarifas, **el paso 3 corte con el
+motivo escrito** — "revisar la operatividad del servicio y la vigencia de sus
+tarifas de venta" — en vez de morir después en un timeout que parece un defecto
+de la aplicación.
+
+### Las comparaciones están probadas contra un fallo real
+
+Un assert que nunca se puso en rojo no está probado: puede estar comparando
+contra nada y pasar igual. Las de pasajeros, importes, mayúsculas, rooming y la
+grilla del file se vieron fallar durante el armado. Las dos que nunca habían
+fallado se verificaron **inyectándoles el defecto que existen para atrapar**:
+
+| Guarda | Defecto inyectado | Resultado |
+|---|---|---|
+| Paso 2, la fecha viaja en la URL | tipear la fecha en vez de elegirla en el calendario | rojo: esperaba `checkin=09/09/2026`, recibió `02/09/2026` |
+| Paso 16, la moneda es la misma en todo el recorrido | forzar `ARS` en la captura de la bandeja | rojo: esperaba `USD`, recibió `ARS`, nombrando el punto de la cadena |
+
+Las dos se revirtieron después de comprobarlas. **Conviene repetir este ejercicio
+con cada comparación nueva que se agregue** y no darla por buena porque pase.
+
+### Lo que queda del Bloque B
+
+- **Los otros tres flujos**: sólo hotel, sólo oferta y multidestino.
+- **Auditar los costos del candidato antes de escribir cada flujo.** Hotel 5003,
+  oferta 5060 y paquete 5059 tienen sus propias tablas. Encontrar el hueco antes
+  de escribir el test y no a mitad de la corrida, como pasó con el servicio.
+- Las reservas y los files quedan en QA. Se identifican por la referencia
+  `AUTO-QA <sello>`, que viaja intacta del portal al BO.
+
+
+## BLOQUE C — Cobranzas (no empezado)
 
 Cadena completa: factura de proveedor → orden de pago → factura de cliente → orden
 de cobro → caja diaria con sus movimientos.
@@ -704,7 +892,7 @@ Lo que el PM no pidió y conviene sumar:
 5. **Bandejas de no asignados** (`UnassignedInvoices`, `UnassignedPayorders`) como
    validación negativa.
 
-### Temas abiertos fuera del código
+## Temas abiertos fuera del código
 
 - **Mover el repo a Azure Repos.** Lo pidió el PM para que lo use todo el equipo.
   La organización ya existe (`AmvTravel`, se ve en el `azure-pipelines.yml` del
@@ -729,7 +917,7 @@ Lo que el PM no pidió y conviene sumar:
   falta: se decidió no extender la validación con fórmula (ver Validación de
   importes).
 
-### Dato útil para el bloque C
+## Dato útil para el bloque C
 
 En la suite vieja de Selenium, `bo_payorder_page.py` usa `lnkAsignarTotal`, que es
 **incorrecto**: ese es de órdenes de **cobro**. El de órdenes de **pago** es
@@ -748,10 +936,15 @@ qa-e2e/
 │   └── importes-lineabase.json           línea base de importes por solapa
 ├── pages/
 │   ├── login.page.ts
-│   └── tarifario.page.ts
+│   ├── tarifario.page.ts                 Bloque A
+│   ├── inicio.page.ts                    las 4 solapas del buscador de INICIO
+│   ├── servicio.page.ts                  busqueda y ficha del servicio
+│   ├── carrito.page.ts                   carrito, checkout y codigo de la reserva
+│   └── backoffice.page.ts                login BO, bandeja, detalle, file y rooming
 ├── tests/
 │   ├── auth.setup.ts                     login único, reusado por storageState
-│   └── bloque-a/tarifario.spec.ts        los 7 tests
+│   ├── bloque-a/tarifario.spec.ts        los 7 tests del tarifario
+│   └── bloque-b/reservas.spec.ts         los flujos de reserva
 ├── tools/
 │   ├── capturar-lineabase.spec.ts        captura los importes de cada pestaña
 │   └── consolidar-lineabase.mjs          los vuelca a data/ (los dos: npm run lineabase)
