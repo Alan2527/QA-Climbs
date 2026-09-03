@@ -150,6 +150,7 @@ test.describe('Reservas', () => {
     codigo: string;
     reserva: {
       item: string; textoEnElBO: string; modalidad: string; fecha: string;
+      fechaDeSalida?: string;
       referencia: string; observaciones: string; detalleDelItem: string;
       cantidadPax: number; pasajeros: Pasajero[];
     };
@@ -170,12 +171,18 @@ test.describe('Reservas', () => {
     // Con varios items reservados la comparacion de importes por item no aplica:
     // se concilia el total del viaje.
     itemUnico?: boolean;
+    // Todos los items que la reserva tiene que traer. Con uno solo alcanza el
+    // del propio item; una oferta o un multidestino traen varios y hay que
+    // exigirlos a todos.
+    itemsEsperados?: string[];
   }) {
     const { page, bo, codigo, reserva, contexto, importes, capturar } = opciones;
     const claveDeReferencia = opciones.claveDeReferencia ?? 'ficha (total)';
     const selectorDelComentario = opciones.selectorDelComentario ?? 'p.pdiscl';
     const modalidadEnElFile = opciones.modalidadEnElFile ?? reserva.modalidad;
     const itemUnico = opciones.itemUnico ?? true;
+    const itemsEsperados = opciones.itemsEsperados ?? [reserva.textoEnElBO];
+    let sumaDeLosItems = 0;
     await paso(page, 'Abrir el detalle de la reserva en el portal y verificar los comentarios', async () => {
       // Se ubica la reserva por su codigo y no por la solapa: las de servicios
       // y hoteles viven en "Reservas" y las de circuitos en "Reservas
@@ -332,6 +339,28 @@ test.describe('Reservas', () => {
       capturar('detalle (Venta del item)', celdasDelItem[7] ?? '');
       capturar('detalle (V. Markup del item)', celdasDelItem[8] ?? '');
       await adjuntarTexto('Celdas del item en el detalle', celdasDelItem.join(' | '));
+
+      // La fecha de salida: en un servicio suelto la grilla la deja en "-", y en
+      // un alojamiento o un circuito trae la de egreso.
+      if (reserva.fechaDeSalida) {
+        await conResaltado(page, item, 'Fecha de salida del item en el detalle', () => {
+          expect(celdasDelItem[5] ?? '', 'El detalle tiene que mostrar la fecha de salida')
+            .toContain(reserva.fechaDeSalida!);
+        });
+      }
+
+      // Una reserva de circuito trae varios items y hay que exigirlos a todos:
+      // verificar solo uno dejaria pasar que se pierda cualquiera de los otros.
+      const grilla = page.locator('#tblInboxDetail tbody tr');
+      const todas = (await grilla.allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
+      await adjuntarTexto('Items del detalle de la reserva', todas.join(SALTO));
+      for (const esperado of itemsEsperados) {
+        await conResaltado(page, grilla.first(), `Item ${esperado} en el detalle`, () => {
+          expect(todas.join(' || ').toUpperCase(),
+            `El detalle tiene que traer el item ${esperado} de la reserva`)
+            .toContain(esperado.toUpperCase());
+        });
+      }
     });
 
     let file = '';
@@ -405,6 +434,38 @@ test.describe('Reservas', () => {
       capturar('file (Venta del item)', importesDeLaFila.at(-1) ?? '');
       await adjuntarTexto('Costo y Venta del item en el file',
         `Costo: ${importesDeLaFila.at(-2) ?? '?'} | Venta: ${importesDeLaFila.at(-1) ?? '?'}`);
+
+      // Todos los items del viaje, no solo el que se mira en detalle.
+      const filasDelFile = page.locator(bo.filaServicioDelFile);
+      const todasLasFilas = await filasDelFile.evaluateAll((trs) =>
+        trs.map((tr) => Array.from(tr.querySelectorAll('td'))
+          .map((c) => (c.textContent || '').replace(/\s+/g, ' ').trim())
+          .filter(Boolean).join(' | ')));
+      await adjuntarTexto('Items del file', todasLasFilas.join(SALTO));
+
+      for (const esperado of itemsEsperados) {
+        await conResaltado(page, filasDelFile.first(), `Item ${esperado} en el file`, () => {
+          expect(todasLasFilas.join(' || ').toUpperCase(),
+            `El file tiene que traer el item ${esperado} de la reserva`)
+            .toContain(esperado.toUpperCase());
+        });
+      }
+
+      // La suma de las ventas de los items tiene que dar el total del file. Es
+      // lo que detecta que un item llegue con otro importe sin que el total se
+      // mueva: conciliar solo el total no lo veria.
+      const ventaDeCadaItem = await filasDelFile.evaluateAll((trs) =>
+        trs.map((tr) => {
+          const celdasDeLaFila = Array.from(tr.querySelectorAll('td'))
+            .map((c) => (c.textContent || '').replace(/\s+/g, ' ').trim());
+          const conNumero = celdasDeLaFila.filter((c) => /^([A-Z]{3}\s*)?\d[\d.,]*$/.test(c));
+          return conNumero.at(-1) ?? '';
+        }));
+      sumaDeLosItems = ventaDeCadaItem
+        .map((c) => importe(c).valor ?? 0)
+        .reduce((a, b) => a + b, 0);
+      await adjuntarTexto('Venta de cada item del file',
+        `${ventaDeCadaItem.join(' | ')}   =>  suma ${sumaDeLosItems}`);
 
       // Totales del file, que es el numero que despues usa toda la operacion.
       const totales = page.locator('#updFileTotals table')
@@ -488,6 +549,12 @@ test.describe('Reservas', () => {
         // file. Los importes por item se adjuntan al reporte igual.
         await exigir(['historial (total)', 'bandeja (columna V)', 'file (Venta en Totales)'],
           referencia.valor, 'el total que mostro el itinerario');
+
+        await conResaltado(page, page.locator('body'), 'Suma de los items del file', () => {
+          expect(sumaDeLosItems,
+            'La suma de las ventas de los items tiene que dar el total del file')
+            .toBe(importes['file (Venta en Totales)']?.valor);
+        });
       }
     });
   }
@@ -837,6 +904,7 @@ test.describe('Reservas', () => {
         textoEnElBO: 'Park Hyatt',
         modalidad: reserva.modalidad,
         fecha: reserva.fecha,
+        fechaDeSalida: reserva.fechaDeSalida,
         referencia: reserva.referencia,
         observaciones: reserva.observaciones,
         detalleDelItem: reserva.detalleDelItem,
@@ -872,6 +940,10 @@ test.describe('Reservas', () => {
       detalleDelItem: `Vuelo de llegada AR1234 ${sello}`,
       cantidadPax: 2,
       dobles: 1,
+      fechaDeSalida: '',
+      // Los cuatro items que compone la oferta, todos candidatos AUTO-QA. Si se
+      // pierde cualquiera en el camino al file, el test lo marca.
+      items: ['Park Hyatt', 'Tigre y Delta', 'Angelitos', 'Arakur'],
       pasajeros: [] as Pasajero[],
     };
 
@@ -913,6 +985,15 @@ test.describe('Reservas', () => {
         'El armado tiene que quedar con la fecha de inicio elegida',
       ).toHaveValue(reserva.fecha);
       await expect(page.locator(ct.comboPax)).toHaveValue(String(reserva.cantidadPax));
+
+      // La salida del primer destino sale de las noches que define la oferta, no
+      // de un numero fijo en el test.
+      const noches = await ct.nochesDelDestino(0);
+      const salida = new Date(fecha);
+      salida.setDate(salida.getDate() + noches);
+      reserva.fechaDeSalida = formatearFecha(salida);
+      await adjuntarTexto('Noches del primer destino y fecha de salida',
+        noches + ' noches -> ' + reserva.fechaDeSalida);
     });
 
     await paso(page, 'Revisar el itinerario y tomar su total', async () => {
@@ -988,16 +1069,18 @@ test.describe('Reservas', () => {
     await verificarEnElBackOffice({
       page, bo, codigo, contexto, importes, capturar,
       claveDeReferencia: 'itinerario (total)',
-      // En circuitos el comentario del item va a CT_Service.Comment y se muestra
-      // en el bloque del circuito, no en el p.pdiscl del riel clasico.
-      selectorDelComentario: 'body',
+      // En circuitos el comentario del item va a CT_Service.Comment, que se
+      // imprime junto al nombre del alojamiento y no en el p.pdiscl del otro riel.
+      selectorDelComentario: 'td:has(h6:has-text("Park Hyatt")) p strong',
       modalidadEnElFile: 'DOBLE',
       itemUnico: false,
+      itemsEsperados: reserva.items,
       reserva: {
         item: reserva.oferta,
         textoEnElBO: 'Park Hyatt',
         modalidad: reserva.modalidad,
         fecha: reserva.fecha,
+        fechaDeSalida: reserva.fechaDeSalida,
         referencia: reserva.referencia,
         observaciones: reserva.observaciones,
         detalleDelItem: reserva.detalleDelItem,

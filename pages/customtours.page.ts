@@ -75,6 +75,19 @@ export class CustomToursPage {
     return this.page.locator(this.campoFecha).inputValue();
   }
 
+  /**
+   * Noches que el armado asigna a un destino.
+   *
+   * Sirve para saber que fecha de salida esperar sin fijarla en el test: la
+   * oferta define cuantas noches dura cada destino y la pantalla las muestra.
+   */
+  async nochesDelDestino(indice: number): Promise<number> {
+    const campo = this.page.locator("[id*='lvDestinations'][id$='_txtNights']").nth(indice);
+    await expect(campo, `El armado tiene que mostrar las noches del destino ${indice + 1}`)
+      .toBeVisible();
+    return Number(await campo.inputValue());
+  }
+
   async irAlItinerario() {
     await this.page.locator(this.btnSiguiente).click();
     await this.page.waitForURL(/detail/i, { timeout: 120_000 });

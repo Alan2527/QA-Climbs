@@ -4,9 +4,8 @@ Documento de traspaso. Última actualización: **2026-09-02**.
 
 > **Para retomar en otra conversación:** leer este archivo entero y el `CLAUDE.md`
 > de la carpeta padre. El **Bloque A está terminado**. Del **Bloque B — Reservas**
-> está terminado el primero de los cuatro flujos (sólo servicio, 17 pasos y 39
-> comparaciones en verde); lo que sigue son sólo hotel, sólo oferta y
-> multidestino. Antes de
+> están terminados tres de los cuatro flujos —sólo servicio, sólo hotel y sólo
+> oferta—, los tres en verde; falta el multidestino. Antes de
 > arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que hay que
 > restaurar y los hallazgos abiertos que explican por qué la suite no está toda
 > en verde.
@@ -654,7 +653,8 @@ Cuatro flujos: **sólo servicio, sólo hotel, sólo oferta y multidestino**. En 
 se guardan los datos con los que se generó la reserva y se valida que el BO los
 conserve idénticos, **y que sigan idénticos después de generar el file**.
 
-**Terminado el flujo 1 (sólo servicio): 17 pasos y 39 comparaciones, todo en verde.**
+**Terminados los flujos 1, 2 y 3** — sólo servicio, sólo hotel y sólo oferta.
+Los tres en verde.
 
 ### Los cuatro flujos entran por INICIO
 
@@ -854,7 +854,8 @@ con cada comparación nueva que se agregue** y no darla por buena porque pase.
 
 ### Lo que queda del Bloque B
 
-- **Los otros tres flujos**: sólo hotel, sólo oferta y multidestino.
+- **Falta el flujo 4**: multidestino. Entra por la solapa MULTIDESTINO pero
+  reusa entero el riel de CustomTours, que ya quedó armado con la oferta.
 - **Auditar los costos del candidato antes de escribir cada flujo.** Hotel 5003,
   oferta 5060 y paquete 5059 tienen sus propias tablas. Encontrar el hueco antes
   de escribir el test y no a mitad de la corrida, como pasó con el servicio.
