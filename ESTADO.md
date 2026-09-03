@@ -4,8 +4,9 @@ Documento de traspaso. Última actualización: **2026-09-02**.
 
 > **Para retomar en otra conversación:** leer este archivo entero y el `CLAUDE.md`
 > de la carpeta padre. El **Bloque A está terminado**. Del **Bloque B — Reservas**
-> están terminados tres de los cuatro flujos —sólo servicio, sólo hotel y sólo
-> oferta—, los tres en verde; falta el multidestino. Antes de
+> están terminados tres de los cuatro flujos —servicio, hotel y oferta—; falta el
+> multidestino. De esos tres, el de Servicio queda en rojo por el hallazgo 7.
+> Antes de
 > arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que hay que
 > restaurar y los hallazgos abiertos que explican por qué la suite no está toda
 > en verde.
@@ -55,8 +56,10 @@ correr: `bloque-a`, `bloque-b` o `ambas`, mas un filtro opcional. El push a
 main sigue corriendo solo el Bloque A, como antes.
 
 En Allure quedan separados sin configurar nada: el arbol es proyecto > archivo >
-describe, asi que el Bloque B aparece como `chromium > bloque-b/reservas.spec.ts`,
-hermano del A y dentro de la misma pestania.
+describe, asi que el Bloque B aparece como
+`Climbs - Suite de pruebas automatizadas > bloque-b/reservas.spec.ts`, hermano
+del A y dentro del mismo nodo. El nombre del nodo sale del proyecto de Playwright,
+en `playwright.config.ts`.
 
 Usuario de prueba: `Pablo@amv.travel` — WebUserID 332, AgencyID 1 (AMV. TRAVEL),
 CityID 5000, CurrencyID 1 (USD), markup del header **M 0.50**.
