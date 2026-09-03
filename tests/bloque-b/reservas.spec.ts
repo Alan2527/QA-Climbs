@@ -175,6 +175,10 @@ test.describe('Reservas', () => {
     // del propio item; una oferta o un multidestino traen varios y hay que
     // exigirlos a todos.
     itemsEsperados?: string[];
+    // Importe que el portal mostro para cada item, por fragmento de su nombre.
+    // Sin esto solo se conciliaria el total, y un item que cambia compensado
+    // por otro pasaria desapercibido.
+    importePorItemDelPortal?: Record<string, string>;
   }) {
     const { page, bo, codigo, reserva, contexto, importes, capturar } = opciones;
     const claveDeReferencia = opciones.claveDeReferencia ?? 'ficha (total)';
@@ -182,6 +186,7 @@ test.describe('Reservas', () => {
     const modalidadEnElFile = opciones.modalidadEnElFile ?? reserva.modalidad;
     const itemUnico = opciones.itemUnico ?? true;
     const itemsEsperados = opciones.itemsEsperados ?? [reserva.textoEnElBO];
+    const importePorItemDelPortal = opciones.importePorItemDelPortal ?? {};
     let sumaDeLosItems = 0;
     await paso(page, 'Abrir el detalle de la reserva en el portal y verificar los comentarios', async () => {
       // Se ubica la reserva por su codigo y no por la solapa: las de servicios
@@ -361,6 +366,19 @@ test.describe('Reservas', () => {
             .toContain(esperado.toUpperCase());
         });
       }
+
+      // Y cada item con su propio importe, no solo el total: si uno cambia y
+      // otro compensa, la suma cierra igual y no se veria.
+      for (const [esperado, delPortal] of Object.entries(importePorItemDelPortal)) {
+        const filaDelItem = grilla.filter({ hasText: new RegExp(esperado, 'i') }).first();
+        const celdasDeEse = (await filaDelItem.locator('td').allInnerTexts())
+          .map((c) => c.replace(/\s+/g, ' ').trim());
+        await conResaltado(page, filaDelItem, `Importe del item ${esperado} en el detalle`, () => {
+          expect(importe(celdasDeEse[7] ?? '').valor,
+            `El detalle tiene que conservar el importe de ${esperado}`)
+            .toBe(importeDelPortal(delPortal).valor);
+        });
+      }
     });
 
     let file = '';
@@ -466,6 +484,19 @@ test.describe('Reservas', () => {
         .reduce((a, b) => a + b, 0);
       await adjuntarTexto('Venta de cada item del file',
         `${ventaDeCadaItem.join(' | ')}   =>  suma ${sumaDeLosItems}`);
+
+      // El importe de cada item del file contra el que mostro el portal.
+      for (const [esperado, delPortal] of Object.entries(importePorItemDelPortal)) {
+        const filaDelItem = filasDelFile.filter({ hasText: new RegExp(esperado, 'i') }).first();
+        const celdasDeEse = (await filaDelItem.locator('td').allInnerTexts())
+          .map((c) => c.replace(/\s+/g, ' ').trim());
+        const venta = celdasDeEse.filter((c) => soloImporte.test(c)).at(-1) ?? '';
+        await conResaltado(page, filaDelItem, `Importe del item ${esperado} en el file`, () => {
+          expect(importe(venta).valor,
+            `El file tiene que conservar el importe de ${esperado}`)
+            .toBe(importeDelPortal(delPortal).valor);
+        });
+      }
 
       // Totales del file, que es el numero que despues usa toda la operacion.
       const totales = page.locator('#updFileTotals table')
@@ -944,6 +975,7 @@ test.describe('Reservas', () => {
       // Los cuatro items que compone la oferta, todos candidatos AUTO-QA. Si se
       // pierde cualquiera en el camino al file, el test lo marca.
       items: ['Park Hyatt', 'Tigre y Delta', 'Angelitos', 'Arakur'],
+      importePorItem: {} as Record<string, string>,
       pasajeros: [] as Pasajero[],
     };
 
@@ -1029,6 +1061,14 @@ test.describe('Reservas', () => {
 
       const delCarrito = await carrito.importes();
       await adjuntarTexto('Importes del carrito de circuitos', delCarrito.join(' | '));
+
+      // Importe de cada item, para exigirselo despues al BO uno por uno.
+      reserva.importePorItem = await carrito.importePorItem(reserva.items);
+      await adjuntarTexto('Importe de cada item en el carrito',
+        Object.entries(reserva.importePorItem).map(([k, v]) => k + ": " + v).join(SALTO));
+      for (const [item, valor] of Object.entries(reserva.importePorItem)) {
+        expect(valor, "El carrito tiene que mostrar el importe del item " + item).not.toBe("");
+      }
       capturarDelPortal('carrito (total del item)', delCarrito.at(-1) ?? '');
 
       await conResaltado(page, page.locator('body'), 'Total del carrito', () => {
@@ -1075,6 +1115,7 @@ test.describe('Reservas', () => {
       modalidadEnElFile: 'DOBLE',
       itemUnico: false,
       itemsEsperados: reserva.items,
+      importePorItemDelPortal: reserva.importePorItem,
       reserva: {
         item: reserva.oferta,
         textoEnElBO: 'Park Hyatt',

@@ -32,6 +32,28 @@ export class CarritoCustomToursPage {
     return [...new Set(texto.match(/USD\s*[\d.,]+/g) ?? [])];
   }
 
+  /**
+   * Importe que el carrito muestra para cada item del viaje.
+   *
+   * Es lo que despues hay que exigirle al BO item por item: conciliar solo el
+   * total dejaria pasar que un item cambie y otro compense.
+   *
+   * Se ubica cada item por un fragmento de su nombre y se toma el ultimo
+   * importe de su fila, que es el total de esa linea.
+   */
+  async importePorItem(fragmentos: string[]): Promise<Record<string, string>> {
+    const filas = await this.page.locator('tr').evaluateAll((trs) =>
+      trs.map((tr) => (tr.textContent || '').replace(/\s+/g, ' ').trim()));
+
+    const salida: Record<string, string> = {};
+    for (const fragmento of fragmentos) {
+      const fila = filas.find((t) => t.toUpperCase().includes(fragmento.toUpperCase()));
+      const importes = fila?.match(/USD\s*[\d.,]+/g) ?? [];
+      salida[fragmento] = importes.at(-1) ?? '';
+    }
+    return salida;
+  }
+
   async pasajerosCargables(): Promise<number> {
     return this.page.locator("[id*='lvPassengersData'][id$='_txtName']").count();
   }
