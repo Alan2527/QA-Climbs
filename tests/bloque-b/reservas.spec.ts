@@ -4,6 +4,8 @@ import { ServicioPage } from '../../pages/servicio.page';
 import { CarritoPage, Pasajero } from '../../pages/carrito.page';
 import { BackOfficePage } from '../../pages/backoffice.page';
 import { HotelPage } from '../../pages/hotel.page';
+import { CustomToursPage } from '../../pages/customtours.page';
+import { CarritoCustomToursPage } from '../../pages/carrito-customtours.page';
 import {
   paso, adjuntarTexto, resaltarYCapturar, reiniciarNumeracionDePasos,
   fechaDeBusqueda, formatearFecha, esperarFinDeCarga, importeANumero,
@@ -62,35 +64,49 @@ test.describe('Reservas', () => {
     return { moneda, valor: importeANumero(limpio) };
   };
 
+  /**
+   * Importe tal como lo escribe el portal, que usa el formato **inverso** al del BO.
+   *
+   * `ToMoney()` del portal escribe la coma como separador de **miles**: la tabla
+   * de totales de la oferta lo demuestra sola, porque 2,024 + 558 = 2,582.
+   * `ToMoneyN3()` del BO la usa como **decimal**: escribe "USD 19,000" para 19.
+   *
+   * Con un solo parser, "USD 2,024" se leeria como 2,024 en vez de 2024. No se
+   * habia notado en los flujos de servicio y hotel porque ahi los importes son
+   * de tres cifras y no llevan separador.
+   */
+  const importeDelPortal = (texto: string): { moneda: string; valor: number | null } => {
+    const limpio = (texto || '').replace(/\s+/g, ' ').trim();
+    const moneda = limpio.match(/[A-Z]{3}/)?.[0] ?? '';
+    const numero = limpio.replace(/[^\d.,-]/g, '').replace(/,/g, '');
+    const valor = Number(numero);
+    return { moneda, valor: numero !== '' && Number.isFinite(valor) ? valor : null };
+  };
+
   test.beforeEach(async ({ page }) => {
     reiniciarNumeracionDePasos();
     await new InicioPage(page).abrir();
   });
 
   /**
-   * Tramo comun a los cuatro flujos: del checkout al file.
+   * Checkout y emision del riel de servicios y hoteles.
    *
-   * Desde que se cargan los pasajeros hasta la conciliacion de importes, el
-   * recorrido es identico se haya reservado un servicio, un hotel, una oferta o
-   * un multidestino: cambia lo que hay en el carrito, no lo que hay que
-   * verificar despues. Por eso vive una sola vez y los dos tests lo llaman.
+   * Solo sirve para ese riel: el de CustomTours tiene el carrito y el
+   * checkout en una sola pantalla, con otros ids y sin campo de cantidad de
+   * pasajeros. Devuelve el codigo BOxxxxxxxx de la reserva emitida.
    */
-  async function emitirYVerificar(opciones: {
+  async function completarCheckoutYEmitir(opciones: {
     page: Page;
     carrito: CarritoPage;
-    bo: BackOfficePage;
     reserva: {
-      item: string; textoEnElBO: string; modalidad: string; fecha: string;
       referencia: string; observaciones: string; detalleDelItem: string;
       cantidadPax: number; pasajeros: Pasajero[];
     };
-    contexto: Record<string, string>;
-    importes: Record<string, { moneda: string; valor: number | null }>;
     capturar: (donde: string, texto: string) => { moneda: string; valor: number | null };
     selectorDetalleDelItem: string;
-  }) {
-    const { page, carrito, bo, reserva, contexto, importes, capturar, selectorDetalleDelItem } = opciones;
-
+  }): Promise<string> {
+    const { page, carrito, reserva, capturar, selectorDetalleDelItem } = opciones;
+    let codigo = '';
     await paso(page, 'Cargar los pasajeros y los datos de la reserva en el checkout', async () => {
       // El checkout arranca con un solo bloque de pasajero aunque la reserva sea
       // de dos: se agregan los que falten, como haria una persona.
@@ -105,7 +121,6 @@ test.describe('Reservas', () => {
       await carrito.aceptarTerminos();
     });
 
-    let codigo = '';
     await paso(page, 'Confirmar la reserva y tomar su codigo del historial', async () => {
       codigo = await carrito.confirmarReserva();
       await adjuntarTexto('Codigo de la reserva emitida', codigo);
@@ -119,8 +134,54 @@ test.describe('Reservas', () => {
       await adjuntarTexto('Importes de la fila del historial', importesDeLaFila.join(' | '));
     });
 
+    return codigo;
+  }
+
+  /**
+   * Tramo comun a los cuatro flujos: del historial de la reserva al file.
+   *
+   * Desde que la reserva quedo emitida, el recorrido es identico se haya
+   * reservado un servicio, un hotel, una oferta o un multidestino: cambia lo
+   * que se reservo, no lo que hay que verificar despues.
+   */
+  async function verificarEnElBackOffice(opciones: {
+    page: Page;
+    bo: BackOfficePage;
+    codigo: string;
+    reserva: {
+      item: string; textoEnElBO: string; modalidad: string; fecha: string;
+      referencia: string; observaciones: string; detalleDelItem: string;
+      cantidadPax: number; pasajeros: Pasajero[];
+    };
+    contexto: Record<string, string>;
+    importes: Record<string, { moneda: string; valor: number | null }>;
+    capturar: (donde: string, texto: string) => { moneda: string; valor: number | null };
+    // Que importe del portal se toma como referencia de la cadena. En servicios
+    // y hoteles es el de la ficha; en ofertas y multidestinos, el del itinerario.
+    claveDeReferencia?: string;
+    // Donde se muestra el comentario del item en el detalle de la reserva. En
+    // servicios y hoteles va a WholesalerBookItemDetail y se imprime en
+    // p.pdiscl; en circuitos va a CT_Service.Comment, que se muestra en otro
+    // lugar de la misma pantalla.
+    selectorDelComentario?: string;
+    // El file escribe la habitacion como 1 X DOBLE y la bandeja como 1 DBL:
+    // el mismo dato con dos formatos.
+    modalidadEnElFile?: string;
+    // Con varios items reservados la comparacion de importes por item no aplica:
+    // se concilia el total del viaje.
+    itemUnico?: boolean;
+  }) {
+    const { page, bo, codigo, reserva, contexto, importes, capturar } = opciones;
+    const claveDeReferencia = opciones.claveDeReferencia ?? 'ficha (total)';
+    const selectorDelComentario = opciones.selectorDelComentario ?? 'p.pdiscl';
+    const modalidadEnElFile = opciones.modalidadEnElFile ?? reserva.modalidad;
+    const itemUnico = opciones.itemUnico ?? true;
     await paso(page, 'Abrir el detalle de la reserva en el portal y verificar los comentarios', async () => {
-      await page.locator("#tabBooking a[href*='BookingHistoryDetail.aspx?book=']").first().click();
+      // Se ubica la reserva por su codigo y no por la solapa: las de servicios
+      // y hoteles viven en "Reservas" y las de circuitos en "Reservas
+      // circuitos", asi que buscar en una sola no serviria para los cuatro.
+      await page.locator(`a[href*='BookingHistoryDetail.aspx?book=']`)
+        .filter({ hasText: codigo }).first().click();
       await page.waitForURL(/bookinghistorydetail/i, { timeout: 60_000 });
       await esperarFinDeCarga(page);
 
@@ -129,7 +190,7 @@ test.describe('Reservas', () => {
       // unicos consumidores son esta pantalla y las plantillas de mail. Es
       // ademas lo que hace una persona: entrar a la reserva recien emitida a
       // confirmar que quedo como la cargo.
-      const comentarioDelItem = page.locator('p.pdiscl');
+      const comentarioDelItem = page.locator(selectorDelComentario);
       await conResaltado(page, comentarioDelItem, 'Comentario del item en el detalle', async () => {
         expect(
           (await comentarioDelItem.allInnerTexts()).join(' | ').replace(/\s+/g, ' '),
@@ -180,8 +241,12 @@ test.describe('Reservas', () => {
         });
       }
 
-      // Columna V: moneda mas total de la reserva.
-      capturar('bandeja (columna V)', (texto.match(/[A-Z]{3}\s*\d[\d.,]*/g) ?? []).at(-1) ?? '');
+      // Columna V, moneda mas total: es la anteultima celda, antes de la del
+      // lapiz. Se toma por posicion y no por patron, por el mismo motivo que en
+      // la grilla de items.
+      const celdasDeLaFila = (await fila.locator('td').allInnerTexts())
+        .map((c) => c.replace(/\s+/g, ' ').trim());
+      capturar('bandeja (columna V)', celdasDeLaFila.at(-2) ?? '');
     });
 
     /**
@@ -247,7 +312,7 @@ test.describe('Reservas', () => {
         });
       }
 
-      const item = page.locator('#tblInboxDetail tbody tr').first();
+      const item = page.locator('#tblInboxDetail tbody tr').filter({ hasText: reserva.textoEnElBO }).first();
       const texto = (await item.innerText()).replace(/\s+/g, ' ');
       await conResaltado(page, item, 'Item reservado en el detalle', () => {
         expect(texto, 'El detalle tiene que mostrar el servicio reservado').toContain(reserva.textoEnElBO);
@@ -257,14 +322,16 @@ test.describe('Reservas', () => {
           .toContain(reserva.modalidad.toUpperCase());
       });
 
-      // La fila trae dos importes: Venta y V. Markup. El que se concilia con el
-      // portal es el segundo: Venta muestra USD 10 y V. Markup los USD 19 que
-      // vio la persona. Se adjuntan los dos para no perder el otro de vista.
-      const importesDelItem = texto.match(/[A-Z]{3}\s*\d[\d.,]*/g) ?? [];
-      capturar('detalle (Venta del item)', importesDelItem[0] ?? '');
-      capturar('detalle (V. Markup del item)', importesDelItem.at(-1) ?? '');
-      await adjuntarTexto('Importes del item en el detalle',
-        `Venta y V. Markup: ${importesDelItem.join(' | ')}`);
+      // Los importes se leen por celda y no con una expresion sobre el texto de
+      // la fila: en una reserva de circuito la columna de tipo de tarifa dice
+      // "1 DBL" y el patron de moneda la tomaba como si DBL fuera un importe.
+      // Columnas: (c), Destino, Detalle, Tipo, Fecha IN, Fecha OUT,
+      //           Tipo de tarifa, Venta, V. Markup, Integracion.
+      const celdasDelItem = (await item.locator('td').allInnerTexts())
+        .map((c) => c.replace(/\s+/g, ' ').trim());
+      capturar('detalle (Venta del item)', celdasDelItem[7] ?? '');
+      capturar('detalle (V. Markup del item)', celdasDelItem[8] ?? '');
+      await adjuntarTexto('Celdas del item en el detalle', celdasDelItem.join(' | '));
     });
 
     let file = '';
@@ -317,7 +384,7 @@ test.describe('Reservas', () => {
     });
 
     await paso(page, 'Comparar el servicio en Destinos & Servicios del file', async () => {
-      const fila = page.locator(bo.filaServicioDelFile).first();
+      const fila = page.locator(bo.filaServicioDelFile).filter({ hasText: reserva.textoEnElBO }).first();
       const celdas = (await fila.locator('td').allInnerTexts()).map((c) => c.replace(/\s+/g, ' ').trim());
       const texto = celdas.join(' | ');
       await adjuntarTexto('Fila del servicio en el file', texto);
@@ -326,7 +393,7 @@ test.describe('Reservas', () => {
         expect(texto, 'El file tiene que mostrar el servicio reservado').toContain(reserva.textoEnElBO);
         expect(texto, 'El file tiene que mostrar la fecha de la reserva').toContain(reserva.fecha);
         expect(texto.toUpperCase(), 'El file tiene que mostrar la modalidad reservada')
-          .toContain(reserva.modalidad.toUpperCase());
+          .toContain(modalidadEnElFile.toUpperCase());
       });
 
       // Costo y Venta son las dos ultimas celdas que contienen un importe. No se
@@ -355,8 +422,11 @@ test.describe('Reservas', () => {
         .join('\n');
       await adjuntarTexto('Cadena de importes', cadena);
 
-      const referencia = importes['ficha (total)'];
-      expect(referencia?.valor, 'La ficha tiene que mostrar un total legible').not.toBeNull();
+      const referencia = importes[claveDeReferencia];
+      expect(
+        referencia?.valor,
+        `Tiene que haber un importe de referencia en ${claveDeReferencia}`,
+      ).not.toBeNull();
 
       // La moneda tiene que ser la misma en todo el recorrido: un cruce de
       // monedas entre el portal y el BO no se ve mirando el numero.
@@ -368,45 +438,57 @@ test.describe('Reservas', () => {
         });
       }
 
-      // A) El total de venta que vio la persona tiene que sobrevivir a la
-      //    emision y a la generacion del file.
-      for (const donde of ['carrito (total del item)', 'detalle (V. Markup del item)']) {
-        const i = importes[donde];
-        await conResaltado(page, page.locator('body'), `Importe en ${donde}`, () => {
-          expect(i?.valor, `El importe en ${donde} tiene que ser el total que mostro la ficha`)
-            .toBe(referencia.valor);
-        });
-      }
+      const exigir = async (claves: string[], esperado: number | null | undefined, porque: string) => {
+        for (const donde of claves) {
+          const i = importes[donde];
+          await conResaltado(page, page.locator('body'), `Importe en ${donde}`, () => {
+            expect(i?.valor, `El importe en ${donde} tiene que ser ${porque}`).toBe(esperado);
+          });
+        }
+      };
 
-      // B) El historial, la bandeja y el file no llevan ese total de venta sino
-      //    el costo neto. No es una transformacion: son dos campos distintos de
-      //    la reserva. WholesalerBookItem.TotalRate es el precio de venta (19) y
-      //    NetTotalCost el neto (9,50 -> 10). Para las reservas posteriores al
-      //    20/10/2025, LoadWholesalerData se queda con NetTotalCost — el codigo
-      //    lo anota como "HU 2839" — y ese es el que se guarda en el BO_FileItem.
-      //    Se exige que los tres coincidan con la columna Venta del detalle, que
-      //    es ese mismo neto: asi se detecta una regresion sin dar por buena una
-      //    regla de negocio que no esta escrita en ninguna historia.
-      const neto = importes['detalle (Venta del item)'];
-      for (const donde of ['historial (total)', 'bandeja (columna V)',
-                           'file (Venta del item)', 'file (Venta en Totales)']) {
-        const i = importes[donde];
-        await conResaltado(page, page.locator('body'), `Importe en ${donde}`, () => {
-          expect(i?.valor, `El importe en ${donde} tiene que ser el neto que muestra el detalle`)
-            .toBe(neto?.valor);
-        });
-      }
+      if (itemUnico) {
+        // Con un solo item reservado la cadena se parte en dos, porque el
+        // sistema maneja dos numeros distintos y los dos tienen que conservarse.
+        //
+        // A) El total de venta que vio la persona.
+        await exigir(['carrito (total del item)', 'detalle (V. Markup del item)'],
+          referencia.valor, 'el total que mostro el portal');
 
-      await adjuntarTexto('Nota sobre el neto y el total de venta',
-        [`Total de venta que vio la persona: ${referencia.moneda} ${referencia.valor}`,
-         `  (WholesalerBookItem.TotalRate, y la columna V. Markup del detalle)`,
-         `Neto que llevan el historial, la bandeja y el file: ${neto?.moneda} ${neto?.valor}`,
-         `  (WholesalerBookItem.NetTotalCost redondeado hacia arriba)`,
-         '',
-         'El precio de venta no queda guardado en el file: se calcula al vuelo solo',
-         'para mostrarlo en el detalle. Y el file toma su markup del Market de la',
-         'agencia, no de la reserva, asi que tampoco se puede recomponer desde ahi.',
-         'Queda como consulta para producto: es una decision de negocio.'].join(SALTO));
+        // B) El historial, la bandeja y el file no llevan ese total sino el
+        //    costo neto. No es una transformacion: son dos campos distintos de
+        //    la reserva. WholesalerBookItem.TotalRate es el precio de venta (19)
+        //    y NetTotalCost el neto (9,50 -> 10). Para las reservas posteriores
+        //    al 20/10/2025 LoadWholesalerData se queda con NetTotalCost — el
+        //    codigo lo firma como "HU 2839" — y ese llega al BO_FileItem.
+        //    Se exige que coincidan con la columna Venta del detalle, que es ese
+        //    mismo neto: asi se detecta una regresion sin dar por buena una
+        //    regla de negocio que no esta escrita en ninguna historia.
+        const neto = importes['detalle (Venta del item)'];
+        await exigir(['historial (total)', 'bandeja (columna V)',
+                      'file (Venta del item)', 'file (Venta en Totales)'],
+          neto?.valor, 'el neto que muestra el detalle');
+
+        await adjuntarTexto('Nota sobre el neto y el total de venta',
+          [`Total de venta que vio la persona: ${referencia.moneda} ${referencia.valor}`,
+           '  (WholesalerBookItem.TotalRate, y la columna V. Markup del detalle)',
+           `Neto que llevan el historial, la bandeja y el file: ${neto?.moneda} ${neto?.valor}`,
+           '  (WholesalerBookItem.NetTotalCost redondeado hacia arriba)',
+           '',
+           'El precio de venta no queda guardado en el file: se calcula al vuelo solo',
+           'para mostrarlo en el detalle. Y el file toma su markup del Market de la',
+           'agencia, no de la reserva, asi que tampoco se puede recomponer desde ahi.',
+           'Queda como consulta para producto: es una decision de negocio.'].join(SALTO));
+      } else {
+        // Con varios items reservados —una oferta o un multidestino— la
+        // comparacion por item no significa nada: la columna Venta de una fila
+        // es la de ese producto, no la del viaje. Lo que tiene que conservarse
+        // es el total, y ahi la cadena es una sola: el numero que mostro el
+        // itinerario llega igual al historial, a la bandeja y a los totales del
+        // file. Los importes por item se adjuntan al reporte igual.
+        await exigir(['historial (total)', 'bandeja (columna V)', 'file (Venta en Totales)'],
+          referencia.valor, 'el total que mostro el itinerario');
+      }
     });
   }
 
@@ -461,6 +543,11 @@ test.describe('Reservas', () => {
       importes[donde] = importe(texto);
       return importes[donde];
     };
+    // Los importes del portal se leen con el otro parser: alla la coma es de miles.
+    const capturarDelPortal = (donde: string, texto: string) => {
+      importes[donde] = importeDelPortal(texto);
+      return importes[donde];
+    };
 
     await paso(page, 'Vaciar el carrito y abrir la solapa SERVICIOS de INICIO', async () => {
       await carrito.vaciar();
@@ -512,14 +599,14 @@ test.describe('Reservas', () => {
       expect(reserva.cantidadPax, 'La ficha tiene que declarar la cantidad de pax').toBeGreaterThan(0);
 
       // Precio unitario de la modalidad, tal como lo ve la persona en la fila.
-      capturar('ficha (precio unitario)', texto.match(/[A-Z]{3}\s*\d[\d.,]*/)?.[0] ?? '');
+      capturarDelPortal('ficha (precio unitario)', texto.match(/[A-Z]{3}\s*\d[\d.,]*/)?.[0] ?? '');
 
       await fila.locator("select[id*='ddPax']").selectOption(String(reserva.cantidadPax));
       await esperarFinDeCarga(page);
 
       // Total que arma la ficha al elegir la cantidad: es el primer importe de
       // la cadena y el que despues tiene que reaparecer en el BO.
-      capturar('ficha (total)', await page.locator('.sd-total-amount').first().innerText());
+      capturarDelPortal('ficha (total)', await page.locator('.sd-total-amount').first().innerText());
 
       await page.locator("[id$='lnkBookService']").first().click();
       await esperarFinDeCarga(page);
@@ -555,7 +642,7 @@ test.describe('Reservas', () => {
       // Ultima celda de la fila: el total del item.
       const celdas = await fila.locator('td').allInnerTexts();
       const conImporte = celdas.filter((c) => /[A-Z]{3}\s*\d[\d.,]*/.test(c));
-      capturar('carrito (total del item)', conImporte.at(-1) ?? '');
+      capturarDelPortal('carrito (total del item)', conImporte.at(-1) ?? '');
       await conResaltado(page, fila, 'Total del carrito', () => {
         expect(importes['carrito (total del item)'].valor,
           'El total del carrito tiene que ser el que armo la ficha')
@@ -565,8 +652,20 @@ test.describe('Reservas', () => {
       await carrito.crearReserva(reserva.referencia, reserva.observaciones);
     });
 
-    await emitirYVerificar({
-      page, carrito, bo, contexto, importes, capturar,
+    const codigo = await completarCheckoutYEmitir({
+      page, carrito, capturar: capturarDelPortal,
+      reserva: {
+        referencia: reserva.referencia,
+        observaciones: reserva.observaciones,
+        detalleDelItem: reserva.detalleDelItem,
+        cantidadPax: reserva.cantidadPax,
+        pasajeros: reserva.pasajeros,
+      },
+      selectorDetalleDelItem: "[id$='ctrlBookingServiceDetailControl_txtDetail']",
+    });
+
+    await verificarEnElBackOffice({
+      page, bo, codigo, contexto, importes, capturar,
       reserva: {
         item: reserva.servicio,
         textoEnElBO: 'Tigre y Delta',
@@ -578,7 +677,6 @@ test.describe('Reservas', () => {
         cantidadPax: reserva.cantidadPax,
         pasajeros: reserva.pasajeros,
       },
-      selectorDetalleDelItem: "[id$='ctrlBookingServiceDetailControl_txtDetail']",
     });
   });
 
@@ -624,6 +722,11 @@ test.describe('Reservas', () => {
       importes[donde] = importe(texto);
       return importes[donde];
     };
+    // Los importes del portal se leen con el otro parser: alla la coma es de miles.
+    const capturarDelPortal = (donde: string, texto: string) => {
+      importes[donde] = importeDelPortal(texto);
+      return importes[donde];
+    };
 
     await paso(page, 'Vaciar el carrito y abrir la solapa HOTELES de INICIO', async () => {
       await carrito.vaciar();
@@ -662,7 +765,7 @@ test.describe('Reservas', () => {
       const tipo = await hotel.tipoDeTarifa(reserva.habitacion);
       await adjuntarTexto('Tipo de tarifa que eligio la ficha', tipo);
 
-      capturar('ficha (total)', `USD ${await hotel.precioDeLaHabitacion(reserva.habitacion)}`);
+      capturarDelPortal('ficha (total)', `USD ${await hotel.precioDeLaHabitacion(reserva.habitacion)}`);
       expect(
         importes['ficha (total)'].valor,
         'La ficha tiene que mostrar un precio para la habitacion elegida',
@@ -705,7 +808,7 @@ test.describe('Reservas', () => {
 
       const celdas = await fila.locator('td').allInnerTexts();
       const conImporte = celdas.filter((c) => /[A-Z]{3}\s*\d[\d.,]*/.test(c));
-      capturar('carrito (total del item)', conImporte.at(-1) ?? '');
+      capturarDelPortal('carrito (total del item)', conImporte.at(-1) ?? '');
       await conResaltado(page, fila, 'Total del carrito', () => {
         expect(importes['carrito (total del item)'].valor,
           'El total del carrito tiene que ser el que mostro la ficha')
@@ -715,8 +818,20 @@ test.describe('Reservas', () => {
       await carrito.crearReserva(reserva.referencia, reserva.observaciones);
     });
 
-    await emitirYVerificar({
-      page, carrito, bo, contexto, importes, capturar,
+    const codigo = await completarCheckoutYEmitir({
+      page, carrito, capturar: capturarDelPortal,
+      reserva: {
+        referencia: reserva.referencia,
+        observaciones: reserva.observaciones,
+        detalleDelItem: reserva.detalleDelItem,
+        cantidadPax: reserva.adultos,
+        pasajeros: reserva.pasajeros,
+      },
+      selectorDetalleDelItem: "[id$='ctrlBookingHotelDetailControl_txtDetail']",
+    });
+
+    await verificarEnElBackOffice({
+      page, bo, codigo, contexto, importes, capturar,
       reserva: {
         item: reserva.hotel,
         textoEnElBO: 'Park Hyatt',
@@ -728,7 +843,167 @@ test.describe('Reservas', () => {
         cantidadPax: reserva.adultos,
         pasajeros: reserva.pasajeros,
       },
-      selectorDetalleDelItem: "[id$='ctrlBookingHotelDetailControl_txtDetail']",
+    });
+  });
+
+
+  test('Solo oferta: la reserva emitida conserva los datos en el BackOffice', async ({ page }) => {
+    test.setTimeout(600_000);
+
+    const inicio = new InicioPage(page);
+    const ct = new CustomToursPage(page);
+    const carrito = new CarritoCustomToursPage(page);
+    const bo = new BackOfficePage(page);
+
+    const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+    const fecha = fechaDeBusqueda();
+
+    const reserva = {
+      oferta: 'AUTO-QA NO TOCAR - Oferta Buenos Aires y Ushuaia (6 días / 5 noches)',
+      ofertaId: '5060',
+      // El ESTADO.md lo avisa: cruceros y ofertas se listan bajo Ushuaia.
+      ciudad: 'Ushuaia',
+      hotelDelPaquete: 'AUTO-QA NO TOCAR - Park Hyatt Palacio Duhau',
+      // El BO escribe la habitacion abreviada: la grilla muestra "1 DBL".
+      modalidad: 'DBL',
+      fecha: formatearFecha(fecha),
+      referencia: `AUTO-QA ${sello}`,
+      observaciones: `Reserva de regresion automatica ${sello}. No operar.`,
+      detalleDelItem: `Vuelo de llegada AR1234 ${sello}`,
+      cantidadPax: 2,
+      dobles: 1,
+      pasajeros: [] as Pasajero[],
+    };
+
+    const contexto = {
+      agencia: 'AMV. TRAVEL',
+      email: (process.env.AMV_USER ?? '').toLowerCase(),
+      ciudad: 'Buenos Aires',
+      pais: 'Argentina',
+    };
+
+    const importes: Record<string, { moneda: string; valor: number | null }> = {};
+    const capturar = (donde: string, texto: string) => {
+      importes[donde] = importe(texto);
+      return importes[donde];
+    };
+    const capturarDelPortal = (donde: string, texto: string) => {
+      importes[donde] = importeDelPortal(texto);
+      return importes[donde];
+    };
+
+    await paso(page, 'Abrir la solapa OFERTAS de INICIO y elegir la oferta', async () => {
+      const panel = await inicio.abrirSolapa('ofertas');
+      await expect(panel).toBeVisible();
+      await ct.buscarOferta(panel, {
+        pais: 'Argentina', ciudad: reserva.ciudad, ofertaId: reserva.ofertaId,
+      });
+      // Eligiendo una oferta concreta se entra directo al armado; con "Todos"
+      // se iria al listado.
+      await expect(page).toHaveURL(new RegExp(`tour=${reserva.ofertaId}`));
+    });
+
+    await paso(page, 'Cargar la fecha de inicio, los pax y las habitaciones', async () => {
+      await ct.configurarViaje(fecha, reserva.cantidadPax, reserva.dobles);
+
+      // El calendario de esta pantalla es otro widget que el de los demas
+      // flujos: si no tomo la fecha, el viaje se arma para otro dia.
+      await expect(
+        page.locator(ct.campoFecha),
+        'El armado tiene que quedar con la fecha de inicio elegida',
+      ).toHaveValue(reserva.fecha);
+      await expect(page.locator(ct.comboPax)).toHaveValue(String(reserva.cantidadPax));
+    });
+
+    await paso(page, 'Revisar el itinerario y tomar su total', async () => {
+      await ct.irAlItinerario();
+
+      const celdas = await ct.filaDeTotales();
+      await adjuntarTexto('Fila de totales del itinerario',
+        `Hotel | SGL | DBL | TPL | Servicios | Total => ${celdas.join(' | ')}`);
+
+      const fila = ct.tablaDeTotales();
+      await conResaltado(page, fila, 'Hotel del paquete en el itinerario', () => {
+        expect(celdas.join(' | '), 'El itinerario tiene que armarse con el hotel del paquete')
+          .toContain('Park Hyatt');
+      });
+
+      // El total es la ultima celda con importe. Se verifica ademas que sea la
+      // suma de la habitacion mas los servicios, que es lo que la propia fila
+      // muestra: asi no se reimplementa ningun calculo, se comprueba el de ella.
+      const conImporte = celdas.filter((c) => /[A-Z]{3}\s*\d[\d.,]*/.test(c));
+      capturarDelPortal('itinerario (total)', conImporte.at(-1) ?? '');
+      const habitacion = importeDelPortal(conImporte.at(-3) ?? '').valor;
+      const servicios = importeDelPortal(conImporte.at(-2) ?? '').valor;
+
+      await conResaltado(page, fila, 'Total del itinerario', () => {
+        expect(importes['itinerario (total)'].valor,
+          'El total del itinerario tiene que ser la habitacion mas los servicios')
+          .toBe((habitacion ?? 0) + (servicios ?? 0));
+      });
+    });
+
+    await paso(page, 'Continuar al carrito y revisar que conserve el total', async () => {
+      await ct.continuarAlCarrito();
+
+      const delCarrito = await carrito.importes();
+      await adjuntarTexto('Importes del carrito de circuitos', delCarrito.join(' | '));
+      capturarDelPortal('carrito (total del item)', delCarrito.at(-1) ?? '');
+
+      await conResaltado(page, page.locator('body'), 'Total del carrito', () => {
+        expect(importes['carrito (total del item)'].valor,
+          'El carrito tiene que conservar el total que mostro el itinerario')
+          .toBe(importes['itinerario (total)'].valor);
+      });
+
+      reserva.pasajeros = Array.from({ length: reserva.cantidadPax }, (_, i) => ({
+        nombre: `Pasajero${i + 1}`,
+        apellido: `Regresion${sello.slice(-6)}`,
+        pasaporte: `QA${sello.slice(-8)}${i + 1}`,
+        nacimiento: `0${i + 1}/03/1990`,
+        nacionalidad: 'Argentina',
+      }));
+      await adjuntarTexto('Datos con los que se genera la reserva', JSON.stringify(reserva, null, 2));
+    });
+
+    let codigo = '';
+    await paso(page, 'Cargar los pasajeros y emitir la reserva', async () => {
+      await carrito.asegurarPasajeros(reserva.cantidadPax);
+      for (const [i, pax] of reserva.pasajeros.entries()) await carrito.completarPasajero(i, pax);
+      await carrito.completarComentarioDelItem(reserva.detalleDelItem);
+      await carrito.completarDatosDeLaReserva(reserva.referencia, reserva.observaciones);
+      await carrito.aceptarTerminos();
+
+      codigo = await carrito.confirmarReserva();
+      await adjuntarTexto('Codigo de la reserva emitida', codigo);
+      expect(codigo, 'El historial tiene que mostrar el codigo de la reserva emitida')
+        .toMatch(/^BO\d{8}$/);
+
+      const filaHistorial = page.locator('tr').filter({ hasText: codigo }).first();
+      const deLaFila = ((await filaHistorial.innerText()).match(/[A-Z]{3}\s*\d[\d.,]*/g) ?? []);
+      capturarDelPortal('historial (total)', deLaFila.at(-1) ?? '');
+      await adjuntarTexto('Importes de la fila del historial', deLaFila.join(' | '));
+    });
+
+    await verificarEnElBackOffice({
+      page, bo, codigo, contexto, importes, capturar,
+      claveDeReferencia: 'itinerario (total)',
+      // En circuitos el comentario del item va a CT_Service.Comment y se muestra
+      // en el bloque del circuito, no en el p.pdiscl del riel clasico.
+      selectorDelComentario: 'body',
+      modalidadEnElFile: 'DOBLE',
+      itemUnico: false,
+      reserva: {
+        item: reserva.oferta,
+        textoEnElBO: 'Park Hyatt',
+        modalidad: reserva.modalidad,
+        fecha: reserva.fecha,
+        referencia: reserva.referencia,
+        observaciones: reserva.observaciones,
+        detalleDelItem: reserva.detalleDelItem,
+        cantidadPax: reserva.cantidadPax,
+        pasajeros: reserva.pasajeros,
+      },
     });
   });
 
