@@ -548,6 +548,35 @@ publicaron las que quedaban para que el dato sea coherente, pero conviene consul
 
 ---
 
+### 7. El servicio suelto llega al file oculto para SIX
+
+En la grilla **Destinos & Servicios** del file, cada ítem de servicio muestra un
+ojito que indica si se ve en SIX (`ManageFile.aspx:697`):
+
+```
+fa-eye text-info          Show = true    "Ocultar en SIX"     <- habilitado
+fa-eye-slash text-danger  Show = false   "Mostrar en SIX"     <- oculto
+fa-eye-slash text-muted   la agencia no tiene SIX habilitado
+```
+
+Una reserva de **servicio suelto** genera su ítem con el ojito **oculto**; los
+servicios que entran dentro de una **oferta** llegan habilitados.
+
+La causa está en las dos ramas que crean los ítems del file:
+
+- `CreateServices(BO_File file)` — la de CustomTours — asigna `Show = true` en
+  las nueve ramas, entre las líneas 2277 y 3051.
+- `CreateServices(BO_File file, List<FileInboxItemObj> all)` — la de servicios y
+  hoteles — **no asigna `Show` en ningún lado**, así que queda en `false`, el
+  valor por defecto de un `bool`.
+
+El hotel no lo evidencia porque el ojito sólo se renderiza en las filas de
+servicio (`FileItemType == 10`).
+
+Lo marca en rojo el test de Servicio del Bloque B, nombrando el ítem. El paso
+queda escrito como corresponde —el ojito tiene que venir habilitado— y se acepta
+el rojo hasta que se corrija.
+
 ## Lo que queda por hacer
 
 ### Auditoría de cobertura de la pantalla (2026-09-01)
@@ -653,8 +682,11 @@ Cuatro flujos: **sólo servicio, sólo hotel, sólo oferta y multidestino**. En 
 se guardan los datos con los que se generó la reserva y se valida que el BO los
 conserve idénticos, **y que sigan idénticos después de generar el file**.
 
-**Terminados los flujos 1, 2 y 3** — sólo servicio, sólo hotel y sólo oferta.
-Los tres en verde.
+**Terminados los flujos 1, 2 y 3** — servicio, hotel y oferta.
+
+Con los datos de QA en su estado actual, el resultado esperado es **2 en verde y
+1 en rojo**: el de Servicio marca el hallazgo 7, que su ítem llega al file oculto
+para SIX. No es una regresión de la suite.
 
 ### Los cuatro flujos entran por INICIO
 

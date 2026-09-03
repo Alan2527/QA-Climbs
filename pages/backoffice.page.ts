@@ -110,17 +110,53 @@ export class BackOfficePage {
    * elegir, "Generar file" corta con "Se debe seleccionar una sucursal" y no
    * genera nada (InboxDetail.aspx.cs:281). El combo hace AutoPostBack.
    */
-  async elegirSucursal(): Promise<string> {
+  async elegirSucursal(nombre = 'Argentina'): Promise<string> {
     const combo = this.page.locator(this.comboSucursal);
     const opciones = await combo.locator('option').evaluateAll((os) =>
       os.map((o) => ({ valor: (o as HTMLOptionElement).value, texto: (o.textContent || '').trim() })));
 
-    const elegida = opciones.find((o) => o.valor !== '-1' && o.valor !== '0' && o.texto);
-    expect(elegida, 'El detalle tiene que ofrecer al menos una sucursal').toBeTruthy();
+    const elegida = opciones.find((o) => o.texto.toUpperCase().includes(nombre.toUpperCase()));
+    expect(
+      elegida,
+      `El detalle tiene que ofrecer la sucursal ${nombre}. Ofrece: ` +
+      opciones.map((o) => o.texto).filter(Boolean).join(' | '),
+    ).toBeTruthy();
 
     await combo.selectOption(elegida!.valor);
     await this.page.waitForLoadState('domcontentloaded');
     return elegida!.texto;
+  }
+
+  /**
+   * Estado del ojito de cada item de servicio del file.
+   *
+   * Solo lo muestran las filas de servicio (`FileItemType == 10`), y tiene tres
+   * estados (ManageFile.aspx:697):
+   *   fa-eye text-info          -> Show = true, el item se ve en SIX
+   *   fa-eye-slash text-danger  -> Show = false, esta oculto
+   *   fa-eye-slash text-muted   -> la agencia no tiene SIX habilitado
+   *
+   * Devuelve una linea por fila con el detalle y el estado, para poder exigir
+   * que todas vengan habilitadas.
+   */
+  async estadoDelOjito(): Promise<{ detalle: string; estado: string }[]> {
+    return this.page.locator(this.filaServicioDelFile).evaluateAll((filas) =>
+      filas
+        .filter((tr) => tr.querySelector('i.fa-eye, i.fa-eye-slash'))
+        .map((tr) => {
+          const celdas = Array.from(tr.querySelectorAll('td'))
+            .map((c) => (c.textContent || '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+          const icono = tr.querySelector('i.fa-eye, i.fa-eye-slash') as HTMLElement;
+          const clases = (icono.className || '').toString();
+          const estado = clases.includes('fa-eye-slash')
+            ? (clases.includes('text-muted') ? 'SIX no habilitado' : 'oculto')
+            : 'habilitado';
+          // El nombre del item es la celda que termina en asterisco: el BO lo
+          // arma como "{codigo} {nombre}*". Tomarlo por posicion fallaba, porque
+          // la celda de estado trae las opciones enteras del desplegable.
+          const detalle = celdas.find((c) => c.endsWith('*')) ?? celdas.join(' | ');
+          return { detalle, estado };
+        }));
   }
   readonly btnRooming = '#btnRooming, #btnRooming2';
   readonly grillaRooming = '#tblRooming tbody tr';

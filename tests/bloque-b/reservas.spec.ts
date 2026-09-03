@@ -485,6 +485,20 @@ test.describe('Reservas', () => {
       await adjuntarTexto('Venta de cada item del file',
         `${ventaDeCadaItem.join(' | ')}   =>  suma ${sumaDeLosItems}`);
 
+      // El ojito de cada item de servicio tiene que venir habilitado: es lo que
+      // deja el item visible en SIX. Si viniera tachado seria en rojo —oculto—
+      // o en gris —la agencia sin SIX habilitado—, y las dos cosas importan.
+      const ojitos = await bo.estadoDelOjito();
+      await adjuntarTexto('Estado del ojito por item',
+        ojitos.map((o) => `${o.estado.padEnd(18)} ${o.detalle}`).join(SALTO));
+      for (const { detalle, estado } of ojitos) {
+        await conResaltado(page, filasDelFile.filter({ hasText: detalle }).first(),
+          `Ojito del item ${detalle}`, () => {
+            expect(estado, `El item ${detalle} tiene que venir habilitado para SIX`)
+              .toBe('habilitado');
+          });
+      }
+
       // El importe de cada item del file contra el que mostro el portal.
       for (const [esperado, delPortal] of Object.entries(importePorItemDelPortal)) {
         const filaDelItem = filasDelFile.filter({ hasText: new RegExp(esperado, 'i') }).first();
@@ -590,7 +604,7 @@ test.describe('Reservas', () => {
     });
   }
 
-  test('Solo servicio: la reserva emitida conserva los datos en el BackOffice', async ({ page }) => {
+  test('Servicio: la reserva emitida conserva los datos en el BackOffice', async ({ page }) => {
     // El recorrido cruza dos aplicaciones y 16 pasos con PostBacks lentos: el
     // timeout de la suite, pensado para el tarifario, no alcanza.
     test.setTimeout(600_000);
@@ -778,7 +792,7 @@ test.describe('Reservas', () => {
     });
   });
 
-  test('Solo hotel: la reserva emitida conserva los datos en el BackOffice', async ({ page }) => {
+  test('Hotel: la reserva emitida conserva los datos en el BackOffice', async ({ page }) => {
     test.setTimeout(600_000);
 
     const inicio = new InicioPage(page);
@@ -946,7 +960,7 @@ test.describe('Reservas', () => {
   });
 
 
-  test('Solo oferta: la reserva emitida conserva los datos en el BackOffice', async ({ page }) => {
+  test('Oferta: la reserva emitida conserva los datos en el BackOffice', async ({ page }) => {
     test.setTimeout(600_000);
 
     const inicio = new InicioPage(page);
