@@ -30,24 +30,44 @@ export class CustomToursPage {
   readonly btnContinuar = "[id*='lnkReservar']";
 
   /**
-   * Elige la oferta en el buscador de INICIO y entra al armado.
+   * Elige el viaje en el buscador de INICIO y entra al armado.
    *
-   * El combo decide a donde va: con "Todos" se abre el listado
-   * (opportunityall.aspx) y eligiendo una se entra derecho a la pantalla de
-   * armado (OpportunitySearchControl.ascx.cs:198).
+   * Sirve para las dos solapas que llevan a este riel: OFERTAS elige en
+   * `ddSelectedOpportunity` y MULTIDESTINO en `ddSelectedTour`. En las dos, el
+   * combo decide a donde va: con "Todos" se abre el listado y eligiendo uno se
+   * entra derecho a la pantalla de armado
+   * (OpportunitySearchControl.ascx.cs:198 y TourSearchControl.ascx.cs:208).
    */
-  async buscarOferta(panel: Locator, opciones: { pais: string; ciudad: string; ofertaId: string }) {
-    const combo = (sufijo: string) => panel.locator(`[id$='${sufijo}']`).first();
+  async buscarViaje(panel: Locator, opciones: {
+    pais: string; ciudad: string; id: string; combo: string;
+  }) {
+    const campo = (sufijo: string) => panel.locator(`[id$='${sufijo}']`).first();
 
-    await combo('ddCountry').selectOption({ label: opciones.pais });
+    await campo('ddCountry').selectOption({ label: opciones.pais });
     await esperarFinDeCarga(this.page);
-    await combo('ddCity').selectOption({ label: opciones.ciudad });
+    await campo('ddCity').selectOption({ label: opciones.ciudad });
     await esperarFinDeCarga(this.page);
-    await combo('ddSelectedOpportunity').selectOption(opciones.ofertaId);
+    await campo(opciones.combo).selectOption(opciones.id);
 
     await panel.locator("[id$='btnSearch']").first().click();
     await this.page.waitForURL(/customtours/i, { timeout: 120_000 });
     await esperarFinDeCarga(this.page);
+  }
+
+  /** La oferta se elige en la solapa OFERTAS. */
+  async buscarOferta(panel: Locator, opciones: { pais: string; ciudad: string; ofertaId: string }) {
+    await this.buscarViaje(panel, {
+      pais: opciones.pais, ciudad: opciones.ciudad,
+      id: opciones.ofertaId, combo: 'ddSelectedOpportunity',
+    });
+  }
+
+  /** El paquete de multidestino se elige en la solapa MULTIDESTINO. */
+  async buscarPaquete(panel: Locator, opciones: { pais: string; ciudad: string; paqueteId: string }) {
+    await this.buscarViaje(panel, {
+      pais: opciones.pais, ciudad: opciones.ciudad,
+      id: opciones.paqueteId, combo: 'ddSelectedTour',
+    });
   }
 
   /**

@@ -604,6 +604,139 @@ test.describe('Reservas', () => {
     });
   }
 
+  /**
+   * Recorrido del portal por el riel de CustomTours, del buscador a la emision.
+   *
+   * Lo comparten la oferta y el multidestino: cambia la solapa de INICIO, la
+   * ciudad y el combo donde se elige el viaje, no lo que hay que hacer despues.
+   * Devuelve el codigo BOxxxxxxxx de la reserva emitida.
+   */
+  async function armarCircuitoYEmitir(opciones: {
+    page: Page; inicio: InicioPage; ct: CustomToursPage; carrito: CarritoCustomToursPage;
+    viaje: { solapa: 'ofertas' | 'multidestino'; ciudad: string; id: string; combo: string };
+    reserva: {
+      cantidadPax: number; dobles: number; fecha: string; fechaDeSalida: string;
+      referencia: string; observaciones: string; detalleDelItem: string;
+      items: string[]; importePorItem: Record<string, string>; pasajeros: Pasajero[];
+    };
+    fecha: Date;
+    sello: string;
+    importes: Record<string, { moneda: string; valor: number | null }>;
+    capturarDelPortal: (donde: string, texto: string) => { moneda: string; valor: number | null };
+  }): Promise<string> {
+    const { page, inicio, ct, carrito, viaje, reserva, fecha, sello, importes, capturarDelPortal } = opciones;
+    let codigo = '';
+    await paso(page, `Abrir la solapa ${viaje.solapa.toUpperCase()} de INICIO y elegir el viaje`, async () => {
+      const panel = await inicio.abrirSolapa(viaje.solapa);
+      await expect(panel).toBeVisible();
+      await ct.buscarViaje(panel, {
+        pais: 'Argentina', ciudad: viaje.ciudad, id: viaje.id, combo: viaje.combo,
+      });
+      // Eligiendo una oferta concreta se entra directo al armado; con "Todos"
+      // se iria al listado.
+      await expect(page).toHaveURL(new RegExp(`tour=${viaje.id}`));
+    });
+
+    await paso(page, 'Cargar la fecha de inicio, los pax y las habitaciones', async () => {
+      await ct.configurarViaje(fecha, reserva.cantidadPax, reserva.dobles);
+
+      // El calendario de esta pantalla es otro widget que el de los demas
+      // flujos: si no tomo la fecha, el viaje se arma para otro dia.
+      await expect(
+        page.locator(ct.campoFecha),
+        'El armado tiene que quedar con la fecha de inicio elegida',
+      ).toHaveValue(reserva.fecha);
+      await expect(page.locator(ct.comboPax)).toHaveValue(String(reserva.cantidadPax));
+
+      // La salida del primer destino sale de las noches que define la oferta, no
+      // de un numero fijo en el test.
+      const noches = await ct.nochesDelDestino(0);
+      const salida = new Date(fecha);
+      salida.setDate(salida.getDate() + noches);
+      reserva.fechaDeSalida = formatearFecha(salida);
+      await adjuntarTexto('Noches del primer destino y fecha de salida',
+        noches + ' noches -> ' + reserva.fechaDeSalida);
+    });
+
+    await paso(page, 'Revisar el itinerario y tomar su total', async () => {
+      await ct.irAlItinerario();
+
+      const celdas = await ct.filaDeTotales();
+      await adjuntarTexto('Fila de totales del itinerario',
+        `Hotel | SGL | DBL | TPL | Servicios | Total => ${celdas.join(' | ')}`);
+
+      const fila = ct.tablaDeTotales();
+      await conResaltado(page, fila, 'Hotel del paquete en el itinerario', () => {
+        expect(celdas.join(' | '), 'El itinerario tiene que armarse con el hotel del paquete')
+          .toContain('Park Hyatt');
+      });
+
+      // El total es la ultima celda con importe. Se verifica ademas que sea la
+      // suma de la habitacion mas los servicios, que es lo que la propia fila
+      // muestra: asi no se reimplementa ningun calculo, se comprueba el de ella.
+      const conImporte = celdas.filter((c) => /[A-Z]{3}\s*\d[\d.,]*/.test(c));
+      capturarDelPortal('itinerario (total)', conImporte.at(-1) ?? '');
+      const habitacion = importeDelPortal(conImporte.at(-3) ?? '').valor;
+      const servicios = importeDelPortal(conImporte.at(-2) ?? '').valor;
+
+      await conResaltado(page, fila, 'Total del itinerario', () => {
+        expect(importes['itinerario (total)'].valor,
+          'El total del itinerario tiene que ser la habitacion mas los servicios')
+          .toBe((habitacion ?? 0) + (servicios ?? 0));
+      });
+    });
+
+    await paso(page, 'Continuar al carrito y revisar que conserve el total', async () => {
+      await ct.continuarAlCarrito();
+
+      const delCarrito = await carrito.importes();
+      await adjuntarTexto('Importes del carrito de circuitos', delCarrito.join(' | '));
+
+      // Importe de cada item, para exigirselo despues al BO uno por uno.
+      reserva.importePorItem = await carrito.importePorItem(reserva.items);
+      await adjuntarTexto('Importe de cada item en el carrito',
+        Object.entries(reserva.importePorItem).map(([k, v]) => k + ": " + v).join(SALTO));
+      for (const [item, valor] of Object.entries(reserva.importePorItem)) {
+        expect(valor, "El carrito tiene que mostrar el importe del item " + item).not.toBe("");
+      }
+      capturarDelPortal('carrito (total del item)', delCarrito.at(-1) ?? '');
+
+      await conResaltado(page, page.locator('body'), 'Total del carrito', () => {
+        expect(importes['carrito (total del item)'].valor,
+          'El carrito tiene que conservar el total que mostro el itinerario')
+          .toBe(importes['itinerario (total)'].valor);
+      });
+
+      reserva.pasajeros = Array.from({ length: reserva.cantidadPax }, (_, i) => ({
+        nombre: `Pasajero${i + 1}`,
+        apellido: `Regresion${sello.slice(-6)}`,
+        pasaporte: `QA${sello.slice(-8)}${i + 1}`,
+        nacimiento: `0${i + 1}/03/1990`,
+        nacionalidad: 'Argentina',
+      }));
+      await adjuntarTexto('Datos con los que se genera la reserva', JSON.stringify(reserva, null, 2));
+    });
+
+    await paso(page, 'Cargar los pasajeros y emitir la reserva', async () => {
+      await carrito.asegurarPasajeros(reserva.cantidadPax);
+      for (const [i, pax] of reserva.pasajeros.entries()) await carrito.completarPasajero(i, pax);
+      await carrito.completarComentarioDelItem(reserva.detalleDelItem);
+      await carrito.completarDatosDeLaReserva(reserva.referencia, reserva.observaciones);
+      await carrito.aceptarTerminos();
+
+      codigo = await carrito.confirmarReserva();
+      await adjuntarTexto('Codigo de la reserva emitida', codigo);
+      expect(codigo, 'El historial tiene que mostrar el codigo de la reserva emitida')
+        .toMatch(/^BO\d{8}$/);
+
+      const filaHistorial = page.locator('tr').filter({ hasText: codigo }).first();
+      const deLaFila = ((await filaHistorial.innerText()).match(/[A-Z]{3}\s*\d[\d.,]*/g) ?? []);
+      capturarDelPortal('historial (total)', deLaFila.at(-1) ?? '');
+      await adjuntarTexto('Importes de la fila del historial', deLaFila.join(' | '));
+    });
+    return codigo;
+  }
+
   test('Servicio: la reserva emitida conserva los datos en el BackOffice', async ({ page }) => {
     // El recorrido cruza dos aplicaciones y 16 pasos con PostBacks lentos: el
     // timeout de la suite, pensado para el tarifario, no alcanza.
@@ -1010,114 +1143,9 @@ test.describe('Reservas', () => {
       return importes[donde];
     };
 
-    await paso(page, 'Abrir la solapa OFERTAS de INICIO y elegir la oferta', async () => {
-      const panel = await inicio.abrirSolapa('ofertas');
-      await expect(panel).toBeVisible();
-      await ct.buscarOferta(panel, {
-        pais: 'Argentina', ciudad: reserva.ciudad, ofertaId: reserva.ofertaId,
-      });
-      // Eligiendo una oferta concreta se entra directo al armado; con "Todos"
-      // se iria al listado.
-      await expect(page).toHaveURL(new RegExp(`tour=${reserva.ofertaId}`));
-    });
-
-    await paso(page, 'Cargar la fecha de inicio, los pax y las habitaciones', async () => {
-      await ct.configurarViaje(fecha, reserva.cantidadPax, reserva.dobles);
-
-      // El calendario de esta pantalla es otro widget que el de los demas
-      // flujos: si no tomo la fecha, el viaje se arma para otro dia.
-      await expect(
-        page.locator(ct.campoFecha),
-        'El armado tiene que quedar con la fecha de inicio elegida',
-      ).toHaveValue(reserva.fecha);
-      await expect(page.locator(ct.comboPax)).toHaveValue(String(reserva.cantidadPax));
-
-      // La salida del primer destino sale de las noches que define la oferta, no
-      // de un numero fijo en el test.
-      const noches = await ct.nochesDelDestino(0);
-      const salida = new Date(fecha);
-      salida.setDate(salida.getDate() + noches);
-      reserva.fechaDeSalida = formatearFecha(salida);
-      await adjuntarTexto('Noches del primer destino y fecha de salida',
-        noches + ' noches -> ' + reserva.fechaDeSalida);
-    });
-
-    await paso(page, 'Revisar el itinerario y tomar su total', async () => {
-      await ct.irAlItinerario();
-
-      const celdas = await ct.filaDeTotales();
-      await adjuntarTexto('Fila de totales del itinerario',
-        `Hotel | SGL | DBL | TPL | Servicios | Total => ${celdas.join(' | ')}`);
-
-      const fila = ct.tablaDeTotales();
-      await conResaltado(page, fila, 'Hotel del paquete en el itinerario', () => {
-        expect(celdas.join(' | '), 'El itinerario tiene que armarse con el hotel del paquete')
-          .toContain('Park Hyatt');
-      });
-
-      // El total es la ultima celda con importe. Se verifica ademas que sea la
-      // suma de la habitacion mas los servicios, que es lo que la propia fila
-      // muestra: asi no se reimplementa ningun calculo, se comprueba el de ella.
-      const conImporte = celdas.filter((c) => /[A-Z]{3}\s*\d[\d.,]*/.test(c));
-      capturarDelPortal('itinerario (total)', conImporte.at(-1) ?? '');
-      const habitacion = importeDelPortal(conImporte.at(-3) ?? '').valor;
-      const servicios = importeDelPortal(conImporte.at(-2) ?? '').valor;
-
-      await conResaltado(page, fila, 'Total del itinerario', () => {
-        expect(importes['itinerario (total)'].valor,
-          'El total del itinerario tiene que ser la habitacion mas los servicios')
-          .toBe((habitacion ?? 0) + (servicios ?? 0));
-      });
-    });
-
-    await paso(page, 'Continuar al carrito y revisar que conserve el total', async () => {
-      await ct.continuarAlCarrito();
-
-      const delCarrito = await carrito.importes();
-      await adjuntarTexto('Importes del carrito de circuitos', delCarrito.join(' | '));
-
-      // Importe de cada item, para exigirselo despues al BO uno por uno.
-      reserva.importePorItem = await carrito.importePorItem(reserva.items);
-      await adjuntarTexto('Importe de cada item en el carrito',
-        Object.entries(reserva.importePorItem).map(([k, v]) => k + ": " + v).join(SALTO));
-      for (const [item, valor] of Object.entries(reserva.importePorItem)) {
-        expect(valor, "El carrito tiene que mostrar el importe del item " + item).not.toBe("");
-      }
-      capturarDelPortal('carrito (total del item)', delCarrito.at(-1) ?? '');
-
-      await conResaltado(page, page.locator('body'), 'Total del carrito', () => {
-        expect(importes['carrito (total del item)'].valor,
-          'El carrito tiene que conservar el total que mostro el itinerario')
-          .toBe(importes['itinerario (total)'].valor);
-      });
-
-      reserva.pasajeros = Array.from({ length: reserva.cantidadPax }, (_, i) => ({
-        nombre: `Pasajero${i + 1}`,
-        apellido: `Regresion${sello.slice(-6)}`,
-        pasaporte: `QA${sello.slice(-8)}${i + 1}`,
-        nacimiento: `0${i + 1}/03/1990`,
-        nacionalidad: 'Argentina',
-      }));
-      await adjuntarTexto('Datos con los que se genera la reserva', JSON.stringify(reserva, null, 2));
-    });
-
-    let codigo = '';
-    await paso(page, 'Cargar los pasajeros y emitir la reserva', async () => {
-      await carrito.asegurarPasajeros(reserva.cantidadPax);
-      for (const [i, pax] of reserva.pasajeros.entries()) await carrito.completarPasajero(i, pax);
-      await carrito.completarComentarioDelItem(reserva.detalleDelItem);
-      await carrito.completarDatosDeLaReserva(reserva.referencia, reserva.observaciones);
-      await carrito.aceptarTerminos();
-
-      codigo = await carrito.confirmarReserva();
-      await adjuntarTexto('Codigo de la reserva emitida', codigo);
-      expect(codigo, 'El historial tiene que mostrar el codigo de la reserva emitida')
-        .toMatch(/^BO\d{8}$/);
-
-      const filaHistorial = page.locator('tr').filter({ hasText: codigo }).first();
-      const deLaFila = ((await filaHistorial.innerText()).match(/[A-Z]{3}\s*\d[\d.,]*/g) ?? []);
-      capturarDelPortal('historial (total)', deLaFila.at(-1) ?? '');
-      await adjuntarTexto('Importes de la fila del historial', deLaFila.join(' | '));
+    const codigo = await armarCircuitoYEmitir({
+      page, inicio, ct, carrito, reserva, fecha, sello, importes, capturarDelPortal,
+      viaje: { solapa: 'ofertas', ciudad: reserva.ciudad, id: reserva.ofertaId, combo: 'ddSelectedOpportunity' },
     });
 
     await verificarEnElBackOffice({
@@ -1132,6 +1160,89 @@ test.describe('Reservas', () => {
       importePorItemDelPortal: reserva.importePorItem,
       reserva: {
         item: reserva.oferta,
+        textoEnElBO: 'Park Hyatt',
+        modalidad: reserva.modalidad,
+        fecha: reserva.fecha,
+        fechaDeSalida: reserva.fechaDeSalida,
+        referencia: reserva.referencia,
+        observaciones: reserva.observaciones,
+        detalleDelItem: reserva.detalleDelItem,
+        cantidadPax: reserva.cantidadPax,
+        pasajeros: reserva.pasajeros,
+      },
+    });
+  });
+
+
+  test('Multidestino: la reserva emitida conserva los datos en el BackOffice', async ({ page }) => {
+    test.setTimeout(600_000);
+
+    const inicio = new InicioPage(page);
+    const ct = new CustomToursPage(page);
+    const carrito = new CarritoCustomToursPage(page);
+    const bo = new BackOfficePage(page);
+
+    const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+    const fecha = fechaDeBusqueda();
+
+    const reserva = {
+      paquete: 'AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia (6 días / 5 noches)',
+      paqueteId: '5059',
+      // El paquete se lista bajo Buenos Aires; la oferta, bajo Ushuaia.
+      ciudad: 'Buenos Aires',
+      modalidad: 'DBL',
+      fecha: formatearFecha(fecha),
+      fechaDeSalida: '',
+      referencia: `AUTO-QA ${sello}`,
+      observaciones: `Reserva de regresion automatica ${sello}. No operar.`,
+      detalleDelItem: `Vuelo de llegada AR1234 ${sello}`,
+      cantidadPax: 2,
+      dobles: 1,
+      // El paquete se compone de los mismos cuatro candidatos AUTO-QA que la
+      // oferta, con otras tarifas: aca Tigre y Delta entra a USD 42 y en la
+      // oferta a USD 418, porque cambia la modalidad.
+      items: ['Park Hyatt', 'Tigre y Delta', 'Angelitos', 'Arakur'],
+      importePorItem: {} as Record<string, string>,
+      pasajeros: [] as Pasajero[],
+    };
+
+    const contexto = {
+      agencia: 'AMV. TRAVEL',
+      email: (process.env.AMV_USER ?? '').toLowerCase(),
+      ciudad: 'Buenos Aires',
+      pais: 'Argentina',
+    };
+
+    const importes: Record<string, { moneda: string; valor: number | null }> = {};
+    const capturar = (donde: string, texto: string) => {
+      importes[donde] = importe(texto);
+      return importes[donde];
+    };
+    const capturarDelPortal = (donde: string, texto: string) => {
+      importes[donde] = importeDelPortal(texto);
+      return importes[donde];
+    };
+
+    const codigo = await armarCircuitoYEmitir({
+      page, inicio, ct, carrito, reserva, fecha, sello, importes, capturarDelPortal,
+      viaje: {
+        solapa: 'multidestino',
+        ciudad: reserva.ciudad,
+        id: reserva.paqueteId,
+        combo: 'ddSelectedTour',
+      },
+    });
+
+    await verificarEnElBackOffice({
+      page, bo, codigo, contexto, importes, capturar,
+      claveDeReferencia: 'itinerario (total)',
+      selectorDelComentario: 'td:has(h6:has-text("Park Hyatt")) p strong',
+      modalidadEnElFile: 'DOBLE',
+      itemUnico: false,
+      itemsEsperados: reserva.items,
+      importePorItemDelPortal: reserva.importePorItem,
+      reserva: {
+        item: reserva.paquete,
         textoEnElBO: 'Park Hyatt',
         modalidad: reserva.modalidad,
         fecha: reserva.fecha,

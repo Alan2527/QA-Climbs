@@ -4,9 +4,8 @@ Documento de traspaso. Última actualización: **2026-09-02**.
 
 > **Para retomar en otra conversación:** leer este archivo entero y el `CLAUDE.md`
 > de la carpeta padre. El **Bloque A está terminado**. Del **Bloque B — Reservas**
-> están terminados tres de los cuatro flujos —servicio, hotel y oferta—; falta el
-> multidestino. De esos tres, el de Servicio queda en rojo por el hallazgo 7.
-> Antes de
+> están terminados **los cuatro flujos**. El de Servicio queda en rojo por el
+> hallazgo 7. Antes de
 > arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que hay que
 > restaurar y los hallazgos abiertos que explican por qué la suite no está toda
 > en verde.
@@ -685,11 +684,24 @@ Cuatro flujos: **sólo servicio, sólo hotel, sólo oferta y multidestino**. En 
 se guardan los datos con los que se generó la reserva y se valida que el BO los
 conserve idénticos, **y que sigan idénticos después de generar el file**.
 
-**Terminados los flujos 1, 2 y 3** — servicio, hotel y oferta.
+**Terminado: los cuatro flujos.**
 
-Con los datos de QA en su estado actual, el resultado esperado es **2 en verde y
+Con los datos de QA en su estado actual, el resultado esperado es **3 en verde y
 1 en rojo**: el de Servicio marca el hallazgo 7, que su ítem llega al file oculto
 para SIX. No es una regresión de la suite.
+
+| Flujo | Riel | Entrada | Estado esperado |
+|---|---|---|---|
+| Servicio | clásico | solapa SERVICIOS | rojo — hallazgo 7 |
+| Hotel | clásico | solapa HOTELES | verde |
+| Oferta | CustomTours | solapa OFERTAS, Ushuaia | verde |
+| Multidestino | CustomTours | solapa MULTIDESTINO, Buenos Aires | verde |
+
+Los dos flujos de CustomTours comparten el recorrido del portal entero
+(`armarCircuitoYEmitir`): cambian la solapa, la ciudad y el combo donde se elige
+el viaje, no lo que hay que hacer después. El paquete y la oferta se componen de
+los mismos cuatro candidatos AUTO-QA, con tarifas distintas — Tigre y Delta entra
+a USD 42 en el paquete y a USD 418 en la oferta, porque cambia la modalidad.
 
 ### Los cuatro flujos entran por INICIO
 
@@ -889,8 +901,7 @@ con cada comparación nueva que se agregue** y no darla por buena porque pase.
 
 ### Lo que queda del Bloque B
 
-- **Falta el flujo 4**: multidestino. Entra por la solapa MULTIDESTINO pero
-  reusa entero el riel de CustomTours, que ya quedó armado con la oferta.
+- Nada de los cuatro flujos. Lo que sigue es el **Bloque C**.
 - **Auditar los costos del candidato antes de escribir cada flujo.** Hotel 5003,
   oferta 5060 y paquete 5059 tienen sus propias tablas. Encontrar el hueco antes
   de escribir el test y no a mitad de la corrida, como pasó con el servicio.
