@@ -8,8 +8,8 @@ Documento de traspaso. Última actualización: **2026-09-04**.
 > hallazgo 7. Del **Bloque C — Cobranzas** está hecha la auditoría del ambiente y
 > el mapa de las cinco pantallas, y ya están creadas las **cajas propias** (187
 > USD y 188 ARS, categoría 18) para no tocar los saldos reales de QA. El
-> **eslabón 1, la factura de proveedor, está terminado y en verde**. Lo que sigue
-> es el eslabón 2, la orden de pago.
+> **eslabón 1 (factura de proveedor) y el 2 (orden de pago) están terminados y en
+> verde**. Lo que sigue es el eslabón 3, la factura al cliente.
 >
 > Antes de arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
@@ -964,7 +964,7 @@ con cada comparación nueva que se agregue** y no darla por buena porque pase.
   `AUTO-QA <sello>`, que viaja intacta del portal al BO.
 
 
-## BLOQUE C — Cobranzas: eslabón 1 terminado
+## BLOQUE C — Cobranzas: eslabones 1 y 2 terminados
 
 Cadena completa: **factura de proveedor → orden de pago → factura de cliente →
 orden de cobro → caja diaria con sus movimientos**.
@@ -1293,10 +1293,84 @@ factura ni el ítem del file se pueden reusar: por eso cada corrida arma su prop
 precondición. Las de las corridas de ajuste quedaron en QA (files 31920 a 31924 y
 sus comprobantes del punto de venta 0001).
 
+### Eslabón 2 — Orden de pago: terminado, en verde
+
+`tests/bloque-c/cobranzas.spec.ts` + `pages/orden-de-pago.page.ts`.
+
+Su precondición es la cadena entera del eslabón 1: reserva, file, factura de
+proveedor imputada y aprobada. Está en `armarFacturaAprobada()`, que repite
+mecánicamente lo que el test del eslabón 1 verifica paso por paso. No comparten
+código porque allá cada paso lleva su comparación intercalada: extraer una
+función común obligaría a parametrizar qué se verifica y qué no, y ese test
+dejaría de leerse.
+
+```
+PRECONDICION
+ 1. Reservar un servicio en el portal y emitir la reserva
+ 2. Confirmar la reserva y generar su file en el BackOffice
+ 3. Cargar la factura del proveedor, imputarla al file y aprobarla
+
+ORDEN DE PAGO
+ 4. Entrar a la bandeja de ordenes de pago y abrir una nueva
+ 5. Verificar la sucursal y elegir el proveedor y la moneda
+ 6. Verificar que la caja de regresion se ofrezca y elegirla
+ 7. Cargar el importe y verificar el total que calcula el BO
+ 8. Guardar la orden y verificar que conserve los datos cargados
+ 9. Verificar el pendiente de asignacion contra el total de la orden
+10. Ubicar la factura entre las pendientes y comparar la fila
+11. Abrir la asignacion y comparar los importes del modal
+12. Imputar la factura y verificar que el pendiente baje a cero
+13. Aprobar la orden aplicando el recibo y verificar el estado
+```
+
+**El paso 6 es el que cuida las cajas propias.** Verifica que
+`AUTO-QA NO TOCAR - CAJA USD` siga apareciendo en el combo para la moneda de la
+orden. Si alguien la despublica, la borra o le cambia la categoría, ese paso lo
+dice con el motivo en vez de fallar más adelante sin explicación.
+
+#### Lo que sólo se supo ejecutando
+
+| Síntoma | Causa real |
+|---|---|
+| El menú no llega a Órdenes Pago | Órdenes Pago y Fact. de Proveed. están **en el mismo submenú** (`BOMaster.Master:411-414`): viniendo de la factura el acordeón ya está abierto y clickear el padre lo **cierra**. Hay que abrirlo sólo si hace falta |
+| El buscador de proveedores no abre | tras el postback de `ddBranch`, `#btnSupplier` **se queda sin handlers**. Ver la observación de abajo |
+| `txtTotalAmount` está `disabled` | el Monto Total tampoco se escribe: lo suma el JS a partir de los importes de las cajas (`payment.js:274`) |
+| "Debe completar la fecha del Recibo" | `txtReceiptDate` tiene máscara `99/99/9999`: con `fill()` el valor queda en pantalla pero **no viaja en el postback**. Hay que tipear los dígitos |
+| El estado se lee vacío | aprobar hace `Response.Redirect` a la misma pantalla y la lectura llegaba antes de que terminara la navegación |
+| Se esperaba "PAGADA" | el estado 30 se describe como **"Pago"** (`PayOrderStatusEnum`) |
+
+#### Observación para el PM: la sucursal deja inutilizable el buscador de proveedores
+
+En `administration/payorder/0`, al cambiar el combo de sucursal, el botón lupa
+del campo Proveedor deja de responder: el postback parcial reemplaza el DOM y
+`#btnSupplier` queda sin ningún handler de clic. Medido con jQuery sobre la
+pantalla: antes del cambio `click`, después vacío. Cambiar la **moneda**, que
+también es AutoPostBack, no lo rompe.
+
+**No está redactado como bug** porque no hay historia de usuario que lo defina, y
+porque en la práctica no bloquea: el combo ya viene en Argentina y no ofrece
+"Seleccione...", así que un usuario de una sola sucursal nunca necesita tocarlo.
+Le afecta a quien opere en varias. Queda como consulta a producto.
+
+Por eso el test **no toca la sucursal**: la verifica. Que sea además lo que hace
+una persona es lo que permite dejar el defecto afuera del alcance del test sin
+disimularlo.
+
+#### Ids de esta pantalla
+
+A diferencia de la factura, acá **la mayoría de los ids sí son estáticos**, pero
+no todos. Llevan prefijo de ASP.NET —y hay que buscarlos por sufijo—
+`ddBranch` y `lnkConfirmAllocate`. `btnSupplier` y `modalPayOrderAllocation` son
+HTML plano. `litStatus` es un `asp:Literal` dentro de un PlaceHolder: no deja id,
+se lee del `h5.text-uppercase.text-success` que lo contiene.
+
 ### Lo que hay que decidir antes de escribir
 
 1. ~~Si la suite puede mover saldos de caja~~ — **decidido el 2026-09-04**: cajas
-   propias, 187 (USD) y 188 (ARS), bajo la categoría 18.
+   propias, 187 (USD) y 188 (ARS), bajo la categoría 18. Verificado además que
+   aprobar una orden de pago **no mueve el saldo de la caja**: sólo registra el
+   recibo (`PayOrders/Detail.aspx.cs:1163`). El saldo se mueve recién en la caja
+   diaria, que es el eslabón 5.
 2. **Cómo se limpia.** Las órdenes aprobadas y los movimientos de caja no se
    borran como una reserva: hay que confirmar si el BO permite anular y si la
    anulación revierte el saldo, o si el Bloque C deja residuo por diseño.
