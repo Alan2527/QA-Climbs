@@ -1,0 +1,21 @@
+fuente: ServiceToServiceAmenity + ServiceAmenityDetail + ServiceAmenityObservation por ServiceID y LanguageID = 1
+
+INCLUYE esperado:
+  Bebidas -- Copa de bienvenida y bebidas libres durante la cena
+  Cena
+  Pick up y drop off en hotel
+  Traslados
+INCLUYE pantalla:
+  Bebidas -- Copa de bienvenida y bebidas libres durante la cena
+  Cena
+  Pick up y drop off en hotel
+  Traslados
+
+NO INCLUYE esperado:
+  Almuerzo -- Texto de prueba.
+  Guía de Turismo
+  Tasas y/o impuestos
+NO INCLUYE pantalla:
+  Almuerzo -- Texto de prueba.
+  Guía de Turismo
+  Tasas y/o impuestos
