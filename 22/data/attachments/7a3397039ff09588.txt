@@ -1,2 +1,0 @@
-Pasajero1 | Regresion123725 | QA041237251 | Argentina | 01/03/1990 | -- | ADL
-Pasajero2 | Regresion123725 | QA041237252 | Argentina | 02/03/1990 | -- | ADL
