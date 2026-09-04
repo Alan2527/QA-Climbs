@@ -13,7 +13,8 @@ on:
         options:
           - bloque-a
           - bloque-b
-          - ambas
+          - bloque-c
+          - todas
       filtro:
         description: 'Opcional: acota dentro de la suite elegida. Ej: -g "Ofertas"'
         required: false
@@ -57,7 +58,8 @@ jobs:
           case "$SUITE" in
             bloque-a) RUTA="tests/bloque-a" ;;
             bloque-b) RUTA="tests/bloque-b" ;;
-            ambas)    RUTA="tests" ;;
+            bloque-c) RUTA="tests/bloque-c" ;;
+            todas)    RUTA="tests" ;;
             *) echo "Suite desconocida: $SUITE"; exit 1 ;;
           esac
           echo "Corriendo: $RUTA $FILTRO"

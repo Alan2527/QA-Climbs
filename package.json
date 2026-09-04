@@ -7,6 +7,7 @@
     "test": "playwright test tests --workers=1",
     "test:bloque-a": "playwright test tests/bloque-a",
     "test:bloque-b": "playwright test tests/bloque-b --workers=1",
+    "test:bloque-c": "playwright test tests/bloque-c --workers=1",
     "test:headed": "playwright test --headed",
     "allure:generate": "allure generate allure-results --clean -o allure-report",
     "allure:open": "allure open allure-report",

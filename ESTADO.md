@@ -7,8 +7,9 @@ Documento de traspaso. Última actualización: **2026-09-04**.
 > están terminados **los cuatro flujos**; el de Servicio queda en rojo por el
 > hallazgo 7. Del **Bloque C — Cobranzas** está hecha la auditoría del ambiente y
 > el mapa de las cinco pantallas, y ya están creadas las **cajas propias** (187
-> USD y 188 ARS, categoría 18) para no tocar los saldos reales de QA. Lo que no
-> hay todavía es **una sola línea de test escrita**.
+> USD y 188 ARS, categoría 18) para no tocar los saldos reales de QA. El
+> **eslabón 1, la factura de proveedor, está escrito pero nunca se corrió**:
+> lo primero es ejecutarlo contra QA y ajustar lo que el ambiente devuelva.
 >
 > Antes de arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
@@ -47,21 +48,22 @@ npx playwright install chromium
 # crear el .env con AMV_USER / AMV_PASS / BO_USER / BO_PASS
 npm run test:bloque-a
 npm run test:bloque-b
-npm test                  # los dos bloques
+npm run test:bloque-c
+npm test                  # los tres bloques
 npm run report
 ```
 
-El Bloque B y la corrida completa van con **un solo worker** a proposito: ver
-"Por que los cuatro flujos van en un solo archivo".
+Los Bloques B y C y la corrida completa van con **un solo worker** a proposito:
+ver "Por que los cuatro flujos van en un solo archivo".
 
 En **GitHub Actions** la corrida manual abre un desplegable para elegir que
-correr: `bloque-a`, `bloque-b` o `ambas`, mas un filtro opcional. El push a
-main sigue corriendo solo el Bloque A, como antes.
+correr: `bloque-a`, `bloque-b`, `bloque-c` o `todas`, mas un filtro opcional. El
+push a main sigue corriendo solo el Bloque A, como antes.
 
 En Allure quedan separados sin configurar nada: el arbol es proyecto > archivo >
 describe, asi que el Bloque B aparece como
-`Climbs - Suite de pruebas automatizadas > bloque-b/reservas.spec.ts`, hermano
-del A y dentro del mismo nodo. El nombre del nodo sale del proyecto de Playwright,
+`Climbs - Suite de pruebas automatizadas > bloque-b/reservas.spec.ts` y el C como
+`bloque-c/cobranzas.spec.ts`, hermanos del A y dentro del mismo nodo. El nombre del nodo sale del proyecto de Playwright,
 en `playwright.config.ts`.
 
 Usuario de prueba: `Pablo@amv.travel` — WebUserID 332, AgencyID 1 (AMV. TRAVEL),
@@ -962,7 +964,7 @@ con cada comparación nueva que se agregue** y no darla por buena porque pase.
   `AUTO-QA <sello>`, que viaja intacta del portal al BO.
 
 
-## BLOQUE C — Cobranzas: ambiente auditado, sin escribir
+## BLOQUE C — Cobranzas: eslabón 1 escrito, sin correr
 
 Cadena completa: **factura de proveedor → orden de pago → factura de cliente →
 orden de cobro → caja diaria con sus movimientos**.
@@ -1159,6 +1161,125 @@ Published  Deleted  ApproveDate  ApproveUserID  FiscalData (JSON)
 
 `Status = 10` con `ApproveDate` en NULL es "cargada sin aprobar". `CurrencyID`
 guarda el `Identifier` de `BO_Currency`, no el `ID` de `Currency`.
+
+### Eslabón 1 — Factura de proveedor: escrito, sin correr todavía
+
+`tests/bloque-c/cobranzas.spec.ts` + `pages/factura-proveedor.page.ts`.
+
+El test **arma su propia precondición**: reserva el servicio en el portal, lo
+emite y genera el file, y recién ahí carga la factura. No es capricho — un ítem
+de file **se puede imputar una sola vez**, así que cada corrida necesita un file
+nuevo. Depender de uno que ya exista es lo que hace fallar hoy a la suite vieja.
+
+Los helpers de comparación están repetidos a propósito, igual que hizo el Bloque
+B con los del A: cada bloque es autocontenido. Lo que sí se comparte son los
+**page objects**, que son estables.
+
+```
+PRECONDICION
+ 1. Reservar un servicio en el portal y emitir la reserva
+ 2. Confirmar la reserva y generar su file en el BackOffice
+
+FACTURA DE PROVEEDOR
+ 3. Entrar a la bandeja de facturas de proveedor y abrir una nueva
+ 4. Verificar los valores con los que nace el comprobante
+ 5. Elegir el proveedor y verificar lo que completa solo
+ 6. Cargar el tipo, el numero, la moneda y el total del comprobante
+ 7. Guardar el comprobante y verificar que quedo con los datos cargados
+ 8. Verificar el pendiente de asignacion contra el total cargado
+ 9. Buscar el file entre los items pendientes y comparar la fila
+10. Abrir la asignacion y comparar los cuatro importes del modal
+11. Imputar el comprobante al item y verificar que el pendiente baje a cero
+12. Verificar que el item paso a la grilla de asignados
+13. Aprobar el comprobante y verificar que quede aprobado
+```
+
+#### Lo que el código impone y condiciona el test
+
+**El alta y la imputación no se pueden hacer de una.** En una factura nueva el
+control de asignación y el botón Aprobar están ocultos
+(`Detail.aspx.cs:697-698`), y aparecen recién cuando el comprobante ya existe.
+Guardar redirige a `administration/supplierinvoice/{id}`, y de ahí sale el ID
+igual que el del file.
+
+**El número tiene que ser único por corrida.** El guardado rechaza con "Ya existe
+un comprobante con el mismo número y el mismo proveedor" si coinciden tipo, punto
+de venta, número y proveedor (`Detail.aspx.cs:987`). El test lo deriva del sello
+de tiempo como `DDHHmmss`, que entra justo en los **8 dígitos exactos** que exige
+la validación de cliente (`supplier.js:249`). Sin esto el test pasa una sola vez.
+
+**El punto de venta admite 4 o 5 dígitos**, sólo números (`supplier.js:244`).
+
+**La moneda arranca en ARS** (`Detail.aspx.cs:452`) y el test la pasa a USD. El
+motivo no es que el ítem no aparezca — la grilla lista por proveedor y sucursal,
+no por moneda —, sino que la moneda del comprobante es la que **convierte** los
+importes: `ConvertAmount(CostCurrency, moneda de la factura, cotización)`
+(`PaymentWebService.cs:340`). Con la moneda mal, la imputación queda distorsionada.
+
+**El vencimiento lo calcula el BO**, no la persona: `fecha de factura +
+PaymentDeadline del proveedor`, o +10 días si el proveedor no declara plazo
+(`Detail.aspx.cs:1022`). El test deja el campo vacío y exige que salga a 30 días,
+que es el plazo del proveedor 1047.
+
+**El medio de pago lo precarga el proveedor**, junto con la razón social, el
+documento y la cotización (`supplier.js`, `applySupplierInvoiceSupplier`). No se
+elige: se verifica.
+
+**El pendiente se calcula sobre `BaseRate`**, que es `TotalRate - IIBB -
+percepción` (`Detail.aspx.cs:1044`), y no sobre el total
+(`SupplierInvoiceAllocControl.ascx.cs:213`). Sin retenciones tienen que coincidir,
+y eso es lo que el test verifica.
+
+**La sucursal no se elige**: el usuario tiene una sola asignada, así que el combo
+viene resuelto. Se verifica igual, porque un file y una factura en sucursales
+distintas romperían la cadena más adelante.
+
+**El proveedor se elige por un modal**, no escribiendo: el botón `#btnSupplier`
+abre `#modalCnt` con la grilla `#dataSuppliers`.
+
+#### La verificación que prueba que la imputación se escribió en el file
+
+Imputado el costo entero, el ítem **deja de aparecer** en la grilla de
+pendientes. No es un efecto colateral: el endpoint descarta las filas con saldo
+menor a 1 (`PaymentWebService.cs:414`), y el saldo sólo baja si la imputación
+escribió `BO_FileItem.AllocatedAmount`
+(`SupplierInvoiceAllocControl.ascx.cs:419`). Verificar sólo el comprobante no
+alcanzaría: la mitad del efecto vive del lado del file.
+
+El checkbox "Incluir saldos menores a 1" destapa esas filas. El test no lo usa,
+pero conviene saber que existe cuando algo "no aparece".
+
+#### Datos que usa
+
+| Qué | Valor |
+|---|---|
+| Servicio de la precondición | `AUTO-QA NO TOCAR - Tigre y Delta` |
+| Proveedor | 1047, GRUPO SUMMA SRL, CUIT 30-71422246-1 |
+| Sucursal | Argentina (1) |
+| Tipo | Factura A |
+| Moneda | USD, la del costo del ítem |
+| Total | el costo del ítem del file, leído de la pantalla |
+
+El total no está fijado en el test: se lee el costo del ítem del file y se
+factura eso. Si el costo cambia, el test sigue siendo válido; si el costo viene
+en cero, corta con el motivo apuntando a `BO_ServiceCostBySupplier`.
+
+#### Lo que falta antes de darlo por bueno
+
+**No se corrió nunca.** Está escrito contra el código y tipa, pero ningún paso se
+ejecutó contra QA. Lo primero es una corrida completa y ajustar lo que el
+ambiente devuelva distinto — igual que pasó con el Bloque B, donde varios
+selectores se corrigieron recién al ejecutar.
+
+Puntos donde es más probable que haya que ajustar:
+
+- La espera de la grilla de pendientes: es un DataTable server-side y se espera
+  con `jQuery.active === 0`. Si el AJAX arranca tarde, puede leerse la grilla
+  anterior.
+- El código del file se lee de `h4.title` porque `litFileCode` es un
+  `asp:Literal` y no deja id en el HTML.
+- El aprobado se confirma por el botón deshabilitado, no por una redirección: la
+  pantalla recarga sobre sí misma.
 
 ### Lo que hay que decidir antes de escribir
 
