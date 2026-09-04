@@ -1,0 +1,29 @@
+{
+  "hotel": "AUTO-QA NO TOCAR - Park Hyatt Palacio Duhau",
+  "hotelId": 5003,
+  "habitacion": 9193,
+  "modalidad": "Doble",
+  "fecha": "11/09/2026",
+  "fechaDeSalida": "12/09/2026",
+  "referencia": "AUTO-QA 20260904123725",
+  "observaciones": "Reserva de regresion automatica 20260904123725. No operar.",
+  "detalleDelItem": "Vuelo de llegada AR1234 20260904123725",
+  "habitaciones": 1,
+  "adultos": 2,
+  "pasajeros": [
+    {
+      "nombre": "Pasajero1",
+      "apellido": "Regresion123725",
+      "pasaporte": "QA041237251",
+      "nacimiento": "01/03/1990",
+      "nacionalidad": "Argentina"
+    },
+    {
+      "nombre": "Pasajero2",
+      "apellido": "Regresion123725",
+      "pasaporte": "QA041237252",
+      "nacimiento": "02/03/1990",
+      "nacionalidad": "Argentina"
+    }
+  ]
+}

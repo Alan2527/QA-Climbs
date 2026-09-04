@@ -1,0 +1,3 @@
+habilitado         TIG/DEL AUTO-QA NO TOCAR - Tigre y Delta*
+habilitado         EZE/HTL AUTO-QA NO TOCAR - Aeropuerto Internacional/ Hotel Céntrico con servicio de guía*
+habilitado         BUE/TAN AUTO-QA NO TOCAR - Cafe de los Angelitos*

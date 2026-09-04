@@ -1,0 +1,42 @@
+{
+  "oferta": "AUTO-QA NO TOCAR - Oferta Buenos Aires y Ushuaia (6 días / 5 noches)",
+  "ofertaId": "5060",
+  "ciudad": "Ushuaia",
+  "hotelDelPaquete": "AUTO-QA NO TOCAR - Park Hyatt Palacio Duhau",
+  "modalidad": "DBL",
+  "fecha": "11/09/2026",
+  "referencia": "AUTO-QA 20260904123810",
+  "observaciones": "Reserva de regresion automatica 20260904123810. No operar.",
+  "detalleDelItem": "Vuelo de llegada AR1234 20260904123810",
+  "cantidadPax": 2,
+  "dobles": 1,
+  "fechaDeSalida": "14/09/2026",
+  "items": [
+    "Park Hyatt",
+    "Tigre y Delta",
+    "Angelitos",
+    "Arakur"
+  ],
+  "importePorItem": {
+    "Park Hyatt": "USD 1,290",
+    "Tigre y Delta": "USD 418",
+    "Angelitos": "USD 138",
+    "Arakur": "USD 734"
+  },
+  "pasajeros": [
+    {
+      "nombre": "Pasajero1",
+      "apellido": "Regresion123810",
+      "pasaporte": "QA041238101",
+      "nacimiento": "01/03/1990",
+      "nacionalidad": "Argentina"
+    },
+    {
+      "nombre": "Pasajero2",
+      "apellido": "Regresion123810",
+      "pasaporte": "QA041238102",
+      "nacimiento": "02/03/1990",
+      "nacionalidad": "Argentina"
+    }
+  ]
+}

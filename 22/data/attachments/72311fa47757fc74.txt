@@ -1,0 +1,1 @@
+Costo | Venta | Over | Utilidad => 2.575,732 | 2.206 | 0 | -369,732

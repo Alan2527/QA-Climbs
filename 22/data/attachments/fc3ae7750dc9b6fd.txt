@@ -1,0 +1,5 @@
+1 | AUTO-QA NO TOCAR - Park Hyatt Palacio Duhau - King Deluxe - Edificio Posadas .. Standard* | A Requerir Pendiente Confirmado Cancelado | 1 x DOBLE | 11/09/2026 | 14/09/2026 | 3 | 1-1 | USD 1.290 | 1.290
+101 | TIG/DEL AUTO-QA NO TOCAR - Tigre y Delta* | A Requerir Pendiente Confirmado Cancelado | PRIVADO | 11/09/2026 | - | - | 1-2 | ARS 416.020 | 418
+102 | EZE/HTL AUTO-QA NO TOCAR - Aeropuerto Internacional/ Hotel Céntrico con servicio de guía* | A Requerir Pendiente Confirmado Cancelado | PRIVADO | 11/09/2026 | - | - | 1-2 | ARS 24 | 2
+103 | BUE/TAN AUTO-QA NO TOCAR - Cafe de los Angelitos* | A Requerir Pendiente Confirmado Cancelado | REGULAR | 11/09/2026 | - | - | 1-2 | USD 136,4 | 138
+2 | AUTO-QA NO TOCAR - Arakur Resort & Spa - Standard (Solo MAT) Standard* | A Requerir Pendiente Confirmado Cancelado | 1 x DOBLE | 14/09/2026 | 16/09/2026 | 2 | 1-1 | USD 734 | 734
