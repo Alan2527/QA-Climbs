@@ -1333,28 +1333,38 @@ dice con el motivo en vez de fallar más adelante sin explicación.
 | Síntoma | Causa real |
 |---|---|
 | El menú no llega a Órdenes Pago | Órdenes Pago y Fact. de Proveed. están **en el mismo submenú** (`BOMaster.Master:411-414`): viniendo de la factura el acordeón ya está abierto y clickear el padre lo **cierra**. Hay que abrirlo sólo si hace falta |
-| El buscador de proveedores no abre | tras el postback de `ddBranch`, `#btnSupplier` **se queda sin handlers**. Ver la observación de abajo |
+| El buscador de proveedores no abre | lo causaba el test al reelegir la sucursal que ya estaba puesta. Ver la nota de abajo |
 | `txtTotalAmount` está `disabled` | el Monto Total tampoco se escribe: lo suma el JS a partir de los importes de las cajas (`payment.js:274`) |
 | "Debe completar la fecha del Recibo" | `txtReceiptDate` tiene máscara `99/99/9999`: con `fill()` el valor queda en pantalla pero **no viaja en el postback**. Hay que tipear los dígitos |
 | El estado se lee vacío | aprobar hace `Response.Redirect` a la misma pantalla y la lectura llegaba antes de que terminara la navegación |
 | Se esperaba "PAGADA" | el estado 30 se describe como **"Pago"** (`PayOrderStatusEnum`) |
 
-#### Observación para el PM: la sucursal deja inutilizable el buscador de proveedores
+#### Un falso hallazgo, y por qué conviene tenerlo anotado
 
-En `administration/payorder/0`, al cambiar el combo de sucursal, el botón lupa
-del campo Proveedor deja de responder: el postback parcial reemplaza el DOM y
-`#btnSupplier` queda sin ningún handler de clic. Medido con jQuery sobre la
-pantalla: antes del cambio `click`, después vacío. Cambiar la **moneda**, que
-también es AutoPostBack, no lo rompe.
+Durante el armado del test pareció haber un defecto: al tocar el combo de
+sucursal, el botón lupa del campo Proveedor dejaba de responder. Medido con
+jQuery, `#btnSupplier` quedaba sin ningún handler de clic. **No es un defecto**,
+y no hay que llevarlo a producto.
 
-**No está redactado como bug** porque no hay historia de usuario que lo defina, y
-porque en la práctica no bloquea: el combo ya viene en Argentina y no ofrece
-"Seleccione...", así que un usuario de una sola sucursal nunca necesita tocarlo.
-Le afecta a quien opere en varias. Queda como consulta a producto.
+| Acción | Handler | Modal |
+|---|---|---|
+| Elegir **otra** sucursal (Chile) | sobrevive | abre |
+| Reelegir la **misma** que ya estaba (Argentina) | se pierde, y no vuelve ni a los 20 s | no abre |
 
-Por eso el test **no toca la sucursal**: la verifica. Que sea además lo que hace
-una persona es lo que permite dejar el defecto afuera del alcance del test sin
-disimularlo.
+Al reelegir el mismo valor, ASP.NET recibe el postback pero **no dispara
+`SelectedIndexChanged`**, porque el valor no cambió respecto del ViewState. Nunca
+ejecuta entonces el `RunScript(updData, "initPayOrderDetail(false);")` que
+reengancha los handlers, pero el UpdatePanel igual se repinta y reemplaza el
+botón: queda un botón nuevo sin handler y nada que lo vuelva a atar.
+
+**Una persona no puede provocarlo**: el navegador no dispara `change` al reelegir
+la opción ya seleccionada. Sin `change` no hay postback. El único que lo emite
+siempre, cambie o no el valor, es `selectOption` de Playwright.
+
+Vale como advertencia para el resto del bloque: **`selectOption` sobre el valor
+que ya está elegido no es lo que hace una persona**, y en pantallas con
+AutoPostBack dentro de un UpdatePanel puede fabricar un estado que no existe. Si
+el valor ya es el que se necesita, se verifica; no se reelige.
 
 #### Ids de esta pantalla
 

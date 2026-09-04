@@ -680,10 +680,11 @@ test.describe('Cobranzas', () => {
 
     await paso(page, 'Verificar la sucursal y elegir el proveedor y la moneda', async () => {
       // La sucursal **no se toca**: el combo de esta pantalla no trae
-      // "Seleccione..." y ya viene en Argentina. Ademas, cambiarla deja el
-      // buscador de proveedores sin su handler de clic hasta recargar la
-      // pantalla (ver la observacion en el ESTADO), asi que tocarla ni siquiera
-      // seria lo que hace una persona: no necesita hacerlo.
+      // "Seleccione..." y ya viene en Argentina, asi que una persona no tiene
+      // nada que elegir. Reelegir el valor que ya esta puesto tampoco seria lo
+      // que hace una persona, y ademas rompe la pantalla: el navegador no
+      // dispara `change` al reelegir lo mismo, pero `selectOption` si, y ese
+      // postback repinta el UpdatePanel sin reenganchar los handlers.
       const sucursal = await orden.opcionElegida(orden.comboSucursal);
       await conResaltado(page, page.locator(orden.comboSucursal), 'Sucursal de la orden', () => {
         expect(sucursal, 'La orden tiene que nacer en la misma sucursal que el file y la factura')
