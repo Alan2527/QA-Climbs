@@ -8,8 +8,8 @@ Documento de traspaso. Última actualización: **2026-09-04**.
 > hallazgo 7. Del **Bloque C — Cobranzas** está hecha la auditoría del ambiente y
 > el mapa de las cinco pantallas, y ya están creadas las **cajas propias** (187
 > USD y 188 ARS, categoría 18) para no tocar los saldos reales de QA. El
-> **eslabón 1, la factura de proveedor, está escrito pero nunca se corrió**:
-> lo primero es ejecutarlo contra QA y ajustar lo que el ambiente devuelva.
+> **eslabón 1, la factura de proveedor, está terminado y en verde**. Lo que sigue
+> es el eslabón 2, la orden de pago.
 >
 > Antes de arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
@@ -964,7 +964,7 @@ con cada comparación nueva que se agregue** y no darla por buena porque pase.
   `AUTO-QA <sello>`, que viaja intacta del portal al BO.
 
 
-## BLOQUE C — Cobranzas: eslabón 1 escrito, sin correr
+## BLOQUE C — Cobranzas: eslabón 1 terminado
 
 Cadena completa: **factura de proveedor → orden de pago → factura de cliente →
 orden de cobro → caja diaria con sus movimientos**.
@@ -1162,7 +1162,7 @@ Published  Deleted  ApproveDate  ApproveUserID  FiscalData (JSON)
 `Status = 10` con `ApproveDate` en NULL es "cargada sin aprobar". `CurrencyID`
 guarda el `Identifier` de `BO_Currency`, no el `ID` de `Currency`.
 
-### Eslabón 1 — Factura de proveedor: escrito, sin correr todavía
+### Eslabón 1 — Factura de proveedor: terminado, en verde
 
 `tests/bloque-c/cobranzas.spec.ts` + `pages/factura-proveedor.page.ts`.
 
@@ -1264,22 +1264,34 @@ El total no está fijado en el test: se lee el costo del ítem del file y se
 factura eso. Si el costo cambia, el test sigue siendo válido; si el costo viene
 en cero, corta con el motivo apuntando a `BO_ServiceCostBySupplier`.
 
-#### Lo que falta antes de darlo por bueno
+#### Lo que sólo se supo ejecutando
 
-**No se corrió nunca.** Está escrito contra el código y tipa, pero ningún paso se
-ejecutó contra QA. Lo primero es una corrida completa y ajustar lo que el
-ambiente devuelva distinto — igual que pasó con el Bloque B, donde varios
-selectores se corrigieron recién al ejecutar.
+Seis cosas que el código no dejaba ver y que costaron una corrida cada una. Están
+acá para que el eslabón 2 no las repita:
 
-Puntos donde es más probable que haya que ajustar:
+| Síntoma | Causa real |
+|---|---|
+| El carrito muere esperando su ícono | faltaba el `beforeEach` que entra al portal, como el del Bloque B |
+| La sucursal viene en "Seleccione..." | el usuario del BO **ve más de una sucursal**: hay que elegirla, no verificarla |
+| `txtTotalRate` está `disabled` | el total **no se escribe**: se carga en Exento y lo calcula el JS |
+| El modal de asignación se lee vacío | lo llena un postback asincrónico de ASP.NET que **no pasa por `jQuery.active`** |
+| El buscador de pendientes resuelve a dos inputs | el JS inyecta el checkbox de saldos chicos en el mismo contenedor |
+| `#lnkConfirmAllocate` no existe | es el único control del modal **sin `ClientIDMode="Static"`** |
 
-- La espera de la grilla de pendientes: es un DataTable server-side y se espera
-  con `jQuery.active === 0`. Si el AJAX arranca tarde, puede leerse la grilla
-  anterior.
-- El código del file se lee de `h4.title` porque `litFileCode` es un
-  `asp:Literal` y no deja id en el HTML.
-- El aprobado se confirma por el botón deshabilitado, no por una redirección: la
-  pantalla recarga sobre sí misma.
+La lección transversal para los eslabones que siguen: **en este módulo hay
+postbacks parciales de ASP.NET que `esperarFinDeCarga` no detecta**. Donde un
+UpdatePanel se repinta, hay que esperar al dato y no al fin de carga.
+
+Y una corrección a la auditoría: la consulta que decía que el usuario tiene una
+sola sucursal miró `BO_UserApp` 79, que es el usuario del **portal**. El del BO se
+resuelve por otro lado y ve varias.
+
+#### Lo que deja en QA cada corrida
+
+Una reserva, un file y una factura de proveedor aprobada e imputada. Ni la
+factura ni el ítem del file se pueden reusar: por eso cada corrida arma su propia
+precondición. Las de las corridas de ajuste quedaron en QA (files 31920 a 31924 y
+sus comprobantes del punto de venta 0001).
 
 ### Lo que hay que decidir antes de escribir
 
