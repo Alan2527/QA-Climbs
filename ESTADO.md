@@ -1,14 +1,18 @@
 # Estado de la suite E2E — AMV Travel (QA)
 
-Documento de traspaso. Última actualización: **2026-09-02**.
+Documento de traspaso. Última actualización: **2026-09-04**.
 
 > **Para retomar en otra conversación:** leer este archivo entero y el `CLAUDE.md`
 > de la carpeta padre. El **Bloque A está terminado**. Del **Bloque B — Reservas**
-> están terminados **los cuatro flujos**. El de Servicio queda en rojo por el
-> hallazgo 7. Antes de
-> arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que hay que
-> restaurar y los hallazgos abiertos que explican por qué la suite no está toda
-> en verde.
+> están terminados **los cuatro flujos**; el de Servicio queda en rojo por el
+> hallazgo 7. Del **Bloque C — Cobranzas** está hecha la auditoría del ambiente y
+> el mapa de las cinco pantallas, y ya están creadas las **cajas propias** (187
+> USD y 188 ARS, categoría 18) para no tocar los saldos reales de QA. Lo que no
+> hay todavía es **una sola línea de test escrita**.
+>
+> Antes de arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que
+> hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
+> toda en verde.
 
 ## Qué es esto
 
@@ -415,6 +419,55 @@ costo y venta queden en la misma moneda que el file.
 - **Sólo las amenities marcadas como Prioritario** se muestran como icono con
   tooltip en la card (WebAdmin → Tipos → Amenities de servicio, columna Prioritario).
 
+### Cajas propias para el Bloque C — creadas el 2026-09-04
+
+Las cajas de QA tienen saldos reales (CAJA CHICA $AR arrastra 5.905.359). Para que
+la suite no los mueva se creó **una categoría propia con dos cajas**, siguiendo el
+mismo criterio que el resto de los datos de prueba:
+
+| Qué | ID | Código | Moneda | Saldo inicial |
+|---|---|---|---|---|
+| Categoría `AUTO-QA NO TOCAR - CAJAS DE REGRESION` (sucursal 1) | 18 | 00099 | — | — |
+| Caja `AUTO-QA NO TOCAR - CAJA USD` | 187 | 00001 | 10 (USD) | 0,00 |
+| Caja `AUTO-QA NO TOCAR - CAJA ARS` | 188 | 00002 | 20 (ARS) | 0,00 |
+
+Dos cajas y no una porque la cadena cruza monedas: la sucursal es ARS y el file
+USD, así que el pago al proveedor y el cobro al cliente pueden caer en monedas
+distintas. Categoría propia para que la limpieza sea de un saque.
+
+Los valores no son arbitrarios, salen del código:
+
+- `ExchangeRateId = 3` — no es un tipo de cambio sino un **tipo de tasa** 1..4
+  (`ExchangeRateTypeEnum`; el 4, "Moneda primaria", dispara otra rama). Es el que
+  usa CAJA GRANDE U$D: se copia una caja real en vez de inventar una configuración
+  que no existe en producción.
+- `CashFlowClass = 1` (Caja Real) — el combo de la pantalla no tiene opción vacía,
+  así que toda caja creada hoy queda en 1 o en 2. Los NULL son filas viejas.
+- `CashFlowType = 10` (CF) y `LedgerAccountID = 1`, igual que las cajas de efectivo.
+- Nombre en mayúscula porque **la pantalla lo fuerza** (`CashFlows/Detail.aspx.cs:247`).
+
+Se verificó que crearlas por SQL es equivalente a crearlas por pantalla: el
+guardado es un INSERT pelado más una fila de auditoría, sin tablas laterales ni
+movimiento inicial. Y **no están cacheadas** (`WebCache.cs` no las menciona), así
+que aparecen en el desplegable en la carga siguiente.
+
+Aparecen en la orden de pago/cobro si se cumple
+`Published && !Deleted && Currency == moneda de la orden && categoría publicada &&
+categoría.BranchID == sucursal`, ordenadas **por nombre**
+(`CashFlowSvc.LoadPublishedByBranch`, línea 75). El prefijo AUTO-QA las deja
+arriba del desplegable.
+
+**Limpieza**, cuando el Bloque C se dé de baja:
+
+```sql
+DELETE FROM qa.dbo.BO_CashFlow WHERE CashFlowCategoryID = 18;
+DELETE FROM qa.dbo.BO_CashFlowCategory WHERE ID = 18;
+```
+
+Ojo: si ya hubo movimientos de caja imputados a las cajas 187 o 188, el DELETE va
+a chocar con la FK. En ese caso marcarlas `Deleted = 1, Published = 0` en lugar de
+borrarlas.
+
 ---
 
 ## ⚠️ Datos de QA modificados a propósito — hay que restaurarlos
@@ -678,7 +731,7 @@ Lo que hay que exigir no es sólo que el texto coincida con el de la base para e
 idioma, sino que **no sea el español**: el defecto típico es que el filtro por
 idioma no aplique y el modal caiga al texto por defecto.
 
-## BLOQUE B — Reservas: flujo 1 terminado
+## BLOQUE B — Reservas: terminado
 
 Cuatro flujos: **sólo servicio, sólo hotel, sólo oferta y multidestino**. En todos
 se guardan los datos con los que se generó la reserva y se valida que el BO los
@@ -728,7 +781,7 @@ eligiendo uno se entra directo a la pantalla de armado.
 > navega a `ShoppingCartPage.aspx`, va a `customtours/main.aspx`
 > (`NewTourTariffControl.ascx.cs:150`).
 
-### Los 16 pasos del flujo 1
+### Los 17 pasos de cada flujo
 
 ```
  1. Vaciar el carrito y abrir la solapa SERVICIOS de INICIO
@@ -909,35 +962,223 @@ con cada comparación nueva que se agregue** y no darla por buena porque pase.
   `AUTO-QA <sello>`, que viaja intacta del portal al BO.
 
 
-## BLOQUE C — Cobranzas (no empezado)
+## BLOQUE C — Cobranzas: ambiente auditado, sin escribir
 
-Cadena completa: factura de proveedor → orden de pago → factura de cliente → orden
-de cobro → caja diaria con sus movimientos.
-
-| Paso | Ruta en el BO | Estado |
-|---|---|---|
-| Factura de proveedor | `administration/supplierinvoice` | no existe |
-| Orden de pago | `administration/payorder` | existe en la suite vieja, sin asserts |
-| Factura de cliente | `invoice-management/invoicing/newinvoice` | no existe |
-| Orden de cobro | `administration/chargeorder` | existe en la suite vieja, sin asserts |
-| Caja diaria | `administration/movements/daily-cash/{id}` | no existe |
+Cadena completa: **factura de proveedor → orden de pago → factura de cliente →
+orden de cobro → caja diaria con sus movimientos**.
 
 **Es una cadena, no cinco tests sueltos**: cada eslabón necesita el anterior. Se
 decidió que cada flujo genere su propia precondición en vez de depender de datos
 preexistentes, que es lo que hace fallar hoy a `bo_crear_op.py` de la suite vieja.
 
-Lo que el PM no pidió y conviene sumar:
+El punto de partida es el file que deja el Bloque B: la reserva emitida en el
+portal se identifica por `Referencia = AUTO-QA <sello>` y su file se genera desde
+el detalle de la bandeja.
 
-1. **Conciliación de importes punta a punta**: que el precio que vio el pasajero sea
-   el mismo del file, la factura, la orden de cobro y el movimiento de caja. Ojo con
-   `BO_SupplierInvoice.CurrencyID`, que guarda el `Identifier` de `BO_Currency` y no
-   el `ID` de `Currency`: hay riesgo real de cruce de monedas.
-2. **Cierre de caja**, no sólo la apertura. La pantalla tiene botones Apertura y
-   Pre-cierre; el bug aparece cuando la caja tiene que cuadrar.
+### Las rutas reales
+
+Salen de `Global.asax.cs`, no del menú:
+
+| Paso | Ruta | Página |
+|---|---|---|
+| Bandeja de facturas de proveedor | `administration/supplierinvoices` | `SupplierInvoices/Default.aspx` |
+| Factura de proveedor | `administration/supplierinvoice/{id}` | `SupplierInvoices/Detail.aspx` |
+| Bandeja de órdenes de pago | `administration/payorders` | `PayOrders/Default.aspx` |
+| Orden de pago | `administration/payorder/{id}` | `PayOrders/Detail.aspx` |
+| Factura de cliente | `invoice-management/invoicing/newinvoice` | `Invoicing/NewInvoice.aspx` |
+| Bandeja de órdenes de cobro | `administration/chargeorders` | `ChargeOrders/Default.aspx` |
+| Orden de cobro | `administration/chargeorder/{id}` | `ChargeOrders/Detail.aspx` |
+| Caja diaria | `administration/movements/daily-cash/{id}` | `Movements/DailyCash.aspx` |
+
+Dos rutas puente que valen oro para encadenar sin adivinar:
+
+```
+administration/payorder/payorder-cash/{id}/{dailycashid}
+administration/chargeorder/chargeorder-cash/{id}/{dailycashid}
+```
+
+Abren la orden **dentro del contexto de una caja diaria**. Es el camino que ata la
+orden con el movimiento de caja.
+
+En `daily-cash/{id}`, el `{id}` es el de la **caja diaria** (el día), no el de la
+caja (`DailyCash.aspx.cs:73`). Con `0` se abre una nueva.
+
+### Auditoría del ambiente — 2026-09-04
+
+Seis consultas contra `qa.dbo`, ejecutadas antes de escribir una línea:
+
+| Qué se verificó | Resultado | Consecuencia |
+|---|---|---|
+| La sucursal | `BO_Branch` 1 = Argentina, `CountryID` 10, `CurrencyID` **20 (ARS)**, `FilePrefix` AMV-AR, publicada | la cadena vive en una sucursal en pesos |
+| El usuario del BO | `BO_UserApp` 79 = `pablo@amv.travel`; `BO_UserToBranch` 71 lo ata **sólo** a la sucursal 1 | el combo de sucursal no ofrece otra cosa: `elegirSucursal('Argentina')` no puede errar |
+| Categorías de cash flow | 12 en la sucursal 1; publicadas 1-8, 11 y 12; **borradas 9 y 10** | la 1 es EFECTIVO EN OFICINA BUE, "$AR / USD / EU" |
+| Cajas | `BO_CashFlow` **no tiene sucursal**: cuelga de `CashFlowCategoryID` | para filtrar por sucursal hay que pasar por la categoría |
+| El proveedor | 1047 = GRUPO SUMMA SRL, publicado, disponible, sucursal 1, `CurrencyID` 10 (USD), cuenta corriente, plazo 30 | sirve como proveedor de la factura |
+| Facturas existentes | ninguna sobre un file nuestro; las últimas son de Colombia (sucursal 3, proveedor 150, US 4394) | se empieza de cero |
+
+### Las trampas, detectadas antes de escribir nada
+
+**1. La sucursal es ARS y el file es USD.** `BO_Branch` 1 tiene `CurrencyID` 20 y
+los files que deja el Bloque B están en moneda 10. La cadena cruza monedas de
+entrada, así que el tipo de cambio no es un detalle de la pantalla: es parte del
+resultado esperado de cada eslabón.
+
+**2. Las cajas de QA tienen saldos reales — resuelto.** CAJA CHICA $AR arrastra
+5.905.359; INGRESOS BRUTOS CABA, 13.342.662. Una suite que confirme órdenes
+**movería esos saldos**. Por eso el 2026-09-04 se crearon cajas propias: categoría
+**18** con las cajas **187 (USD)** y **188 (ARS)**, las dos en cero. El detalle y
+la consulta de limpieza están en "Cajas propias para el Bloque C".
+
+**Ninguna caja preexistente se usa.** Si un test elige otra, es un error del test.
+
+**3. El proveedor tiene la caja equivocada precargada.** `BO_Supplier` 1047 tiene
+`CashFlowID = 7`, que es **CAJA CHICA $AR** — la de pesos, la del saldo de 5,9
+millones. Un proveedor en dólares con la caja de pesos por defecto. Hay que elegir
+la caja explícitamente y, además, **verificar cuál viene propuesta**: si la
+pantalla la arrastra sola, es un hallazgo para consultar.
+
+**4. La factura no se ata al file por una columna.** `BO_SupplierInvoice` **no
+tiene `FileID`**. El vínculo es una imputación aparte:
+
+```
+BO_FileItemToSupplierInvoice
+  Amount, FileID, FileItemID, SupplierInvoiceID, FileItemType,
+  Comment (máx. 50), IsInternal, CreationDate, Published, Deleted
+```
+
+`FileItemType`: **10 y 20** → `BO_FileItem`, **30** → `BO_FileSpecialItem`,
+**40** → `BO_Ticket` (`Module/SupplierInvoiceAllocControl.ascx.cs:405-470`).
+Verificar la factura no alcanza: hay que verificar la imputación.
+
+**5. El pendiente se calcula sobre `BaseRate`, no sobre `TotalRate`.**
+`litPending` muestra `invoice.BaseRate - allocatedAmnt`
+(`SupplierInvoiceAllocControl.ascx.cs:213`). Cualquier expectativa escrita contra
+el total va a fallar en cuanto la factura tenga impuestos.
+
+**6. La imputación reescribe el file.** Además de crear la fila, suma a
+`BO_FileItem.AllocatedAmount` (o `AllocatedAmountInternal` si es interna) el monto
+**convertido**: `allocation.Amount.ConvertAmount(CurrencyID, item.CostCurrency,
+ExchangeRate)` (línea 419). Ahí es donde se materializa el cruce de monedas del
+punto 1, y es lo que hay que verificar en base.
+
+**7. `BalanceAmount` no copia `TotalRate`.** Copia `PayableAmount`, o sea el total
+menos retenciones. En la factura 87856 quedó 1.111,50 contra un total de 1.190.
+
+**8. Hay dos pantallas "NewInvoice".** `invoice-management/invoicing/newinvoice`
+(`Invoicing/`) es la nuestra. `invoice-management/fiscal/newinvoice` (`Fiscal/`)
+es la fiscal, la que se usó en la US 4394 de Colombia. No confundirlas.
+
+**9. Las facturas internas comparten pantalla.** `administration/internalinvoice/
+{internal}/{id}` entra a la misma `Detail.aspx` con el flag `IsInternal`, que
+cambia qué campo del file se actualiza.
+
+**10. La suite vieja tiene un selector mal.** `bo_payorder_page.py` usa
+`lnkAsignarTotal`, que es de órdenes de **cobro**. El de órdenes de **pago** es
+`lnkMassiveAllocate` (`Module/PayOrderAllocationControl.ascx`). El de cobro
+(`bo_chargeorder_page.py`) sí está bien.
+
+**11. `CashFlowType` no filtra nada.** El enum es `0 = NCF`, `10 = CF`
+(`BO.Core/Enum/CashFlowTypeEnum.cs`) y sólo se usa como etiqueta en el reporte de
+fondeo. No sirve para distinguir cajas usables de las que no.
+
+### Los ids de cada pantalla
+
+Extraídos de los `.aspx`, para no descubrirlos a mitad de la corrida.
+
+**Factura de proveedor** — `SupplierInvoices/Detail.aspx`:
+
+```
+ddBranch  txtDocNumber  txtSupplier / hiddenSupplier  ddPaymentMethod
+ddTypeInvoice  txtInvoiceBranch  txtInvoiceNumber  txtInvoiceDate  txtDueDate
+ddCurrencyID  txtExchangeRate  txtTotalRate  ddAccountingDate  txtComment
+btnSave  btnSaveAndBack  btnApprove  btnCancelar
+```
+
+**Orden de pago** — `PayOrders/Detail.aspx`:
+
+```
+ddBranch  txtSupplier / hiddenSupplier  ddCurrency  txtExchangeRate  txtDate
+txtDueDate  txtCode  txtDetail  txtDocNumber  txtTotalAmount  ddApplyMonth
+ddCashFlow1..4  txtAmount1..4  txtAmountDueDate1..4  ddPaymentRefs
+txtReceiptNumber  txtReceiptNumberInt  txtReceiptDate
+ctrlPayOrderAllocationControl  btnSave  btnApprove  btnGoBack  btnCancelar
+litStatus  litAnnulled
+```
+
+Cuatro pares caja/importe: una orden puede pagarse desde hasta cuatro cajas.
+
+**Factura de cliente** — `Invoicing/NewInvoice.aspx`:
+
+```
+ctrlSearchFileControl  txtFileNumber  hiddenFile  hiddenCustomer  hiddenFileCustomer
+ddBusinessInfo  ddTypeInvoice  ddCurrency  ddCurrencyRelated  txtExchange
+ddSaleConditionID  txtPaxName  txtServicesDate  txtDueDate  txtTotalRate
+txtVoucherNumber  hiddenVoucherNumber  txtDetail  hiddenInvoicingItems
+cbxIncluirDatosCuenta  spanName  spanDocument  spanConditionFiscal
+btnSave  btnCancelar
+```
+
+La factura entra **por el file**: `ctrlSearchFileControl` + `txtFileNumber`. Es el
+eslabón que ata la cadena con el Bloque B.
+
+**Orden de cobro** — `ChargeOrders/Detail.aspx`:
+
+```
+txtCustomer / hiddenCustomer  ddCurrency  txtExchangeRate  txtDate  txtDueDate
+txtCode  txtDetail  txtDocNumber  txtTotalAmount  ddApplyMonth
+ddCashFlow1..2  txtAmount1..2  txtAmountDueDate1..2  ddPaymentRefs
+txtReceiptNumber  txtReceiptNumberInt  txtReceiptDate
+ctrlChargeOrderAllocationControl  btnSave  btnApprove  btnGoBack  btnCancelar
+litStatus  litAnnulled
+```
+
+Dos pares caja/importe, no cuatro: la de cobro admite la mitad que la de pago.
+
+**Caja diaria** — `Movements/DailyCash.aspx`:
+
+```
+ddBranch  txtDate  txtCode  txtDetail  ddCashFlowTotals
+lvDailyExpenseItems  lvTotals  lnkAdd  lnkDelete  lnkClose  lnkCopyDailyCash
+lnkDailyMovementTmpl  btnSave  btnReview  btnCancel
+```
+
+`btnReview` es el pre-cierre y `lnkClose` el cierre. El cuadre es donde aparecen
+los bugs, así que el test no puede quedarse en la apertura.
+
+### Modelo de datos del eslabón 1
+
+`BO_SupplierInvoice` — columnas que importan:
+
+```
+InvoiceType  InvoiceBranch  InvoiceNumber  InvoiceDate  AccountingDate  DueDate
+Related  BaseRate  TotalRate  AssignedAmount  BalanceAmount  PayableAmount
+TaxableBase  WithholdingTotal  ExchangeRate  PaymentMethod  Status  Locked
+IsInternal  SupplierID  CurrencyID  UserID  BranchID  FiscalCountryID
+Published  Deleted  ApproveDate  ApproveUserID  FiscalData (JSON)
+```
+
+`Status = 10` con `ApproveDate` en NULL es "cargada sin aprobar". `CurrencyID`
+guarda el `Identifier` de `BO_Currency`, no el `ID` de `Currency`.
+
+### Lo que hay que decidir antes de escribir
+
+1. ~~Si la suite puede mover saldos de caja~~ — **decidido el 2026-09-04**: cajas
+   propias, 187 (USD) y 188 (ARS), bajo la categoría 18.
+2. **Cómo se limpia.** Las órdenes aprobadas y los movimientos de caja no se
+   borran como una reserva: hay que confirmar si el BO permite anular y si la
+   anulación revierte el saldo, o si el Bloque C deja residuo por diseño.
+3. **En qué moneda se factura**, dado el cruce ARS/USD del punto 1.
+
+### Lo que el PM no pidió y conviene sumar
+
+1. **Conciliación de importes punta a punta**: que el precio que vio el pasajero
+   sea el mismo del file, la factura, la orden de cobro y el movimiento de caja.
+2. **Cierre de caja**, no sólo la apertura (`btnReview` y `lnkClose`).
 3. **Anulación** de una reserva emitida, y que revierta bien.
 4. **Liquidación del file** (`FileLiq.aspx`).
 5. **Bandejas de no asignados** (`UnassignedInvoices`, `UnassignedPayorders`) como
    validación negativa.
+
 
 ## Temas abiertos fuera del código
 
@@ -963,13 +1204,6 @@ Lo que el PM no pidió y conviene sumar:
 - **El permiso de `EXECUTE` sobre `sp_TourRates`** quedó sin pedir, y ya no hace
   falta: se decidió no extender la validación con fórmula (ver Validación de
   importes).
-
-## Dato útil para el bloque C
-
-En la suite vieja de Selenium, `bo_payorder_page.py` usa `lnkAsignarTotal`, que es
-**incorrecto**: ese es de órdenes de **cobro**. El de órdenes de **pago** es
-`lnkMassiveAllocate` (`Module/PayOrderAllocationControl.ascx`). El de cobro
-(`bo_chargeorder_page.py`) sí está bien.
 
 ---
 
