@@ -5,6 +5,7 @@ import { CarritoPage, Pasajero } from '../../pages/carrito.page';
 import { BackOfficePage } from '../../pages/backoffice.page';
 import { FacturaProveedorPage } from '../../pages/factura-proveedor.page';
 import { OrdenDePagoPage } from '../../pages/orden-de-pago.page';
+import { FacturaClientePage } from '../../pages/factura-cliente.page';
 import {
   paso, adjuntarTexto, esperarFinDeCarga, fechaDeBusqueda, formatearFecha,
   importeANumero, resaltarYCapturar, reiniciarNumeracionDePasos,
@@ -99,6 +100,8 @@ test.describe('Cobranzas', () => {
     ventaDelItem: { moneda: string; valor: number | null };
     apellidoDelPax: string;
     servicio: string;
+    cliente: string;
+    fechaDelServicio: string;
   }> {
     const inicio = new InicioPage(page);
     const servicio = new ServicioPage(page);
@@ -172,6 +175,7 @@ test.describe('Cobranzas', () => {
     let fileCode = '';
     let costoDelItem = { moneda: '', valor: null as number | null };
     let ventaDelItem = { moneda: '', valor: null as number | null };
+    let cliente = '';
 
     await paso(page, 'Confirmar la reserva y generar su file en el BackOffice', async () => {
       codigo = await carrito.confirmarReserva();
@@ -195,6 +199,12 @@ test.describe('Cobranzas', () => {
       // HTML: se lee del h4 que lo contiene (ManageFile.aspx:75).
       fileCode = (await page.locator('h4.title').first().innerText()).replace(/\s+/g, ' ').trim();
 
+      // El cliente del file: lo precarga la agencia al generarlo y es el que
+      // despues hay que elegir como destinatario de la factura. Se lee del h5
+      // que lo contiene, porque `litCustomerName` es un asp:Literal
+      // (ManageFile.aspx:98-100).
+      cliente = (await page.locator('#h5Customer').first().innerText()).replace(/\s+/g, ' ').trim();
+
       // Costo y Venta son las dos ultimas celdas con importe de la fila del
       // servicio. Venta se escribe sin codigo de moneda, asi que no sirve
       // buscar el patron "USD 999".
@@ -210,6 +220,7 @@ test.describe('Cobranzas', () => {
         `File: ${fileCode} (id ${fileId})`,
         `Servicio: ${datos.servicio}`,
         `Pasajero: ${datos.pasajeros[0]?.nombre} ${datos.apellido}`,
+        `Cliente: ${cliente}`,
         `Costo del item: ${conImporte.at(-2) ?? '?'}`,
         `Venta del item: ${conImporte.at(-1) ?? '?'}`,
       ].join(SALTO));
@@ -226,6 +237,7 @@ test.describe('Cobranzas', () => {
     return {
       codigo, fileId, fileCode, costoDelItem, ventaDelItem,
       apellidoDelPax: datos.apellido, servicio: datos.servicio,
+      cliente, fechaDelServicio: datos.fecha,
     };
   }
 
@@ -882,6 +894,179 @@ test.describe('Cobranzas', () => {
         `Orden de pago: OP${idDeLaOrden.padStart(10, '0')} (id ${idDeLaOrden})`,
         `Caja: ${datos.caja}`,
         `Pagado: ${precondicion.moneda} ${aFormatoBO(totalDeLaOrden)}`,
+      ].join(SALTO));
+    });
+  });
+
+  test('Factura al cliente: se emite sobre el file y toma sus conceptos', async ({ page }) => {
+    test.setTimeout(900_000);
+
+    const factura = new FacturaClientePage(page);
+
+    const ahora = new Date();
+    const sello = ahora.toISOString().slice(0, 19).replace(/[-:T]/g, '');
+
+    // La factura al cliente **no necesita** la factura del proveedor ni la orden
+    // de pago: entra por el file. Por eso su precondicion es la mas corta de la
+    // cadena, apenas la reserva y su file.
+    const precondicion = await reservarServicioYGenerarFile(page, sello);
+
+    // El buscador de files filtra por el cliente elegido, y la grilla muestra el
+    // numero sin el prefijo ni el sufijo del codigo que se ve en el file. Se
+    // busca por el grupo de digitos, que es lo unico comun a las dos formas.
+    const digitosDelFile = precondicion.fileCode.match(/\d{6,}/)?.[0] ?? '';
+    expect(
+      digitosDelFile,
+      `No se pudo extraer el numero del file de su codigo (${precondicion.fileCode})`,
+    ).not.toBe('');
+
+    const datos = {
+      detalle: `Factura de regresion automatica ${sello}. No operar.`,
+    };
+
+    // Total con el que queda armado el comprobante: se captura en la pantalla y
+    // despues se exige identico en la bandeja de pendientes.
+    let totalDelComprobante: { moneda: string; valor: number | null } = { moneda: '', valor: null };
+
+    await paso(page, 'Entrar a Facturacion y abrir un comprobante nuevo', async () => {
+      await factura.irANuevoComprobante();
+      await expect(page.locator(factura.btnDestinatario)).toBeVisible();
+    });
+
+    await paso(page, 'Elegir el destinatario y verificar sus datos', async () => {
+      await factura.elegirDestinatario(precondicion.cliente);
+      const destinatario = await factura.datosDelDestinatario();
+      await adjuntarTexto('Destinatario del comprobante', JSON.stringify(destinatario, null, 2));
+
+      await conResaltado(page, page.locator(factura.nombreDelCliente), 'Destinatario elegido', () => {
+        expect(destinatario.nombre.toUpperCase(),
+          'El comprobante tiene que emitirse al mismo cliente que tiene el file')
+          .toContain(precondicion.cliente.toUpperCase());
+      });
+      // El documento y la condicion fiscal quedan como evidencia, sin exigirlos:
+      // este cliente los trae vacios y no hay historia que defina que deberian
+      // venir cargados. Convertir eso en resultado esperado seria inventarlo.
+      await adjuntarTexto('Documento y condicion fiscal del destinatario',
+        `Documento: "${destinatario.documento}" | Condicion: "${destinatario.condicion}"`);
+    });
+
+    await paso(page, 'Elegir el file y verificar lo que completa solo', async () => {
+      await factura.elegirFile(digitosDelFile);
+
+      // El campo trae el numero **con el sufijo del file** ("29720-01"), asi que
+      // se compara el primer grupo de digitos y no todos juntos.
+      const numeroCargado = (await page.locator(factura.campoNumeroDeFile).inputValue()).trim();
+      await conResaltado(page, page.locator(factura.campoNumeroDeFile), 'Numero de file', () => {
+        expect(Number(numeroCargado.match(/\d+/)?.[0] ?? -1),
+          `El comprobante tiene que quedar atado al file de la reserva. El campo trae ` +
+          `"${numeroCargado}" y el file es ${precondicion.fileCode}`)
+          .toBe(Number(digitosDelFile));
+      });
+
+      // El pasajero y las fechas los trae el file: no se cargan a mano.
+      const pasajero = (await page.locator(factura.campoPasajero).inputValue()).trim();
+      await conResaltado(page, page.locator(factura.campoPasajero), 'Pasajero del comprobante', () => {
+        expect(pasajero.toUpperCase(), 'El comprobante tiene que tomar el pasajero del file')
+          .toContain(precondicion.apellidoDelPax.toUpperCase());
+      });
+
+      const fechas = (await page.locator(factura.campoFechasDelServicio).inputValue()).trim();
+      await adjuntarTexto('Fechas de los servicios', fechas);
+      await conResaltado(page, page.locator(factura.campoFechasDelServicio), 'Fechas del servicio', () => {
+        expect(fechas, 'Las fechas de los servicios tienen que venir del file')
+          .toContain(precondicion.fechaDelServicio);
+      });
+
+      // La moneda tambien la fija el file.
+      const moneda = await factura.opcionElegida(factura.comboMoneda);
+      await conResaltado(page, page.locator(factura.comboMoneda), 'Moneda del comprobante', () => {
+        expect(moneda, 'La moneda del comprobante tiene que ser la del file')
+          .toContain(precondicion.ventaDelItem.moneda || precondicion.costoDelItem.moneda);
+      });
+
+      // El vencimiento lo calcula el servidor a partir del file y del cliente
+      // (invoicing.js, loadDueDate): no se escribe.
+      const vencimiento = (await page.locator(factura.campoVencimiento).inputValue()).trim();
+      await adjuntarTexto('Vencimiento calculado', vencimiento);
+      await conResaltado(page, page.locator(factura.campoVencimiento), 'Vencimiento del comprobante', () => {
+        expect(vencimiento,
+          'El vencimiento lo calcula el BO a partir del file y del cliente, y sin el no deja guardar')
+          .not.toBe('');
+      });
+    });
+
+    await paso(page, 'Comparar los conceptos y el total contra el file', async () => {
+      const conceptos = await factura.conceptos();
+      await adjuntarTexto('Conceptos traidos del file',
+        conceptos.map((c) => c.filter(Boolean).join(' | ')).join(SALTO));
+
+      await conResaltado(page, page.locator(factura.grillaDeConceptos), 'Servicio en los conceptos', () => {
+        expect(conceptos.flat().join(' | ').toUpperCase(),
+          'Los conceptos tienen que traer el servicio reservado')
+          .toContain('TIGRE Y DELTA');
+      });
+
+      const aviso = await factura.descuento();
+      if (aviso) await adjuntarTexto('Aviso de descuento', aviso);
+
+      totalDelComprobante = importe(await page.locator(factura.campoTotal).inputValue());
+      const total = totalDelComprobante;
+      await adjuntarTexto('Total del comprobante',
+        `${total.valor} (venta del item en el file: ${precondicion.ventaDelItem.valor})`);
+
+      await conResaltado(page, page.locator(factura.campoTotal), 'Total del comprobante', () => {
+        if (aviso) {
+          // El file viene de una reserva online y puede traer descuento: en ese
+          // caso el total es menor que la venta, y el aviso lo explica.
+          expect(total.valor as number,
+            `El comprobante aplica un descuento (${aviso}), asi que su total tiene que ser ` +
+            'menor que la venta del item del file')
+            .toBeLessThan(precondicion.ventaDelItem.valor as number);
+        } else {
+          expect(total.valor,
+            'Sin descuento, el total del comprobante tiene que ser la venta del item del file')
+            .toBe(precondicion.ventaDelItem.valor);
+        }
+      });
+    });
+
+    await paso(page, 'Guardar el comprobante y verificarlo en la bandeja de pendientes', async () => {
+      await page.locator(factura.campoDetalle).fill(datos.detalle);
+
+      // La cotizacion tiene que ser mayor a cero o el guardado corta
+      // (NewInvoice.aspx.cs:314). Con la moneda del comprobante igual a la
+      // relacionada, el BO no propone ninguna y hay que ponerla.
+      const cotizacion = (await page.locator(factura.campoCotizacion).inputValue()).trim();
+      if (!cotizacion || Number(cotizacion.replace(',', '.')) <= 0) {
+        await page.locator(factura.campoCotizacion).fill('1');
+      }
+
+      await factura.guardar();
+
+      const fila = factura.filaPendiente(digitosDelFile);
+      await expect(
+        fila,
+        `El comprobante del file ${precondicion.fileCode} tiene que quedar en la bandeja de ` +
+        `pendientes de emision. El BO dijo: "${await factura.mensajeDeError()}"`,
+      ).toBeVisible({ timeout: 60_000 });
+
+      const celdas = await factura.celdas(fila);
+      await adjuntarTexto('Fila del comprobante pendiente', celdas.join(' | '));
+
+      const soloImporte = /^([A-Z]{3}\s*)?\d[\d.,]*$/;
+      const importesDeLaFila = celdas.filter((c) => soloImporte.test(c)).map(importe);
+
+      await conResaltado(page, fila, 'Total del comprobante en la bandeja', () => {
+        expect(importesDeLaFila.map((i) => i.valor),
+          'La bandeja tiene que mostrar el mismo total con el que se guardo el comprobante')
+          .toContain(totalDelComprobante.valor);
+      });
+
+      await adjuntarTexto('Cadena generada', [
+        `File: ${precondicion.fileCode}`,
+        `Cliente: ${precondicion.cliente}`,
+        `Comprobante: ${celdas[1] ?? '?'}`,
+        `Total: ${totalDelComprobante.moneda} ${totalDelComprobante.valor}`,
       ].join(SALTO));
     });
   });

@@ -8,8 +8,9 @@ Documento de traspaso. Última actualización: **2026-09-04**.
 > hallazgo 7. Del **Bloque C — Cobranzas** está hecha la auditoría del ambiente y
 > el mapa de las cinco pantallas, y ya están creadas las **cajas propias** (187
 > USD y 188 ARS, categoría 18) para no tocar los saldos reales de QA. El
-> **eslabón 1 (factura de proveedor) y el 2 (orden de pago) están terminados y en
-> verde**. Lo que sigue es el eslabón 3, la factura al cliente.
+> **eslabones 1 (factura de proveedor), 2 (orden de pago) y 3 (factura al
+> cliente) están terminados y en verde**. Faltan el 4, la orden de cobro, y el 5,
+> la caja diaria.
 >
 > Antes de arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
@@ -964,7 +965,7 @@ con cada comparación nueva que se agregue** y no darla por buena porque pase.
   `AUTO-QA <sello>`, que viaja intacta del portal al BO.
 
 
-## BLOQUE C — Cobranzas: eslabones 1 y 2 terminados
+## BLOQUE C — Cobranzas: eslabones 1, 2 y 3 terminados
 
 Cadena completa: **factura de proveedor → orden de pago → factura de cliente →
 orden de cobro → caja diaria con sus movimientos**.
@@ -1373,6 +1374,71 @@ no todos. Llevan prefijo de ASP.NET —y hay que buscarlos por sufijo—
 `ddBranch` y `lnkConfirmAllocate`. `btnSupplier` y `modalPayOrderAllocation` son
 HTML plano. `litStatus` es un `asp:Literal` dentro de un PlaceHolder: no deja id,
 se lee del `h5.text-uppercase.text-success` que lo contiene.
+
+### Eslabón 3 — Factura al cliente: terminado, en verde
+
+`tests/bloque-c/cobranzas.spec.ts` + `pages/factura-cliente.page.ts`.
+
+**Su precondición es la más corta de la cadena**: apenas la reserva y su file. La
+factura al cliente no necesita la factura del proveedor ni la orden de pago —
+entra por el file, no por el proveedor. Es el eslabón que vuelve a atar la cadena
+con el Bloque B.
+
+```
+PRECONDICION
+ 1. Reservar un servicio en el portal y emitir la reserva
+ 2. Confirmar la reserva y generar su file en el BackOffice
+
+FACTURA AL CLIENTE
+ 3. Entrar a Facturacion y abrir un comprobante nuevo
+ 4. Elegir el destinatario y verificar sus datos
+ 5. Elegir el file y verificar lo que completa solo
+ 6. Comparar los conceptos y el total contra el file
+ 7. Guardar el comprobante y verificarlo en la bandeja de pendientes
+```
+
+**El orden no es opcional: primero el destinatario, después el file.** El buscador
+de files filtra por el cliente elegido y ni siquiera abre sin uno: avisa "Debe
+seleccionar Destinatario / Cliente" (`invoicing.js:305`). El cliente del file lo
+precarga la agencia al generarlo — en nuestros files es **MULTIVIAJES ARGENTINA
+SRL** —, así que el test lo lee del file en la precondición en vez de fijarlo.
+
+Elegir el file completa solo el pasajero, el número de file, las fechas de los
+servicios y la moneda, trae los conceptos desde `loaditemsbyfile` y calcula el
+vencimiento en el servidor. El test verifica las cinco cosas: nada de eso se
+carga a mano y cualquiera que deje de venir es una regresión.
+
+El comprobante sale como **Carta de Cobranza**, que es el tipo que el BO deja
+elegido por defecto (`NewInvoice.aspx.cs:50`), y queda numerado `CC00010-…`. Sirve
+igual para el eslabón 4: la orden de cobro imputa cualquier `BO_Invoicing` con
+saldo, sin mirar el tipo (`InvoicingSvc.LoadByCustomerForAllocation`).
+
+#### La conciliación que cierra con el Bloque B
+
+El total del comprobante da **10**, que es exactamente la venta del ítem en el
+file. Es el primer punto de la cadena donde el precio que pagó la agencia
+reaparece del lado del cliente, y el test lo exige.
+
+La pantalla puede aplicar un **descuento por reserva online** (`HiddenDiscount`),
+y en ese caso el total queda por debajo de la venta. El test contempla las dos
+situaciones: sin aviso de descuento exige la igualdad; con aviso exige que el
+total sea menor y adjunta el aviso. No reimplementa el porcentaje.
+
+#### Lo que sólo se supo ejecutando
+
+| Síntoma | Causa real |
+|---|---|
+| El menú no llega a Nuevo Compr. | hay **dos** enlaces a esa ruta: el acceso rápido "Nuevo Inv." del lanzador, que vive oculto, y el ítem "Nuevo Compr.". Hay que distinguirlos por texto |
+| El ítem es "visible" pero el clic lo intercepta el encabezado | el acordeón deja el ítem con tamaño aunque esté colapsado, así que `isVisible()` devuelve `true`. Se intenta el clic y, si lo tapan, se abre el padre y se reintenta: sirve venga el menú abierto o cerrado |
+| El número de file no coincidía | `txtFileNumber` trae el número **con el sufijo** (`29720-01`). Hay que comparar el primer grupo de dígitos, no todos juntos |
+
+#### Lo que quedó como evidencia y no como resultado esperado
+
+El **documento y la condición fiscal del destinatario vienen vacíos** para
+MULTIVIAJES ARGENTINA SRL. El test los adjunta pero no los exige: no hay historia
+de usuario que defina que deban venir cargados, y convertirlo en resultado
+esperado sería inventarlo. Si en algún momento producto define que un
+destinatario tiene que tener documento, ahí se sube la exigencia.
 
 ### Lo que hay que decidir antes de escribir
 
