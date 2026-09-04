@@ -1,5 +1,0 @@
-"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
-"","55999","Solo oferta: la reserva emitida conserva los datos en el BackOffice","chromium","2026-09-03","passed","2026-09-03","Reservas","bloque-b/reservas.spec.ts","",""
-"","44034","Solo hotel: la reserva emitida conserva los datos en el BackOffice","chromium","2026-09-03","passed","2026-09-03","Reservas","bloque-b/reservas.spec.ts","",""
-"","4172","Login en el front de QA","login","2026-09-03","passed","2026-09-03","","auth.setup.ts","",""
-"","60937","Solo servicio: la reserva emitida conserva los datos en el BackOffice","chromium","2026-09-03","passed","2026-09-03","Reservas","bloque-b/reservas.spec.ts","",""

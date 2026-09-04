@@ -1,0 +1,5 @@
+EN LA BASE (completa, 63 car):
+Oferta de datos fijos para pruebas automatizadas. No modificar.
+
+EN LA CARD (recortada, 62 car):
+Oferta de datos fijos para pruebas automatizadas. No modificar.
