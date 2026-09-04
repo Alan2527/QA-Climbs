@@ -1,0 +1,20 @@
+[0] item
+    texto:   01:30
+    meses:   
+    tooltip: Duración estimada del servicio
+[1] item
+    texto:   ES, EN, PT
+    meses:   
+    tooltip: IdiomasEspañolEnglishPortuguese
+[2] calendario
+    texto:   Todos los dias Ene–Feb, Abr–May, Jul–Ago, Oct–Nov
+    meses:   Ene–Feb, Abr–May, Jul–Ago, Oct–Nov
+    tooltip: Operatividad• Días: Todos los dias• Temporada: enero a febrero, abril a mayo, julio a agosto, octubre a noviembre
+[3] item
+    texto:   
+    meses:   
+    tooltip: AlmuerzoTexto de prueba.
+[4] item
+    texto:   
+    meses:   
+    tooltip: BebidasTexto de prueba 2.
