@@ -8,9 +8,9 @@ Documento de traspaso. Última actualización: **2026-09-04**.
 > hallazgo 7. Del **Bloque C — Cobranzas** está hecha la auditoría del ambiente y
 > el mapa de las cinco pantallas, y ya están creadas las **cajas propias** (187
 > USD y 188 ARS, categoría 18) para no tocar los saldos reales de QA. El
-> **eslabones 1 (factura de proveedor), 2 (orden de pago) y 3 (factura al
-> cliente) están terminados y en verde**. Faltan el 4, la orden de cobro, y el 5,
-> la caja diaria.
+> **eslabones 1 (factura de proveedor), 2 (orden de pago), 3 (factura al cliente)
+> y 4 (orden de cobro) están terminados y en verde**. Falta sólo el 5, la caja
+> diaria.
 >
 > Antes de arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
@@ -965,7 +965,7 @@ con cada comparación nueva que se agregue** y no darla por buena porque pase.
   `AUTO-QA <sello>`, que viaja intacta del portal al BO.
 
 
-## BLOQUE C — Cobranzas: eslabones 1, 2 y 3 terminados
+## BLOQUE C — Cobranzas: eslabones 1 a 4 terminados
 
 Cadena completa: **factura de proveedor → orden de pago → factura de cliente →
 orden de cobro → caja diaria con sus movimientos**.
@@ -1439,6 +1439,89 @@ MULTIVIAJES ARGENTINA SRL. El test los adjunta pero no los exige: no hay histori
 de usuario que defina que deban venir cargados, y convertirlo en resultado
 esperado sería inventarlo. Si en algún momento producto define que un
 destinatario tiene que tener documento, ahí se sube la exigencia.
+
+### Eslabón 4 — Orden de cobro: terminado, en verde
+
+`tests/bloque-c/cobranzas.spec.ts` + `pages/orden-de-cobro.page.ts`.
+
+Su precondición es la reserva, el file y la factura al cliente
+(`armarFacturaAlCliente`). No necesita la factura del proveedor ni la orden de
+pago: son las dos ramas de la cadena y sólo vuelven a juntarse en la caja diaria.
+
+```
+PRECONDICION
+ 1. Reservar un servicio en el portal y emitir la reserva
+ 2. Confirmar la reserva y generar su file en el BackOffice
+ 3. Emitir la factura al cliente sobre el file
+
+ORDEN DE COBRO
+ 4. Entrar a la bandeja de ordenes de cobro y abrir una nueva
+ 5. Elegir el cliente y la moneda del cobro
+ 6. Verificar que la caja de regresion se ofrezca y elegirla
+ 7. Cargar el importe y verificar el total que calcula el BO
+ 8. Guardar la orden y verificar que conserve los datos cargados
+ 9. Verificar el pendiente de asignacion contra el total de la orden
+10. Ubicar el comprobante entre los pendientes y comparar la fila
+11. Abrir la asignacion y comparar los importes del modal
+12. Imputar el comprobante y verificar que el pendiente baje a cero
+13. Aprobar la orden aplicando el recibo y verificar el estado
+```
+
+#### En qué se diferencia de la orden de pago
+
+Es su espejo, pero con tres diferencias que importan:
+
+- va contra un **cliente**, no un proveedor;
+- **no tiene combo de sucursal**: las cajas se listan sólo por moneda
+  (`CashFlowSvc.LoadPublished`), sin filtrar por sucursal;
+- admite **dos** formas de pago, no cuatro.
+
+La sucursal igual existe, pero se deduce: al aprobar, el BO la resuelve **desde
+la categoría de la caja elegida** (`DailyExpenseSvc.GetChargeOrderBranchID`). Es
+la razón concreta por la que la categoría propia 18 tiene que conservar su
+`BranchID`: sin él, aprobar corta con "No se encontró sucursal asociada para la
+OC". El mensaje de fallo del test lo dice, para no tener que redescubrirlo.
+
+#### El comprobante no se puede identificar por su número
+
+**Todos los comprobantes que emite el test salen con el mismo número**:
+`CC00010-00000000`. Filtrar la grilla por él se queda con el de cualquier corrida
+anterior del mismo cliente, y las comparaciones de importe pasan de casualidad
+porque todos valen lo mismo. El test ubica la fila **por el código del file**,
+que sí es único por corrida.
+
+No es un defecto: la numeración real se asigna al emitir el comprobante, y estos
+quedan pendientes de emisión. Pero es una trampa de automatización que vale para
+toda la cadena — **si un identificador se repite, el test miente en verde**.
+
+#### La grilla trae los importes en dos monedas
+
+Columnas: Total, Asig. y Saldo en **USD**, y las mismas tres en la moneda de la
+sucursal. Tomar "el último importe de la fila" agarra el saldo de la otra moneda.
+Encima esas columnas se escriben con **punto decimal** (`10.000` son 10), al
+revés que el resto del BO. Con el parser de siempre da un número mil veces mayor.
+
+Por eso el page object tiene `valorDeColumna(fila, encabezado)`: lee por el texto
+del encabezado y no por posición.
+
+#### El comprobante sale de los pendientes recién al aprobar
+
+Imputar deja el pendiente de la orden en cero, pero el comprobante **sigue
+listado**: su `AssignedAmount` se actualiza cuando la orden se aprueba, no cuando
+se imputa. La verificación de que desaparece va después del aprobado.
+
+#### Efectos que no se ven en pantalla
+
+Aprobar la orden llama a `ChargeOrderCashHelper.RecalculateAndAccredit(fileId)`,
+que hace dos cosas que ninguna pantalla muestra:
+
+1. Recalcula lo cobrado y lo guarda en **`BO_File.CashedAmount`**. No hay campo
+   en el file que lo exhiba, así que el test no lo puede verificar; queda como
+   comprobación por SQL si alguna vez hace falta.
+2. **Acredita puntos de fidelidad a la agencia** si el file está en USD, tiene
+   agencia, quedó totalmente cobrado y viene de una reserva online — que es
+   exactamente el caso de los files que arma la suite. Cada corrida de este
+   eslabón puede sumar puntos a AMV. TRAVEL en QA. Conviene tenerlo presente.
 
 ### Lo que hay que decidir antes de escribir
 

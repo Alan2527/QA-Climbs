@@ -6,6 +6,7 @@ import { BackOfficePage } from '../../pages/backoffice.page';
 import { FacturaProveedorPage } from '../../pages/factura-proveedor.page';
 import { OrdenDePagoPage } from '../../pages/orden-de-pago.page';
 import { FacturaClientePage } from '../../pages/factura-cliente.page';
+import { OrdenDeCobroPage } from '../../pages/orden-de-cobro.page';
 import {
   paso, adjuntarTexto, esperarFinDeCarga, fechaDeBusqueda, formatearFecha,
   importeANumero, resaltarYCapturar, reiniciarNumeracionDePasos,
@@ -1067,6 +1068,301 @@ test.describe('Cobranzas', () => {
         `Cliente: ${precondicion.cliente}`,
         `Comprobante: ${celdas[1] ?? '?'}`,
         `Total: ${totalDelComprobante.moneda} ${totalDelComprobante.valor}`,
+      ].join(SALTO));
+    });
+  });
+
+  /**
+   * Precondicion del eslabon 4: un comprobante emitido al cliente, pendiente de cobro.
+   *
+   * Repite mecanicamente lo que el test del eslabon 3 verifica paso por paso, por
+   * el mismo motivo que `armarFacturaAprobada`: alla las comparaciones van
+   * intercaladas con los pasos y extraer una funcion comun obligaria a
+   * parametrizar que se verifica.
+   */
+  async function armarFacturaAlCliente(page: Page, sello: string): Promise<{
+    fileCode: string;
+    cliente: string;
+    comprobante: string;
+    total: number;
+  }> {
+    const factura = new FacturaClientePage(page);
+    const precondicion = await reservarServicioYGenerarFile(page, sello);
+    const digitosDelFile = precondicion.fileCode.match(/\d{6,}/)?.[0] ?? '';
+
+    let comprobante = '';
+    let total = 0;
+
+    await paso(page, 'Emitir la factura al cliente sobre el file', async () => {
+      await factura.irANuevoComprobante();
+      await factura.elegirDestinatario(precondicion.cliente);
+      await factura.elegirFile(digitosDelFile);
+
+      total = importe(await page.locator(factura.campoTotal).inputValue()).valor as number;
+      expect(
+        total,
+        'La precondicion necesita un comprobante con importe: el file tiene que traer sus conceptos',
+      ).toBeGreaterThan(0);
+
+      await page.locator(factura.campoDetalle)
+        .fill(`Factura de regresion automatica ${sello}. No operar.`);
+      const cotizacion = (await page.locator(factura.campoCotizacion).inputValue()).trim();
+      if (!cotizacion || Number(cotizacion.replace(',', '.')) <= 0) {
+        await page.locator(factura.campoCotizacion).fill('1');
+      }
+      await factura.guardar();
+
+      const fila = factura.filaPendiente(digitosDelFile);
+      await expect(
+        fila,
+        `La precondicion necesita el comprobante del file ${precondicion.fileCode} en la bandeja ` +
+        `de pendientes. El BO dijo: "${await factura.mensajeDeError()}"`,
+      ).toBeVisible({ timeout: 60_000 });
+
+      // El numero del comprobante es lo que despues hay que ubicar entre los
+      // pendientes de cobro: se lee de la bandeja, no se arma.
+      const celdas = await factura.celdas(fila);
+      comprobante = celdas.find((c) => /^[A-Z]{2}\d/.test(c)) ?? '';
+      expect(
+        comprobante,
+        `No se pudo leer el numero del comprobante de la bandeja: ${celdas.join(' | ')}`,
+      ).not.toBe('');
+
+      await adjuntarTexto('Comprobante de la precondicion', [
+        `File: ${precondicion.fileCode}`,
+        `Cliente: ${precondicion.cliente}`,
+        `Comprobante: ${comprobante}`,
+        `Total: ${total}`,
+      ].join(SALTO));
+    });
+
+    return { fileCode: precondicion.fileCode, cliente: precondicion.cliente, comprobante, total };
+  }
+
+  test('Orden de cobro: cobra el comprobante del cliente en la caja de regresion', async ({ page }) => {
+    test.setTimeout(900_000);
+
+    const orden = new OrdenDeCobroPage(page);
+
+    const ahora = new Date();
+    const sello = ahora.toISOString().slice(0, 19).replace(/[-:T]/g, '');
+
+    const datos = {
+      // La misma caja propia que usa la orden de pago. Ninguna caja preexistente
+      // se toca, para no mover los saldos reales de QA.
+      caja: 'AUTO-QA NO TOCAR - CAJA USD',
+      moneda: 'USD',
+      detalle: `Orden de cobro de regresion automatica ${sello}. No operar.`,
+      comentarioDeLaImputacion: `AUTO-QA ${sello.slice(-8)}`,
+      numeroDeRecibo: `AUTOQA${sello.slice(-8)}`,
+      estadoAprobada: 'PAGO',
+    };
+
+    const precondicion = await armarFacturaAlCliente(page, sello);
+    const totalDeLaOrden = precondicion.total;
+    const fechaDeHoy = formatearFecha(ahora);
+
+    let idDeLaOrden = '';
+
+    await paso(page, 'Entrar a la bandeja de ordenes de cobro y abrir una nueva', async () => {
+      await orden.irABandejaDeOrdenes();
+      await orden.nuevaOrden();
+      await expect(page.locator(orden.campoImporteDeLaCaja)).toBeVisible();
+
+      const fecha = (await page.locator(orden.campoFecha).inputValue()).trim();
+      await conResaltado(page, page.locator(orden.campoFecha), 'Fecha de la orden', () => {
+        expect(fecha, 'La orden tiene que nacer con la fecha de hoy').toBe(fechaDeHoy);
+      });
+    });
+
+    await paso(page, 'Elegir el cliente y la moneda del cobro', async () => {
+      await orden.elegirCliente(precondicion.cliente, precondicion.cliente);
+
+      const cliente = (await page.locator(orden.campoCliente).inputValue()).trim();
+      await conResaltado(page, page.locator(orden.campoCliente), 'Cliente de la orden', () => {
+        expect(cliente.toUpperCase(),
+          'La orden tiene que quedar a nombre del mismo cliente al que se le facturo')
+          .toContain(precondicion.cliente.toUpperCase());
+      });
+
+      // La moneda decide que cajas se ofrecen (CashFlowSvc.LoadPublished).
+      await orden.elegirEnCombo(orden.comboMoneda, datos.moneda);
+    });
+
+    await paso(page, 'Verificar que la caja de regresion se ofrezca y elegirla', async () => {
+      const cajas = await orden.opcionesDe(orden.comboCaja);
+      await adjuntarTexto('Cajas ofrecidas para la moneda de la orden', cajas.join(SALTO));
+
+      await conResaltado(page, page.locator(orden.comboCaja), 'Caja de regresion disponible', () => {
+        expect(cajas.join(' | '),
+          `La orden tiene que ofrecer la caja ${datos.caja} para ${datos.moneda}. Si no aparece, ` +
+          'revisar que siga publicada y que su categoria siga publicada y con sucursal.')
+          .toContain(datos.caja);
+      });
+
+      await orden.elegirEnCombo(orden.comboCaja, datos.caja);
+    });
+
+    await paso(page, 'Cargar el importe y verificar el total que calcula el BO', async () => {
+      await orden.cargarImporte(aFormatoBO(totalDeLaOrden));
+      await page.locator(orden.campoDetalle).fill(datos.detalle);
+
+      const total = importe(await page.locator(orden.campoTotal).inputValue());
+      await conResaltado(page, page.locator(orden.campoTotal), 'Total calculado de la orden', () => {
+        expect(total.valor,
+          'Con una sola forma de pago, el total que calcula el BO tiene que ser ese importe')
+          .toBe(totalDeLaOrden);
+      });
+    });
+
+    await paso(page, 'Guardar la orden y verificar que conserve los datos cargados', async () => {
+      idDeLaOrden = await orden.guardar();
+      expect(
+        idDeLaOrden,
+        `El guardado tiene que devolver el ID de la orden. El BO dijo: ` +
+        `"${await orden.mensajeDeError()}"`,
+      ).toMatch(/^\d+$/);
+
+      // El codigo lo arma el BO al guardar: OC + el ID en diez digitos
+      // (CodeHelper.SetChargeOrderCode).
+      const codigo = (await page.locator(orden.campoCodigo).inputValue()).trim();
+      await adjuntarTexto('Orden de cobro generada', `${codigo} (id ${idDeLaOrden})`);
+      await conResaltado(page, page.locator(orden.campoCodigo), 'Codigo de la orden', () => {
+        expect(codigo, 'El BO tiene que numerar la orden con el formato OC y diez digitos')
+          .toBe(`OC${idDeLaOrden.padStart(10, '0')}`);
+      });
+
+      const caja = await orden.opcionElegida(orden.comboCaja);
+      await conResaltado(page, page.locator(orden.comboCaja), 'Caja de la orden guardada', () => {
+        expect(caja, 'La orden tiene que conservar la caja elegida').toContain(datos.caja);
+      });
+
+      const importeDeLaCaja = importe(await page.locator(orden.campoImporteDeLaCaja).inputValue());
+      await conResaltado(page, page.locator(orden.campoImporteDeLaCaja), 'Importe de la forma de pago', () => {
+        expect(importeDeLaCaja.valor, 'La forma de pago tiene que conservar su importe')
+          .toBe(totalDeLaOrden);
+      });
+    });
+
+    await paso(page, 'Verificar el pendiente de asignacion contra el total de la orden', async () => {
+      const pendiente = importe(await orden.pendiente());
+      await adjuntarTexto('Pendiente de asignacion de la orden', await orden.pendiente());
+      await conResaltado(page, page.locator(orden.pendienteDeAsignacion).first(), 'Pendiente inicial', () => {
+        expect(pendiente.valor, 'Sin nada imputado, el pendiente tiene que ser el total de la orden')
+          .toBe(totalDeLaOrden);
+      });
+    });
+
+    await paso(page, 'Ubicar el comprobante entre los pendientes y comparar la fila', async () => {
+      // Se ubica por el **file**, no por el numero de comprobante: todos los
+      // comprobantes salen con el mismo numero (CC00010-00000000), asi que
+      // filtrar por el se queda con el de cualquier corrida anterior del mismo
+      // cliente. El codigo del file si es unico por corrida.
+      const fila = orden.filaPendiente(precondicion.fileCode);
+      await expect(
+        fila,
+        `El comprobante del file ${precondicion.fileCode} tiene que figurar entre los pendientes ` +
+        `de cobro de ${precondicion.cliente}. Si no aparece, revisar que tenga saldo y que la ` +
+        'moneda coincida con la de la orden.',
+      ).toBeVisible({ timeout: 60_000 });
+
+      const celdas = await orden.celdas(fila);
+      await adjuntarTexto('Fila del comprobante pendiente de cobro', celdas.join(' | '));
+
+      // Por nombre de columna y no por posicion: la grilla trae los importes en
+      // dos monedas y el saldo de la otra viene con punto decimal.
+      const totalUSD = importe(await orden.valorDeColumna(fila, 'Total USD'));
+      const saldoUSD = importe(await orden.valorDeColumna(fila, 'Saldo USD'));
+      await adjuntarTexto('Importes en USD de la fila',
+        `Total: ${totalUSD.valor} | Saldo: ${saldoUSD.valor}`);
+
+      await conResaltado(page, fila, 'Total del comprobante pendiente', () => {
+        expect(totalUSD.valor, 'La grilla tiene que mostrar el total del comprobante emitido')
+          .toBe(totalDeLaOrden);
+      });
+      await conResaltado(page, fila, 'Saldo del comprobante pendiente', () => {
+        expect(saldoUSD.valor,
+          'El comprobante no tiene nada cobrado, asi que su saldo tiene que ser el total entero')
+          .toBe(totalDeLaOrden);
+      });
+    });
+
+    await paso(page, 'Abrir la asignacion y comparar los importes del modal', async () => {
+      await orden.abrirAsignacion(orden.filaPendiente(precondicion.fileCode));
+      const modal = page.locator(orden.modalDeAsignacion);
+      const importes = await orden.importesDelModal();
+      await adjuntarTexto('Importes del modal de asignacion', JSON.stringify(importes, null, 2));
+
+      await conResaltado(page, modal, 'Moneda del modal', () => {
+        expect(importes.moneda, 'El modal tiene que mostrar la moneda de la orden')
+          .toContain(datos.moneda);
+      });
+      await conResaltado(page, modal, 'Total de la orden en el modal', () => {
+        expect(importe(importes.ordenTotal).valor, 'El modal tiene que mostrar el total de la orden')
+          .toBe(totalDeLaOrden);
+      });
+      await conResaltado(page, modal, 'Pendiente de la orden en el modal', () => {
+        expect(importe(importes.ordenPendiente).valor,
+          'Sin nada imputado, el pendiente de la orden tiene que ser su total entero')
+          .toBe(totalDeLaOrden);
+      });
+      await conResaltado(page, modal, 'Total del comprobante en el modal', () => {
+        expect(importe(importes.comprobanteTotal).valor,
+          'El modal tiene que mostrar el total del comprobante emitido al cliente')
+          .toBe(totalDeLaOrden);
+      });
+      await conResaltado(page, modal, 'Pendiente del comprobante en el modal', () => {
+        expect(importe(importes.comprobantePendiente).valor,
+          'El comprobante no tiene nada cobrado, asi que su pendiente tiene que ser su total entero')
+          .toBe(totalDeLaOrden);
+      });
+    });
+
+    await paso(page, 'Imputar el comprobante y verificar que el pendiente baje a cero', async () => {
+      await orden.imputar(aFormatoBO(totalDeLaOrden), datos.comentarioDeLaImputacion);
+
+      const pendiente = importe(await orden.pendiente());
+      await adjuntarTexto('Pendiente despues de imputar', await orden.pendiente());
+      await conResaltado(page, page.locator(orden.pendienteDeAsignacion).first(), 'Pendiente final', () => {
+        expect(pendiente.valor,
+          'Imputada la orden entera, no tiene que quedar nada pendiente de asignacion')
+          .toBe(0);
+      });
+
+    });
+
+    await paso(page, 'Aprobar la orden aplicando el recibo y verificar el estado', async () => {
+      await orden.aprobar(fechaDeHoy, datos.numeroDeRecibo);
+
+      const estado = await orden.estado();
+      await adjuntarTexto('Estado de la orden', estado);
+      await conResaltado(page, page.locator(orden.btnAprobar), 'Estado de la orden aprobada', () => {
+        expect(estado.toUpperCase(),
+          'Aprobada y con el recibo aplicado, la orden tiene que quedar en estado pago. Si dijera ' +
+          'que no encuentra sucursal, revisar que la categoria de la caja siga teniendo BranchID')
+          .toContain(datos.estadoAprobada);
+      });
+
+      const numero = (await page.locator(orden.campoNumeroDelRecibo).inputValue()).trim();
+      await conResaltado(page, page.locator(orden.campoNumeroDelRecibo), 'Numero del recibo', () => {
+        expect(numero, 'El recibo tiene que conservar su numero').toBe(datos.numeroDeRecibo);
+      });
+
+      // Recien cobrada la orden el comprobante deja de figurar entre los
+      // pendientes: es lo que prueba que la imputacion llego al comprobante y no
+      // se quedo en la orden.
+      await expect(
+        orden.filaPendiente(precondicion.fileCode),
+        'Cobrado y aprobado, el comprobante no tiene que seguir apareciendo entre los pendientes',
+      ).toBeHidden({ timeout: 60_000 });
+
+      await adjuntarTexto('Cadena generada', [
+        `File: ${precondicion.fileCode}`,
+        `Cliente: ${precondicion.cliente}`,
+        `Comprobante: ${precondicion.comprobante}`,
+        `Orden de cobro: OC${idDeLaOrden.padStart(10, '0')} (id ${idDeLaOrden})`,
+        `Caja: ${datos.caja}`,
+        `Cobrado: ${datos.moneda} ${aFormatoBO(totalDeLaOrden)}`,
       ].join(SALTO));
     });
   });
