@@ -8,9 +8,9 @@ Documento de traspaso. Última actualización: **2026-09-04**.
 > hallazgo 7. Del **Bloque C — Cobranzas** está hecha la auditoría del ambiente y
 > el mapa de las cinco pantallas, y ya están creadas las **cajas propias** (187
 > USD y 188 ARS, categoría 18) para no tocar los saldos reales de QA. El
-> **eslabones 1 (factura de proveedor), 2 (orden de pago), 3 (factura al cliente)
-> y 4 (orden de cobro) están terminados y en verde**. Falta sólo el 5, la caja
-> diaria.
+> **Bloque C está terminado**: los cinco eslabones en verde, de la factura de
+> proveedor a la caja diaria. El cierre definitivo de caja quedó afuera a
+> propósito y es la única consulta abierta del bloque.
 >
 > Antes de arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
@@ -965,7 +965,7 @@ con cada comparación nueva que se agregue** y no darla por buena porque pase.
   `AUTO-QA <sello>`, que viaja intacta del portal al BO.
 
 
-## BLOQUE C — Cobranzas: eslabones 1 a 4 terminados
+## BLOQUE C — Cobranzas: terminado
 
 Cadena completa: **factura de proveedor → orden de pago → factura de cliente →
 orden de cobro → caja diaria con sus movimientos**.
@@ -1523,7 +1523,90 @@ que hace dos cosas que ninguna pantalla muestra:
    exactamente el caso de los files que arma la suite. Cada corrida de este
    eslabón puede sumar puntos a AMV. TRAVEL en QA. Conviene tenerlo presente.
 
-### Lo que hay que decidir antes de escribir
+### Eslabón 5 — Caja diaria: terminado, en verde
+
+`tests/bloque-c/cobranzas.spec.ts` + `pages/caja-diaria.page.ts`.
+
+Es el test más largo de la suite y el único que **arma la cadena entera, las dos
+ramas, sobre el mismo file**: la caja diaria es el único punto donde vuelven a
+juntarse lo que se le pagó al proveedor y lo que se le cobró al cliente.
+
+```
+PRECONDICION (la cadena completa)
+ 1. Reservar un servicio en el portal y emitir la reserva
+ 2. Confirmar la reserva y generar su file en el BackOffice
+ 3. Cargar la factura del proveedor, imputarla al file y aprobarla
+ 4. Pagar la factura del proveedor desde la caja de regresion
+ 5. Emitir la factura al cliente sobre el file
+ 6. Cobrar el comprobante del cliente en la caja de regresion
+
+CAJA DIARIA
+ 7. Abrir la caja del dia de la sucursal
+ 8. Filtrar por la caja de regresion y verificar que este disponible
+ 9. Verificar que el pago y el cobro cayeron solos en la caja
+10. Verificar el cuadre de la caja
+11. Abrir el pre-cierre y verificar que muestre el cuadre
+```
+
+Para poder componer la cadena así, las precondiciones de los eslabones 2 y 4
+pasaron a **recibir el file** en vez de crearlo (`armarFacturaAprobada` y
+`armarFacturaAlCliente` toman un `Precondicion`). Los tests 2 y 4 siguen igual:
+crean el suyo y se lo pasan.
+
+#### Los movimientos no se cargan: caen solos
+
+`PayOrderSvc.LoadForDailyCash(fecha, sucursal)` trae las órdenes con
+`Status = 30`, fecha de recibo igual a la de la caja, sucursal coincidente y
+**todavía no asignadas a ninguna caja** (`!DailyExpenseID.HasValue`). Lo mismo
+las de cobro. El test no agrega nada: verifica que aparezcan donde corresponde,
+en la caja AUTO-QA, con sus importes.
+
+Hay **una caja por sucursal y fecha**. El page object abre la del día si ya
+existe y sólo la crea si no está: crearla a ciegas dejaría dos en la segunda
+corrida del mismo día.
+
+#### El cuadre: por qué no se exige un importe fijo
+
+La caja acumula lo de todas las corridas del día, así que exigir "balance = 4"
+fallaría en la segunda. Lo que sí tiene que cerrar siempre es **su propia
+aritmética**, que es donde aparecerían los errores de cuadre:
+
+- `Ingreso + Salida = Balance`
+- `Saldo Inicial + Balance = Saldo Final`
+- el Ingreso incluye la venta cobrada y la Salida (en valor absoluto) el costo
+  pagado
+- el balance del **pre-cierre** coincide con el de la pantalla
+
+**La Salida se muestra negativa.** Una corrida real dio `USD | 0 | 50 | -48 | 2 |
+2`: el balance es ingreso **más** salida, no menos. Escribirlo al revés da un
+verde falso o un rojo inexplicable.
+
+#### El cierre definitivo no se automatiza, y es una decisión
+
+`lnkClose` deja la caja en estado 20. A partir de ahí **ninguna orden de pago ni
+de cobro de esa sucursal y esa fecha se puede aprobar**: los dos handlers cortan
+con "La fecha del Recibo inválida. La fecha seleccionada está cerrada en Gastos &
+Mov. Diarios" (`DailyExpenseSvc.FindByDate` busca `Status == 20`). Los eslabones
+2 y 4 quedarían rojos por el resto del día — verde a la mañana, rojo a la tarde.
+
+Y **no es reversible desde la pantalla**: el Guardar de la caja pone `Status = 10`
+incondicionalmente, pero `btnSave.Visible = false` para toda caja existente
+(`DailyCash.aspx.cs:166`), así que sólo aparece en el alta.
+
+Se cubre el **pre-cierre** (`btnReview`), que es puramente de cliente, muestra el
+mismo cuadre por caja y no toca el estado. Si producto quiere el cierre
+definitivo cubierto, hay que definir en qué ambiente o con qué fecha: **queda
+como consulta**.
+
+#### Lo que sólo se supo ejecutando
+
+| Síntoma | Causa real |
+|---|---|
+| Las grillas no existían | `lvDailyExpenseItems` y `lvTotals` son ListView y no dejan id: los ids reales son los de sus tablas, `#tblDailyExpenseItems` y `#tblDailyCashTotals` |
+| El balance no cerraba | la Salida viene **negativa** |
+| El pre-cierre parecía vacío | su grilla se llena después de mostrarse el modal, y el modal correcto es `#modalDailyCashReviewControl` |
+
+### Decisiones que quedaron tomadas
 
 1. ~~Si la suite puede mover saldos de caja~~ — **decidido el 2026-09-04**: cajas
    propias, 187 (USD) y 188 (ARS), bajo la categoría 18. Verificado además que
