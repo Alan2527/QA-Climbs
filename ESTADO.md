@@ -694,8 +694,53 @@ bueno lo que la aplicación hace.
 
 **Transversales**
 
-- **Modo oscuro**: no hay ninguna validación, y el `CLAUDE.md` lo pide para el
-  portal online.
+- **Modo oscuro: no aplica.** Esta línea decía que el `CLAUDE.md` lo pedía para el
+  portal online, y es al revés: el portal **no tiene tema oscuro** y las reglas
+  dicen que no hay que proponer nunca un escenario de modo oscuro sobre él. No es
+  un hueco de cobertura.
+
+### Cobertura de los tres bloques — cerrada el 2026-09-04
+
+Auditados los tres bloques dato por dato. Lo que faltaba se cerró con **tres
+archivos nuevos**, sin tocar ninguno de los tests que ya estaban en verde: los
+siete del tarifario y los cuatro de reservas quedaron intactos, y se comparten
+los page objects, que es lo estable.
+
+| Archivo | Qué cubre |
+|---|---|
+| `tests/bloque-a/filtros-y-card.spec.ts` | contador de resultados, chips de categoría de Hoteles, botón Limpiar, filtro Proveedor y carrusel de la card |
+| `tests/bloque-b/validaciones.spec.ts` | los cuatro rechazos del checkout, sin emitir ninguna reserva |
+| (dentro de `bloque-c/cobranzas.spec.ts`) | los cinco rechazos del BO |
+
+#### Dos cosas que se creían huecos y no lo eran
+
+**El contador de resultados cuenta el resultado entero, no las cards
+renderizadas.** El listado pagina con scroll: el contador dice 100 mientras en
+pantalla hay 12. Compararlos entre sí da un rojo que no es un defecto. Lo que se
+exige es que el contador sea coherente consigo mismo — baja al filtrar por
+categoría, nombra la ciudad y la categoría, y vuelve al total al limpiar — y que
+nunca haya más cards renderizadas que resultados informados.
+
+**El botón de refresco de cada pestaña es UI muerta.** Existe en el markup, está
+cableado en `mainws.js` y tiene sus estilos completos —fondo, `float`, `hover`—,
+pero `StyleTariff.css:583` lo deja en `display: none`. Un usuario no lo puede
+tocar, así que no se cubre: testearlo obligaría a forzar un clic sobre algo
+invisible. **Queda como observación**, no como bug: no hay historia que defina que
+tenga que verse.
+
+#### Lo que sigue sin cubrirse, y por qué
+
+- **Horarios y excepciones del calendario de Salidas.** `.svc-calendar` trae
+  `data-days` con un código por día (`-1` fuera de operatividad, `-2` cierre por
+  excepción, `>= 0` día con salida). Exigirlo necesita el esperado derivado de
+  `ServiceCalendar` y `ServiceMonth`, guardado como línea base en `data/`. Es
+  medio día de trabajo y quedó planteado aparte.
+- **Multiidioma del encabezado**, ya explicado más abajo: antes de escribirlo hay
+  que medir si el idioma persiste del lado del servidor, porque los tests
+  comparten usuario y `storageState`.
+- **La octava pestaña `#travel-sale` y el filtro `ddResident`** vienen con
+  `Visible="false"`.
+- **Anulación de una reserva emitida**: no está cubierta en ningún bloque.
 
 ### Bloque A — pendientes menores
 
