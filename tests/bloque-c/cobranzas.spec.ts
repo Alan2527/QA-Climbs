@@ -80,6 +80,13 @@ test.describe('Cobranzas', () => {
   /** Numero en el formato que espera el BO al escribir: coma decimal. */
   const aFormatoBO = (valor: number) => valor.toFixed(2).replace('.', ',');
 
+  /** Nombre del mes de una fecha dd/mm/aaaa, como lo escribe el BO. */
+  const nombreDelMes = (fecha: string): string => {
+    const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO',
+      'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+    return meses[Number(fecha.split('/')[1]) - 1] ?? '';
+  };
+
   /** Fecha sumando dias, en el formato dd/mm/aaaa que usa el BO. */
   const masDias = (fecha: string, dias: number): string => {
     const [d, m, a] = fecha.split('/').map(Number);
@@ -113,6 +120,7 @@ test.describe('Cobranzas', () => {
     servicio: string;
     cliente: string;
     fechaDelServicio: string;
+    cantidadPax: number;
   }> {
     const inicio = new InicioPage(page);
     const servicio = new ServicioPage(page);
@@ -248,7 +256,7 @@ test.describe('Cobranzas', () => {
     return {
       codigo, fileId, fileCode, costoDelItem, ventaDelItem,
       apellidoDelPax: datos.apellido, servicio: datos.servicio,
-      cliente, fechaDelServicio: datos.fecha,
+      cliente, fechaDelServicio: datos.fecha, cantidadPax: datos.cantidadPax,
     };
   }
 
@@ -423,6 +431,44 @@ test.describe('Cobranzas', () => {
           'de factura, que es el plazo de pago del proveedor')
           .toBe(masDias(fechaDeLaFactura, comprobante.plazoDePago));
       });
+
+      // El resto de lo que se cargo, releido de la pantalla: si algo no se
+      // guarda, el comprobante queda distinto del que se quiso emitir.
+      const puntoDeVenta = (await page.locator(factura.campoPuntoDeVenta).inputValue()).trim();
+      await conResaltado(page, page.locator(factura.campoPuntoDeVenta), 'Punto de venta', () => {
+        expect(Number(puntoDeVenta), 'El comprobante tiene que conservar su punto de venta')
+          .toBe(Number(comprobante.puntoDeVenta));
+      });
+
+      await conResaltado(page, page.locator(factura.comboTipo), 'Tipo de comprobante', async () => {
+        expect(await factura.opcionElegida(factura.comboTipo),
+          'El comprobante tiene que conservar el tipo elegido')
+          .toContain(comprobante.tipo);
+      });
+
+      const comentario = (await page.locator(factura.campoComentario).inputValue()).trim();
+      await conResaltado(page, page.locator(factura.campoComentario), 'Comentario del comprobante', () => {
+        expect(comentario, 'El comprobante tiene que conservar su comentario')
+          .toBe(comprobante.comentario);
+      });
+
+      // La cotizacion no se carga: si queda en cero o menos, el BO la fuerza a 1
+      // (Detail.aspx.cs:1035). Nunca puede quedar en cero.
+      const cotizacion = importe(await page.locator(factura.campoCotizacion).inputValue());
+      await adjuntarTexto('Cotizacion del comprobante', String(cotizacion.valor));
+      await conResaltado(page, page.locator(factura.campoCotizacion), 'Cotizacion del comprobante', () => {
+        expect(cotizacion.valor as number, 'La cotizacion del comprobante nunca puede quedar en cero')
+          .toBeGreaterThan(0);
+      });
+
+      // La fecha contable por defecto es el mes de la fecha de factura.
+      const mesContable = await factura.opcionElegida('#ddAccountingDate');
+      const mesEsperado = fechaDeLaFactura.slice(3);
+      await conResaltado(page, page.locator('#ddAccountingDate'), 'Fecha contable', () => {
+        expect(mesContable.replace(/\s/g, ''),
+          'La fecha contable tiene que caer en el mes de la fecha de factura')
+          .toContain(mesEsperado.split('/')[1]);
+      });
     });
 
     await paso(page, 'Verificar el pendiente de asignacion contra el total cargado', async () => {
@@ -571,6 +617,50 @@ test.describe('Cobranzas', () => {
         `Proveedor: ${comprobante.razonSocial}`,
         `Total imputado: ${comprobante.moneda} ${aFormatoBO(totalDeLaFactura)}`,
       ].join(SALTO));
+    });
+
+    await paso(page, 'Verificar el comprobante en la bandeja de facturas', async () => {
+      // El detalle puede estar bien y la bandeja mostrar otra cosa: son dos
+      // consultas distintas. Columnas: C, Factura, Proveedor, Razon Social, Doc,
+      // Fecha, Fecha Vto., Monto, Asignado.
+      await factura.irABandejaDeFacturas();
+      await factura.buscarEnLaBandeja(comprobante.numero);
+
+      const fila = factura.filaEnLaBandeja(comprobante.numero);
+      await expect(
+        fila,
+        `El comprobante ${comprobante.puntoDeVenta}-${comprobante.numero} tiene que aparecer en ` +
+        'la bandeja de facturas de proveedor',
+      ).toBeVisible({ timeout: 60_000 });
+
+      const celdas = await factura.celdasDeLaBandeja(comprobante.numero);
+      await adjuntarTexto('Fila del comprobante en la bandeja', celdas.join(' | '));
+      const texto = celdas.join(' | ');
+
+      await conResaltado(page, fila, 'Proveedor en la bandeja', () => {
+        expect(texto.toUpperCase(), 'La bandeja tiene que mostrar la razon social del proveedor')
+          .toContain(comprobante.razonSocial.toUpperCase());
+      });
+      await conResaltado(page, fila, 'Documento en la bandeja', () => {
+        expect(texto, 'La bandeja tiene que mostrar el documento del proveedor')
+          .toContain(comprobante.documento);
+      });
+      await conResaltado(page, fila, 'Fechas en la bandeja', () => {
+        expect(texto, 'La bandeja tiene que mostrar la fecha del comprobante')
+          .toContain(fechaDeLaFactura);
+        expect(texto,
+          'La bandeja tiene que mostrar el vencimiento calculado por el plazo del proveedor')
+          .toContain(masDias(fechaDeLaFactura, comprobante.plazoDePago));
+      });
+
+      const soloImporte = /^-?([A-Z]{3}\s*)?\d[\d.,]*$/;
+      const importesDeLaFila = celdas.filter((c) => soloImporte.test(c)).map(importe);
+      await conResaltado(page, fila, 'Monto y asignado en la bandeja', () => {
+        expect(importesDeLaFila.map((i) => i.valor),
+          'La bandeja tiene que mostrar el monto del comprobante y lo que quedo asignado, ' +
+          'que despues de imputarlo entero es el mismo importe')
+          .toContain(totalDeLaFactura);
+      });
     });
   });
 
@@ -794,6 +884,35 @@ test.describe('Cobranzas', () => {
         expect(importeDeLaCaja.valor, 'La forma de pago tiene que conservar su importe')
           .toBe(totalDeLaOrden);
       });
+
+      const detalle = (await page.locator(orden.campoDetalle).inputValue()).trim();
+      await conResaltado(page, page.locator(orden.campoDetalle), 'Detalle de la orden', () => {
+        expect(detalle, 'La orden tiene que conservar su detalle').toBe(datos.detalle);
+      });
+
+      // El vencimiento de la forma de pago nace con la fecha de hoy y no puede
+      // quedar antes de la fecha de la orden (Detail.aspx.cs:634).
+      const vencimiento = (await page.locator(orden.campoVencimientoDeLaCaja).inputValue()).trim();
+      await conResaltado(page, page.locator(orden.campoVencimientoDeLaCaja), 'Vencimiento de la forma de pago', () => {
+        expect(vencimiento, 'La forma de pago tiene que conservar su fecha de vencimiento')
+          .toBe(fechaDeHoy);
+      });
+
+      // El mes de aplicacion define en que periodo impacta la orden.
+      const mesDeAplicacion = await orden.opcionElegida(orden.comboMesDeAplicacion);
+      await adjuntarTexto('Mes de aplicacion de la orden', mesDeAplicacion);
+      // El combo escribe el mes con su nombre, no con el numero.
+      await conResaltado(page, page.locator(orden.comboMesDeAplicacion), 'Mes de aplicacion', () => {
+        expect(mesDeAplicacion.toUpperCase(),
+          'El mes de aplicacion tiene que ser el de la fecha de la orden')
+          .toContain(nombreDelMes(fechaDeHoy));
+      });
+
+      const cotizacion = importe(await page.locator(orden.campoCotizacion).inputValue());
+      await conResaltado(page, page.locator(orden.campoCotizacion), 'Cotizacion de la orden', () => {
+        expect(cotizacion.valor as number, 'La cotizacion de la orden nunca puede quedar en cero')
+          .toBeGreaterThan(0);
+      });
     });
 
     await paso(page, 'Verificar el pendiente de asignacion contra el total de la orden', async () => {
@@ -901,6 +1020,12 @@ test.describe('Cobranzas', () => {
           .toBe(datos.numeroDeRecibo.toUpperCase());
       });
 
+      const fechaDelRecibo = (await page.locator(orden.campoFechaDelRecibo).inputValue()).trim();
+      await conResaltado(page, page.locator(orden.campoFechaDelRecibo), 'Fecha del recibo', () => {
+        expect(fechaDelRecibo, 'El recibo tiene que conservar la fecha con la que se aplico')
+          .toBe(fechaDeHoy);
+      });
+
       await adjuntarTexto('Cadena generada', [
         `File: ${precondicion.fileCode}`,
         `Factura de proveedor: ${precondicion.puntoDeVenta}-${precondicion.numeroDeFactura}`,
@@ -908,6 +1033,48 @@ test.describe('Cobranzas', () => {
         `Caja: ${datos.caja}`,
         `Pagado: ${precondicion.moneda} ${aFormatoBO(totalDeLaOrden)}`,
       ].join(SALTO));
+    });
+
+    await paso(page, 'Verificar la orden en la bandeja de ordenes de pago', async () => {
+      // Columnas: C, (c), Fecha, Referencia, Observ., Fecha de Aplicacion,
+      // Proveedor, Monto, Estado.
+      const codigo = `OP${idDeLaOrden.padStart(10, '0')}`;
+      await orden.irABandejaDeOrdenes();
+      await orden.buscarEnLaBandeja(codigo);
+
+      const fila = orden.filaEnLaBandeja(codigo);
+      await expect(
+        fila,
+        `La orden ${codigo} tiene que aparecer en la bandeja de ordenes de pago`,
+      ).toBeVisible({ timeout: 60_000 });
+
+      const celdas = await orden.celdasDeLaBandeja(codigo);
+      await adjuntarTexto('Fila de la orden en la bandeja', celdas.join(' | '));
+      const texto = celdas.join(' | ');
+
+      await conResaltado(page, fila, 'Proveedor en la bandeja', () => {
+        expect(texto.toUpperCase(), 'La bandeja tiene que mostrar el proveedor de la orden')
+          .toContain(datos.razonSocial.toUpperCase());
+      });
+      // La bandeja **trunca** el detalle con puntos suspensivos, asi que se
+      // compara el arranque y no la cadena entera.
+      await conResaltado(page, fila, 'Observaciones en la bandeja', () => {
+        expect(texto, 'La bandeja tiene que mostrar el detalle cargado en la orden')
+          .toContain(datos.detalle.slice(0, 40));
+      });
+      await conResaltado(page, fila, 'Estado en la bandeja', () => {
+        expect(texto.toUpperCase(),
+          'Aprobada, la orden tiene que figurar como pagada tambien en la bandeja')
+          .toContain(datos.estadoAprobada);
+      });
+
+      const soloImporte = /^-?([A-Z]{3}\s*)?\d[\d.,]*$/;
+      const importesDeLaFila = celdas.filter((c) => soloImporte.test(c)).map(importe);
+      await conResaltado(page, fila, 'Monto en la bandeja', () => {
+        expect(importesDeLaFila.map((i) => i.valor),
+          'La bandeja tiene que mostrar el monto con el que se pago la orden')
+          .toContain(totalDeLaOrden);
+      });
     });
   });
 
@@ -1019,6 +1186,41 @@ test.describe('Cobranzas', () => {
           .toContain('TIGRE Y DELTA');
       });
 
+      // Un unico concepto, el del servicio reservado.
+      await conResaltado(page, page.locator(factura.grillaDeConceptos), 'Cantidad de conceptos', () => {
+        expect(conceptos.length, 'El file tiene que traer un concepto por item reservado')
+          .toBe(1);
+      });
+
+      // Columnas del concepto: tipo, codigo, nombre, ciudad, fecha, cantidad,
+      // unitario y total. La cantidad tiene que ser la de pasajeros reservados y
+      // el total tiene que cerrar contra el unitario.
+      const concepto = conceptos[0] ?? [];
+      const numeros = concepto.map((c) => importeANumero(c));
+      const cantidad = numeros[5];
+      const unitario = numeros[6];
+      const totalDelConcepto = numeros[7];
+      await adjuntarTexto('Concepto del file',
+        `cantidad ${cantidad} | unitario ${unitario} | total ${totalDelConcepto}`);
+
+      await conResaltado(page, page.locator(factura.grillaDeConceptos), 'Cantidad del concepto', () => {
+        expect(cantidad, 'La cantidad del concepto tiene que ser la de pasajeros reservados')
+          .toBe(precondicion.cantidadPax);
+      });
+      await conResaltado(page, page.locator(factura.grillaDeConceptos), 'Precio unitario del concepto', () => {
+        expect(Number(((unitario ?? 0) * (cantidad ?? 0)).toFixed(2)),
+          'El total del concepto tiene que ser su precio unitario por la cantidad')
+          .toBe(Number((totalDelConcepto ?? 0).toFixed(2)));
+      });
+
+      // El tipo por defecto del BO es Carta de Cobranza (NewInvoice.aspx.cs:50).
+      const tipo = await factura.opcionElegida(factura.comboTipo);
+      await adjuntarTexto('Tipo de comprobante', tipo);
+      await conResaltado(page, page.locator(factura.comboTipo), 'Tipo de comprobante', () => {
+        expect(tipo, 'El comprobante tiene que emitirse con el tipo que el BO deja por defecto')
+          .not.toBe('');
+      });
+
       const aviso = await factura.descuento();
       if (aviso) await adjuntarTexto('Aviso de descuento', aviso);
 
@@ -1073,6 +1275,22 @@ test.describe('Cobranzas', () => {
         expect(importesDeLaFila.map((i) => i.valor),
           'La bandeja tiene que mostrar el mismo total con el que se guardo el comprobante')
           .toContain(totalDelComprobante.valor);
+      });
+
+      // Columnas: chk, Comprobante, File, Pax, Fecha, Total, Emitir.
+      const texto = celdas.join(' | ');
+      await conResaltado(page, fila, 'Pasajero en la bandeja', () => {
+        expect(texto.toUpperCase(), 'La bandeja tiene que mostrar el pasajero del file')
+          .toContain(precondicion.apellidoDelPax.toUpperCase());
+      });
+      await conResaltado(page, fila, 'Numero de comprobante en la bandeja', () => {
+        expect(celdas.some((c) => /^[A-Z]{2}\d/.test(c)),
+          'La bandeja tiene que mostrar el numero del comprobante')
+          .toBe(true);
+      });
+      await conResaltado(page, fila, 'Fecha en la bandeja', () => {
+        expect(texto, 'La bandeja tiene que mostrar la fecha de emision del comprobante')
+          .toContain(formatearFecha(ahora));
       });
 
       await adjuntarTexto('Cadena generada', [
@@ -1190,7 +1408,17 @@ test.describe('Cobranzas', () => {
     });
 
     await paso(page, 'Elegir el cliente y la moneda del cobro', async () => {
-      await orden.elegirCliente(precondicion.cliente, precondicion.cliente);
+      const filaDelBuscador = await orden.elegirCliente(precondicion.cliente, precondicion.cliente);
+      await adjuntarTexto('Cliente elegido en el buscador', filaDelBuscador.join(' | '));
+
+      // El documento no se fija en el test: se exige que el que quedo cargado sea
+      // el mismo que mostraba el buscador al elegirlo.
+      const documento = (await page.locator(orden.campoDocumento).inputValue()).trim();
+      await conResaltado(page, page.locator(orden.campoDocumento), 'Documento del cliente', () => {
+        expect(filaDelBuscador.join(' | '),
+          'El documento cargado tiene que ser el que mostraba el buscador de clientes')
+          .toContain(documento);
+      });
 
       const cliente = (await page.locator(orden.campoCliente).inputValue()).trim();
       await conResaltado(page, page.locator(orden.campoCliente), 'Cliente de la orden', () => {
@@ -1255,6 +1483,35 @@ test.describe('Cobranzas', () => {
       await conResaltado(page, page.locator(orden.campoImporteDeLaCaja), 'Importe de la forma de pago', () => {
         expect(importeDeLaCaja.valor, 'La forma de pago tiene que conservar su importe')
           .toBe(totalDeLaOrden);
+      });
+
+      const detalle = (await page.locator(orden.campoDetalle).inputValue()).trim();
+      await conResaltado(page, page.locator(orden.campoDetalle), 'Detalle de la orden', () => {
+        expect(detalle, 'La orden tiene que conservar su detalle').toBe(datos.detalle);
+      });
+
+      // El vencimiento de la forma de pago nace con la fecha de hoy y no puede
+      // quedar antes de la fecha de la orden (Detail.aspx.cs:634).
+      const vencimiento = (await page.locator(orden.campoVencimientoDeLaCaja).inputValue()).trim();
+      await conResaltado(page, page.locator(orden.campoVencimientoDeLaCaja), 'Vencimiento de la forma de pago', () => {
+        expect(vencimiento, 'La forma de pago tiene que conservar su fecha de vencimiento')
+          .toBe(fechaDeHoy);
+      });
+
+      // El mes de aplicacion define en que periodo impacta la orden.
+      const mesDeAplicacion = await orden.opcionElegida(orden.comboMesDeAplicacion);
+      await adjuntarTexto('Mes de aplicacion de la orden', mesDeAplicacion);
+      // El combo escribe el mes con su nombre, no con el numero.
+      await conResaltado(page, page.locator(orden.comboMesDeAplicacion), 'Mes de aplicacion', () => {
+        expect(mesDeAplicacion.toUpperCase(),
+          'El mes de aplicacion tiene que ser el de la fecha de la orden')
+          .toContain(nombreDelMes(fechaDeHoy));
+      });
+
+      const cotizacion = importe(await page.locator(orden.campoCotizacion).inputValue());
+      await conResaltado(page, page.locator(orden.campoCotizacion), 'Cotizacion de la orden', () => {
+        expect(cotizacion.valor as number, 'La cotizacion de la orden nunca puede quedar en cero')
+          .toBeGreaterThan(0);
       });
     });
 
@@ -1362,6 +1619,12 @@ test.describe('Cobranzas', () => {
         expect(numero, 'El recibo tiene que conservar su numero').toBe(datos.numeroDeRecibo);
       });
 
+      const fechaDelRecibo = (await page.locator(orden.campoFechaDelRecibo).inputValue()).trim();
+      await conResaltado(page, page.locator(orden.campoFechaDelRecibo), 'Fecha del recibo', () => {
+        expect(fechaDelRecibo, 'El recibo tiene que conservar la fecha con la que se aplico')
+          .toBe(fechaDeHoy);
+      });
+
       // Recien cobrada la orden el comprobante deja de figurar entre los
       // pendientes: es lo que prueba que la imputacion llego al comprobante y no
       // se quedo en la orden.
@@ -1378,6 +1641,55 @@ test.describe('Cobranzas', () => {
         `Caja: ${datos.caja}`,
         `Cobrado: ${datos.moneda} ${aFormatoBO(totalDeLaOrden)}`,
       ].join(SALTO));
+    });
+
+    await paso(page, 'Verificar la orden en la bandeja de ordenes de cobro', async () => {
+      // Columnas: C, (c), Fecha, Referencia, Observ., Files, Fecha de Venc.,
+      // Cliente, Monto, Estado.
+      const codigo = `OC${idDeLaOrden.padStart(10, '0')}`;
+      await orden.irABandejaDeOrdenes();
+      await orden.buscarEnLaBandeja(codigo);
+
+      const fila = orden.filaEnLaBandeja(codigo);
+      await expect(
+        fila,
+        `La orden ${codigo} tiene que aparecer en la bandeja de ordenes de cobro`,
+      ).toBeVisible({ timeout: 60_000 });
+
+      const celdas = await orden.celdasDeLaBandeja(codigo);
+      await adjuntarTexto('Fila de la orden en la bandeja', celdas.join(' | '));
+      const texto = celdas.join(' | ');
+
+      await conResaltado(page, fila, 'Cliente en la bandeja', () => {
+        expect(texto.toUpperCase(), 'La bandeja tiene que mostrar el cliente de la orden')
+          .toContain(precondicion.cliente.toUpperCase());
+      });
+      await conResaltado(page, fila, 'Observaciones en la bandeja', () => {
+        expect(texto, 'La bandeja tiene que mostrar el detalle cargado en la orden')
+          .toContain(datos.detalle.slice(0, 40));
+      });
+      await conResaltado(page, fila, 'Estado en la bandeja', () => {
+        expect(texto.toUpperCase(),
+          'Aprobada, la orden tiene que figurar como pagada tambien en la bandeja')
+          .toContain(datos.estadoAprobada);
+      });
+      // La bandeja escribe el file en forma corta ("AM-29746"), sin los ceros a la
+      // izquierda ni el sufijo que lleva el codigo del file. Se compara el numero.
+      const fileEnLaBandeja = texto.match(/[A-Z]{2}-(\d+)/)?.[1] ?? '';
+      await conResaltado(page, fila, 'File en la bandeja', () => {
+        expect(Number(fileEnLaBandeja),
+          `La bandeja tiene que mostrar el file del comprobante que se cobro ` +
+          `(${precondicion.fileCode}). Muestra: ${texto}`)
+          .toBe(Number(precondicion.fileCode.match(/\d{6,}/)?.[0] ?? -1));
+      });
+
+      const soloImporte = /^-?([A-Z]{3}\s*)?\d[\d.,]*$/;
+      const importesDeLaFila = celdas.filter((c) => soloImporte.test(c)).map(importe);
+      await conResaltado(page, fila, 'Monto en la bandeja', () => {
+        expect(importesDeLaFila.map((i) => i.valor),
+          'La bandeja tiene que mostrar el monto con el que se cobro la orden')
+          .toContain(totalDeLaOrden);
+      });
     });
   });
 
@@ -1561,6 +1873,35 @@ test.describe('Cobranzas', () => {
           'El movimiento de cobro tiene que ser por la venta del item del file')
           .toContain(venta);
       });
+
+      // Columnas del movimiento: C, (c), Fecha, T, M, M, C, Medio, Referencia,
+      // Cliente / Prov., Comentario. Cada movimiento tiene que decir con quien
+      // fue: el pago con el proveedor y el cobro con el cliente.
+      const textoDelPago = celdasDelPago.join(' | ').toUpperCase();
+      const textoDelCobro = celdasDelCobro.join(' | ').toUpperCase();
+
+      await conResaltado(page, filaDelPago, 'Fecha del movimiento de pago', () => {
+        expect(celdasDelPago.join(' | '),
+          'El movimiento de pago tiene que llevar la fecha de la caja')
+          .toContain(fechaDeHoy);
+      });
+      await conResaltado(page, filaDelCobro, 'Fecha del movimiento de cobro', () => {
+        expect(celdasDelCobro.join(' | '),
+          'El movimiento de cobro tiene que llevar la fecha de la caja')
+          .toContain(fechaDeHoy);
+      });
+      await conResaltado(page, filaDelPago, 'Proveedor del movimiento de pago', () => {
+        expect(textoDelPago, 'El movimiento de pago tiene que identificar al proveedor')
+          .toContain('GRUPO SUMMA');
+      });
+      await conResaltado(page, filaDelCobro, 'Cliente del movimiento de cobro', () => {
+        expect(textoDelCobro, 'El movimiento de cobro tiene que identificar al cliente')
+          .toContain(base.cliente.toUpperCase());
+      });
+      await conResaltado(page, filaDelPago, 'Moneda del movimiento de pago', () => {
+        expect(textoDelPago, 'El movimiento tiene que estar en la moneda de la caja')
+          .toContain(datos.moneda);
+      });
     });
 
     await paso(page, 'Verificar el cuadre de la caja', async () => {
@@ -1632,6 +1973,187 @@ test.describe('Cobranzas', () => {
         `Comprobante al cliente: ${facturaCliente.comprobante}`,
         `Orden de cobro: ${ordenDeCobro} (venta ${venta})`,
         `Utilidad: ${venta - costo}`,
+      ].join(SALTO));
+    });
+
+    await paso(page, 'Verificar la caja en la bandeja y que quede abierta', async () => {
+      await caja.cerrarPreCierre();
+
+      // El test **no cierra la caja** a proposito: cerrarla bloquea los aprobados
+      // de las ordenes de pago y de cobro de esa sucursal por el resto del dia, y
+      // no se puede reabrir desde la pantalla. Que siga abierta es parte del
+      // resultado esperado.
+      await caja.irABandejaDeCajas();
+      const fila = caja.filaDeLaFecha(fechaDeHoy);
+      await expect(
+        fila,
+        `La caja del ${fechaDeHoy} tiene que aparecer en la bandeja de gastos y movimientos`,
+      ).toBeVisible({ timeout: 60_000 });
+
+      const celdas = await caja.celdas(fila);
+      await adjuntarTexto('Fila de la caja en la bandeja', celdas.join(' | '));
+
+      await conResaltado(page, fila, 'Caja abierta al terminar', () => {
+        expect(celdas.join(' | ').toUpperCase(),
+          'La caja tiene que quedar abierta: el test no la cierra, y cerrarla dejaria sin poder ' +
+          'aprobar las ordenes del resto del dia')
+          .not.toContain('CERRAD');
+      });
+    });
+  });
+
+  test('Validaciones: el BO rechaza lo que no debe permitir', async ({ page }) => {
+    test.setTimeout(600_000);
+
+    const factura = new FacturaProveedorPage(page);
+    const orden = new OrdenDePagoPage(page);
+    const bo = new BackOfficePage(page);
+
+    const ahora = new Date();
+    const sello = ahora.toISOString().slice(0, 19).replace(/[-:T]/g, '');
+    const fechaDeHoy = formatearFecha(ahora);
+
+    const datos = {
+      proveedor: 'GRUPO SUMMA',
+      razonSocial: 'GRUPO SUMMA SRL',
+      tipo: 'Factura A',
+      sucursal: 'Argentina',
+      moneda: 'USD',
+      puntoDeVenta: '0001',
+      numero: [
+        String(ahora.getDate()).padStart(2, '0'),
+        String(ahora.getHours()).padStart(2, '0'),
+        String(ahora.getMinutes()).padStart(2, '0'),
+        String(ahora.getSeconds()).padStart(2, '0'),
+      ].join(''),
+      importe: '10,00',
+    };
+
+    /** Espera el aviso de error del BO, que aparece y se desvanece solo. */
+    const esperarAviso = async (mensaje: string, etiqueta: string) => {
+      const aviso = page.locator('.noty_text, .noty_body, .noty_message').filter({ hasText: mensaje }).first();
+      await conResaltado(page, page.locator('body'), etiqueta, async () => {
+        await expect(
+          aviso,
+          `El BO tiene que avisar "${mensaje}"`,
+        ).toBeVisible({ timeout: 30_000 });
+      });
+      await adjuntarTexto(etiqueta, mensaje);
+    };
+
+    // Este test no reserva ni genera file: ninguna de estas validaciones lo
+    // necesita. Deja un solo comprobante y una sola orden sin aprobar en QA.
+    await paso(page, 'Entrar al BackOffice y abrir una factura de proveedor nueva', async () => {
+      await bo.ingresar(process.env.BO_USER!, process.env.BO_PASS!);
+      await factura.irABandejaDeFacturas();
+      await factura.nuevaFactura();
+      await expect(page.locator(factura.campoExento)).toBeVisible();
+    });
+
+    await paso(page, 'Intentar guardar la factura sin proveedor', async () => {
+      // supplier.js:361 corta antes de mandar nada al servidor.
+      await page.locator(factura.btnGuardar).click();
+      await esperarAviso('Debe seleccionar un Proveedor', 'Factura sin proveedor');
+      await expect(page, 'La pantalla no tiene que navegar si falta el proveedor')
+        .toHaveURL(/supplierinvoice\/0/i);
+    });
+
+    await paso(page, 'Intentar guardar la factura con importe en cero', async () => {
+      await factura.elegirSucursal(datos.sucursal);
+      await factura.elegirProveedor(datos.proveedor, datos.razonSocial);
+      await page.locator(factura.comboTipo).selectOption({ label: datos.tipo });
+      await esperarFinDeCarga(page);
+      await page.locator(factura.campoPuntoDeVenta).fill(datos.puntoDeVenta);
+      await page.locator(factura.campoNumero).fill(datos.numero);
+      await page.locator(factura.comboMoneda).selectOption({ label: datos.moneda });
+      await esperarFinDeCarga(page);
+
+      // El total sigue en cero porque no se cargo ningun importe.
+      await page.locator(factura.btnGuardar).click();
+      await esperarAviso('El monto total no puede ser igual a 0', 'Factura con total cero');
+      await expect(page, 'La pantalla no tiene que navegar si el total es cero')
+        .toHaveURL(/supplierinvoice\/0/i);
+    });
+
+    let idDeLaFactura = '';
+    await paso(page, 'Cargar el importe y guardar la factura', async () => {
+      await factura.cargarImporte(datos.importe);
+      idDeLaFactura = await factura.guardar();
+      expect(idDeLaFactura, 'Con el importe cargado, la factura tiene que poder guardarse')
+        .toMatch(/^\d+$/);
+    });
+
+    await paso(page, 'Intentar cargar otra factura con el mismo numero y proveedor', async () => {
+      // Detail.aspx.cs:987. Es la validacion que hace que el numero del test
+      // tenga que derivarse del sello de tiempo.
+      await factura.irABandejaDeFacturas();
+      await factura.nuevaFactura();
+      await factura.elegirSucursal(datos.sucursal);
+      await factura.elegirProveedor(datos.proveedor, datos.razonSocial);
+      await page.locator(factura.comboTipo).selectOption({ label: datos.tipo });
+      await esperarFinDeCarga(page);
+      await page.locator(factura.campoPuntoDeVenta).fill(datos.puntoDeVenta);
+      await page.locator(factura.campoNumero).fill(datos.numero);
+      await page.locator(factura.comboMoneda).selectOption({ label: datos.moneda });
+      await esperarFinDeCarga(page);
+      await factura.cargarImporte(datos.importe);
+
+      await page.locator(factura.btnGuardar).click();
+      await esperarAviso(
+        'Ya existe un comprobante con el mismo número y el mismo proveedor',
+        'Factura con numero repetido',
+      );
+      await expect(page, 'El comprobante repetido no tiene que crearse')
+        .toHaveURL(/supplierinvoice\/0/i);
+    });
+
+    let idDeLaOrden = '';
+    await paso(page, 'Intentar guardar una orden de pago sin forma de pago', async () => {
+      // Detail.aspx.cs:567: sin caja elegida el guardado corta.
+      await orden.irABandejaDeOrdenes();
+      await orden.nuevaOrden();
+      await orden.elegirProveedor(datos.proveedor, datos.razonSocial);
+      await orden.elegirEnCombo(orden.comboMoneda, datos.moneda);
+      await orden.cargarImporte('10,00');
+
+      await page.locator(orden.btnGuardar).click();
+      await esperarAviso('Debe seleccionar Medios de Pago', 'Orden sin forma de pago');
+      await expect(page, 'La orden no tiene que crearse sin forma de pago')
+        .toHaveURL(/payorder\/0/i);
+    });
+
+    await paso(page, 'Guardar la orden e intentar aprobarla con fechas invalidas', async () => {
+      await orden.elegirEnCombo(orden.comboCaja, CAJA_DE_REGRESION);
+      await orden.cargarImporte('10,00');
+      idDeLaOrden = await orden.guardar();
+      expect(idDeLaOrden, 'Con la caja elegida, la orden tiene que poder guardarse')
+        .toMatch(/^\d+$/);
+
+      // Detail.aspx.cs:1150: el recibo no puede ser posterior a hoy.
+      //
+      // Se usan **tres dias** y no uno: el servidor puede estar en otro huso que
+      // la maquina que corre el test, y cerca de la medianoche "manana" para el
+      // test todavia es "hoy" para el BO. Con un dia de diferencia la orden se
+      // aprobaba y el caso negativo no probaba nada.
+      const fechaFutura = masDias(fechaDeHoy, 3);
+      await orden.elegirFechaDelRecibo(fechaFutura);
+      await page.locator(orden.campoNumeroDelRecibo).fill(`AUTOQA${sello.slice(-8)}`);
+      await page.locator(orden.campoNumeroDelRecibo).blur();
+      await page.locator(orden.btnAprobar).click();
+      await esperarAviso(
+        'La fecha del Recibo no puede ser mayor a la fecha de hoy',
+        'Recibo con fecha futura',
+      );
+
+      await conResaltado(page, page.locator(orden.btnAprobar), 'Orden sin aprobar', async () => {
+        expect(await orden.estado(),
+          'Rechazada la aprobacion, la orden tiene que seguir pendiente')
+          .toContain('PENDIENTE');
+      });
+
+      await adjuntarTexto('Datos que deja este test en QA', [
+        `Factura de proveedor: ${datos.puntoDeVenta}-${datos.numero} (id ${idDeLaFactura}), sin imputar`,
+        `Orden de pago: id ${idDeLaOrden}, sin aprobar`,
       ].join(SALTO));
     });
   });

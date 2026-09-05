@@ -9,8 +9,9 @@ Documento de traspaso. Última actualización: **2026-09-04**.
 > el mapa de las cinco pantallas, y ya están creadas las **cajas propias** (187
 > USD y 188 ARS, categoría 18) para no tocar los saldos reales de QA. El
 > **Bloque C está terminado**: los cinco eslabones en verde, de la factura de
-> proveedor a la caja diaria. El cierre definitivo de caja quedó afuera a
-> propósito y es la única consulta abierta del bloque.
+> proveedor a la caja diaria, más un test de casos negativos. Quedan dos temas
+> abiertos, los dos por decisión y no por olvido: el cierre definitivo de caja y
+> la verificación en base de datos.
 >
 > Antes de arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
@@ -1605,6 +1606,86 @@ como consulta**.
 | Las grillas no existían | `lvDailyExpenseItems` y `lvTotals` son ListView y no dejan id: los ids reales son los de sus tablas, `#tblDailyExpenseItems` y `#tblDailyCashTotals` |
 | El balance no cerraba | la Salida viene **negativa** |
 | El pre-cierre parecía vacío | su grilla se llena después de mostrarse el modal, y el modal correcto es `#modalDailyCashReviewControl` |
+
+### Cierre de huecos de cobertura — 2026-09-04
+
+Auditada la cobertura del bloque, se cerraron los huecos que quedaban. Lo que se
+sumó:
+
+**Releer lo que se carga.** Cada pantalla vuelve a leerse después de guardar: en
+la factura, el tipo, el punto de venta, el comentario, la cotización y la fecha
+contable; en las dos órdenes, el detalle, el mes de aplicación, el vencimiento de
+la forma de pago, la cotización y la fecha del recibo. Cargar un dato y no
+releerlo deja pasar que el BO lo pierda al guardar.
+
+**Las cinco bandejas.** Antes sólo se miraban los detalles. Ahora cada eslabón
+verifica su listado: la factura en `#tblSupplierInvoices` (proveedor, documento,
+fechas, monto y asignado), la orden de pago en `#tblPayOrders` y la de cobro en
+`#tblChargeOrders` (contraparte, observaciones, estado, monto y file), el
+comprobante en la bandeja de pendientes (pasajero, número y fecha) y la caja en
+la bandeja de gastos y movimientos.
+
+**Los conceptos de la factura al cliente.** Un único concepto por ítem, con la
+cantidad igual a los pasajeros reservados y el total cerrando contra el precio
+unitario por la cantidad.
+
+**Los datos de cada movimiento de la caja**: fecha, moneda y con quién fue cada
+uno — el pago con el proveedor y el cobro con el cliente.
+
+**Que la caja quede abierta.** Es parte del resultado esperado: el test no la
+cierra, y cerrarla dejaría sin poder aprobar las órdenes del resto del día.
+
+#### Un test nuevo de casos negativos
+
+`Validaciones: el BO rechaza lo que no debe permitir`. No reserva ni genera file
+—ninguna de estas validaciones lo necesita— y corre en poco más de un minuto:
+
+| Qué se intenta | Qué tiene que responder el BO |
+|---|---|
+| Guardar la factura sin proveedor | "Debe seleccionar un Proveedor" |
+| Guardar la factura con importe en cero | "El monto total no puede ser igual a 0" |
+| Repetir número y proveedor | "Ya existe un comprobante con el mismo número y el mismo proveedor" |
+| Guardar la orden sin forma de pago | "Debe seleccionar Medios de Pago" |
+| Aprobar con fecha de recibo futura | "La fecha del Recibo no puede ser mayor a la fecha de hoy" |
+
+En los cinco se exige además que la pantalla **no navegue** y que la orden siga
+pendiente: que avise pero igual guarde sería peor que no avisar.
+
+Deja en QA un comprobante sin imputar y una orden sin aprobar por corrida.
+
+#### La fecha del recibo no se escribe: se elige en el calendario
+
+El caso negativo destapó un error propio de la suite. `#txtReceiptDate` tiene un
+**bootstrap-datepicker**, no una máscara, y ninguna de las dos formas de
+escribirlo funciona:
+
+- con `fill` el valor se ve en pantalla pero **llega vacío** al servidor, que
+  corta con "Debe completar la fecha del Recibo";
+- tipeando los dígitos pelados queda `07092026`, que el servidor no puede parsear
+  y **`ToDate()` cae silenciosamente a hoy**.
+
+O sea que `aprobar()` **nunca fijaba la fecha**: funcionaba porque el fallback era
+justo hoy, y las verificaciones de "Fecha del recibo" pasaban sobre ese fallback y
+no sobre un valor real. Se comprobó midiendo en QA: dos órdenes aprobadas con
+fecha tipeada +3 días quedaron guardadas con la fecha de hoy.
+
+Ahora `elegirFechaDelRecibo()` navega el calendario hasta el mes pedido y hace
+clic en el día, y exige que el campo quede con esa fecha. Es además lo que hace
+una persona.
+
+**La lección, que ya apareció en el Bloque B con el calendario del buscador:** en
+este sistema **una fecha no se escribe**. Si un campo de fecha acepta texto, hay
+que desconfiar y verificar qué llegó al servidor, no qué quedó en pantalla.
+
+#### El único hueco que queda, y necesita una decisión
+
+**No se verifica nada en base.** `BO_File.CashedAmount` y
+`BO_FileItem.AllocatedAmount` se escriben y ninguna pantalla los muestra: hoy se
+verifican de forma indirecta, porque el ítem deja de figurar entre los
+pendientes. Cerrarlo de verdad implica que la suite se conecte a SQL — sumar el
+driver `mssql`, la cadena de conexión al `.env` y a los secrets de CI, y decidir
+si un test de UI puede leer la base. **Es una decisión de producto y de
+infraestructura, no técnica**, y por eso queda planteada y no resuelta.
 
 ### Decisiones que quedaron tomadas
 

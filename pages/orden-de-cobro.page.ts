@@ -63,6 +63,30 @@ export class OrdenDeCobroPage {
   readonly grillaPendientes = '#tblChargeOrderAllocation';
   readonly modalDeAsignacion = '#modalChargeOrderAllocation';
 
+  // --- Bandeja ---
+  readonly grillaDeLaBandeja = '#tblChargeOrders';
+
+  /**
+   * Busca en la bandeja con el buscador de la propia grilla.
+   *
+   * Es un DataTable de cliente sobre filas ya renderizadas, no server-side: el
+   * filtro es local y no dispara AJAX.
+   */
+  async buscarEnLaBandeja(texto: string) {
+    await this.page.locator(`${this.grillaDeLaBandeja}_filter input`).fill(texto);
+  }
+
+  /** Fila de la bandeja que contiene el texto buscado. */
+  filaEnLaBandeja(texto: string): Locator {
+    return this.page.locator(`${this.grillaDeLaBandeja} tbody tr`).filter({ hasText: texto }).first();
+  }
+
+  /** Celdas de una fila de la bandeja, normalizadas. */
+  async celdasDeLaBandeja(texto: string): Promise<string[]> {
+    return (await this.filaEnLaBandeja(texto).locator('td').allInnerTexts())
+      .map((c) => c.replace(/\s+/g, ' ').trim());
+  }
+
   /**
    * Entra a la bandeja por el menu lateral.
    *
@@ -144,8 +168,13 @@ export class OrdenDeCobroPage {
     await esperarFinDeCarga(this.page);
   }
 
-  /** Elige el cliente en el buscador modal. */
-  async elegirCliente(busqueda: string, nombreEsperado: string) {
+  /**
+   * Elige el cliente en el buscador modal y devuelve las celdas de la fila elegida.
+   *
+   * Devolverlas permite exigir que lo que quedo en el formulario sea lo mismo que
+   * mostraba el buscador, sin fijar en el test datos del cliente.
+   */
+  async elegirCliente(busqueda: string, nombreEsperado: string): Promise<string[]> {
     await expect(this.page.locator(this.campoCliente)).toBeEditable({ timeout: 30_000 });
     await this.page.locator(this.btnCliente).click();
     const modal = this.page.locator('#modalCnt');
@@ -158,9 +187,11 @@ export class OrdenDeCobroPage {
       `El buscador de clientes tiene que ofrecer ${nombreEsperado} al buscar "${busqueda}"`,
     ).toBeVisible({ timeout: 30_000 });
 
+    const celdas = (await fila.locator('td').allInnerTexts()).map((c) => c.replace(/\s+/g, ' ').trim());
     await fila.click();
     await expect(modal).toBeHidden({ timeout: 30_000 });
     await esperarFinDeCarga(this.page);
+    return celdas;
   }
 
   /**
@@ -284,10 +315,57 @@ export class OrdenDeCobroPage {
    * orden, ni posterior a hoy, ni caer en un dia cerrado en Gastos & Mov.
    * Diarios.
    */
-  async aprobar(fecha: string, numeroDeRecibo: string) {
+  /**
+   * Elige la fecha del recibo **en el calendario**, no escribiendola.
+   *
+   * El campo tiene un bootstrap-datepicker, no una mascara, y ninguna de las dos
+   * formas de escribirlo funciona:
+   *
+   *  - con `fill` el valor se ve en pantalla pero **llega vacio** al servidor, que
+   *    corta con "Debe completar la fecha del Recibo";
+   *  - tipeando los digitos pelados queda "07092026", que el servidor no puede
+   *    parsear y `ToDate()` **cae silenciosamente a hoy**, asi que la orden se
+   *    aprueba con una fecha que nadie eligio.
+   *
+   * Elegir el dia en el calendario es ademas lo que hace una persona.
+   */
+  async elegirFechaDelRecibo(fecha: string) {
+    const [dia, mes, anio] = fecha.split('/').map(Number);
     await this.page.locator(this.campoFechaDelRecibo).click();
-    await this.page.locator(this.campoFechaDelRecibo)
-      .pressSequentially(fecha.replace(/\D/g, ''), { delay: 60 });
+
+    const calendario = this.page.locator('.datepicker').filter({ has: this.page.locator('.datepicker-days') }).last();
+    await expect(calendario, 'El campo de la fecha del recibo tiene que abrir su calendario')
+      .toBeVisible({ timeout: 30_000 });
+
+    const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO',
+      'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+    const buscado = `${meses[mes - 1]} ${anio}`;
+
+    // El encabezado dice "Septiembre 2026": se avanza o retrocede hasta el mes
+    // pedido en vez de asumir que ya esta a la vista.
+    for (let intento = 0; intento < 24; intento++) {
+      const titulo = (await calendario.locator('.datepicker-days .datepicker-switch').first().innerText())
+        .replace(/\s+/g, ' ').trim().toUpperCase();
+      if (titulo === buscado) break;
+
+      const actual = meses.indexOf(titulo.split(' ')[0]) + 1;
+      const anioActual = Number(titulo.split(' ')[1]);
+      const adelante = anioActual < anio || (anioActual === anio && actual < mes);
+      await calendario.locator(`.datepicker-days th.${adelante ? 'next' : 'prev'}`).first().click();
+    }
+
+    await calendario.locator('.datepicker-days td.day:not(.old):not(.new)')
+      .filter({ hasText: new RegExp(`^${dia}$`) }).first().click();
+
+    await expect(
+      this.page.locator(this.campoFechaDelRecibo),
+      'El calendario tiene que dejar la fecha elegida en el campo',
+    ).toHaveValue(fecha, { timeout: 30_000 });
+    await esperarFinDeCarga(this.page);
+  }
+
+  async aprobar(fecha: string, numeroDeRecibo: string) {
+    await this.elegirFechaDelRecibo(fecha);
     await this.page.locator(this.campoNumeroDelRecibo).fill(numeroDeRecibo);
     await this.page.locator(this.campoNumeroDelRecibo).blur();
 

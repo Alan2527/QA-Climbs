@@ -66,6 +66,30 @@ export class FacturaProveedorPage {
   readonly buscadorDePendientes = '#tblAllocationFileItems_filter input[type="search"]';
   readonly modalDeAsignacion = '#modalSupplierInvoiceAllocation';
 
+  // --- Bandeja ---
+  readonly grillaDeLaBandeja = '#tblSupplierInvoices';
+
+  /**
+   * Busca en la bandeja con el buscador de la propia grilla.
+   *
+   * Es un DataTable de cliente sobre filas ya renderizadas, no server-side: el
+   * filtro es local y no dispara AJAX.
+   */
+  async buscarEnLaBandeja(texto: string) {
+    await this.page.locator(`${this.grillaDeLaBandeja}_filter input`).fill(texto);
+  }
+
+  /** Fila de la bandeja que contiene el texto buscado. */
+  filaEnLaBandeja(texto: string): Locator {
+    return this.page.locator(`${this.grillaDeLaBandeja} tbody tr`).filter({ hasText: texto }).first();
+  }
+
+  /** Celdas de una fila de la bandeja, normalizadas. */
+  async celdasDeLaBandeja(texto: string): Promise<string[]> {
+    return (await this.filaEnLaBandeja(texto).locator('td').allInnerTexts())
+      .map((c) => c.replace(/\s+/g, ' ').trim());
+  }
+
   /**
    * Entra a la bandeja por el menu lateral.
    *
@@ -73,13 +97,23 @@ export class FacturaProveedorPage {
    * colapsado, asi que primero hay que abrir el padre.
    */
   async irABandejaDeFacturas() {
-    const enlace = "a[href*='administration/supplierinvoices']";
-    await this.page.locator(`li:has(${enlace}) > a`).first().click();
+    // El acordeon deja el item con tamano aunque este colapsado, asi que
+    // `isVisible()` no distingue: se intenta el clic y, si lo tapa el
+    // encabezado, se abre el padre y se reintenta. Sirve venga el menu abierto o
+    // cerrado, que es lo que cambia segun desde que pantalla se llegue.
+    const enlace = "a[href$='administration/supplierinvoices']";
     const item = this.page.locator(enlace).first();
-    await expect(item).toBeVisible();
-    await item.click();
+    const padre = item.locator('xpath=ancestor::li[contains(@class,"menu-accordion")][1]/a').first();
+
+    try {
+      await item.click({ timeout: 5_000 });
+    } catch {
+      await padre.click();
+      await item.click({ timeout: 30_000 });
+    }
     await this.page.waitForURL(/supplierinvoices/i, { timeout: 60_000 });
     await this.page.waitForLoadState('domcontentloaded');
+    await esperarFinDeCarga(this.page);
   }
 
   /** Alta desde el boton Nuevo de la bandeja. */

@@ -196,6 +196,13 @@ export class CajaDiariaPage {
     return modal;
   }
 
+  /** Cierra el modal del pre-cierre, que si queda abierto tapa el menu. */
+  async cerrarPreCierre() {
+    const modal = this.page.locator('#modalDailyCashReviewControl');
+    await modal.locator('[data-dismiss="modal"], .close').first().click();
+    await expect(modal).toBeHidden({ timeout: 30_000 });
+  }
+
   /** Fila del pre-cierre de una caja: ©, Nombre, M, Inicial, Ingreso, Salida, Balance dia, Final. */
   async filaDelPreCierre(nombreDeLaCaja: string): Promise<string[]> {
     const filas = await this.page.locator('#tblDailyCashReview tbody tr').evaluateAll((trs) =>
