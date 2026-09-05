@@ -10,7 +10,9 @@ Documento de traspaso. Última actualización: **2026-09-04**.
 > USD y 188 ARS, categoría 18) para no tocar los saldos reales de QA. El
 > **Bloque C está terminado**: los cinco eslabones en verde, de la factura de
 > proveedor a la caja diaria, más un test de casos negativos. Quedan dos temas
-> abierto por decisión y no por olvido: el cierre definitivo de caja.
+> afuera **por decisión cerrada, no por consultar**: el cierre definitivo de caja,
+> que dejaría en rojo los eslabones 2 y 4 por el resto del día y no se puede
+> deshacer.
 >
 > **Los tres bloques quedaron sin huecos de cobertura** (auditado el 2026-09-05).
 > Lo unico que queda afuera son cosas que un usuario no puede alcanzar — la
@@ -1689,9 +1691,11 @@ incondicionalmente, pero `btnSave.Visible = false` para toda caja existente
 (`DailyCash.aspx.cs:166`), así que sólo aparece en el alta.
 
 Se cubre el **pre-cierre** (`btnReview`), que es puramente de cliente, muestra el
-mismo cuadre por caja y no toca el estado. Si producto quiere el cierre
-definitivo cubierto, hay que definir en qué ambiente o con qué fecha: **queda
-como consulta**.
+mismo cuadre por caja y no toca el estado.
+
+**No queda nada que consultar.** Automatizar el cierre definitivo dejaría en rojo
+los eslabones 2 y 4 por el resto del día en esa sucursal, y no se puede deshacer:
+es una decisión cerrada, no una pregunta para producto.
 
 #### Lo que sólo se supo ejecutando
 
