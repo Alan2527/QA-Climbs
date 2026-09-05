@@ -429,6 +429,38 @@ export class TarifarioPage {
     return { mesesConSalida, modalidades };
   }
 
+  /**
+   * Lee el calendario de Salidas **entero**, dia por dia.
+   *
+   * `calendarioDeSalidas()` responde que meses tienen salida; esto devuelve el
+   * detalle que hace falta para exigir la operatividad contra las reglas de
+   * `ServiceCalendar`: el codigo de cada dia, los horarios a los que indexan los
+   * dias operables y las notas de las excepciones.
+   *
+   * Codigos: -1 fuera de operatividad, -2 cierre declarado por excepcion, y de 0
+   * en adelante un indice dentro de `data-schedules`.
+   */
+  async reglasDelCalendario(): Promise<{
+    inicio: string; meses: number; dias: number[]; horarios: string[]; notas: string[];
+  }> {
+    await this.contenidoDeSolapa('calendar');
+    const cal = this.page.locator('.svc-calendar').first();
+    await expect(cal).toBeAttached({ timeout: 15_000 });
+
+    return cal.evaluate((el) => {
+      const json = (attr: string) => {
+        try { return JSON.parse(el.getAttribute(attr) ?? '[]'); } catch { return []; }
+      };
+      return {
+        inicio: el.getAttribute('data-start') ?? '',
+        meses: Number(el.getAttribute('data-months') ?? 0),
+        dias: json('data-days') as number[],
+        horarios: json('data-schedules') as string[],
+        notas: json('data-notes') as string[],
+      };
+    });
+  }
+
   /** Cierra el popup de la ficha. */
   async cerrarFichaDetalle() {
     await this.page.keyboard.press('Escape');

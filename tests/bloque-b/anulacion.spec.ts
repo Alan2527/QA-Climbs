@@ -215,7 +215,13 @@ test.describe('Reservas — anulacion', () => {
         await esperarFinDeCarga(page);
       }
 
-      const fila = page.locator('tr').filter({ hasText: codigo }).first();
+      // Acotado a la solapa: el historial tiene dos tablas y la de circuitos vive
+      // en display:none. Con `tr` a secas, `.first()` se quedaba con la fila
+      // oculta de la otra solapa y el test fallaba estando la reserva bien
+      // cancelada. Se noto recien en la corrida completa, cuando el historial
+      // tenia reservas de los dos rieles.
+      const fila = page.locator('#tabBooking tr')
+        .filter({ hasText: codigo }).filter({ visible: true }).first();
       await expect(
         fila,
         `La reserva ${codigo} tiene que seguir figurando en el historial despues de cancelarla`,

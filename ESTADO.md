@@ -12,6 +12,11 @@ Documento de traspaso. Última actualización: **2026-09-04**.
 > proveedor a la caja diaria, más un test de casos negativos. Quedan dos temas
 > abierto por decisión y no por olvido: el cierre definitivo de caja.
 >
+> **Los tres bloques quedaron sin huecos de cobertura** (auditado el 2026-09-05).
+> Lo unico que queda afuera son cosas que un usuario no puede alcanzar — la
+> pestaña `#travel-sale` y el filtro `ddResident`, ambos con `Visible="false"`, y
+> el botón de refresco del tarifario, que el CSS deja oculto siempre.
+>
 > Antes de arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
 > toda en verde.
@@ -728,19 +733,56 @@ tocar, así que no se cubre: testearlo obligaría a forzar un clic sobre algo
 invisible. **Queda como observación**, no como bug: no hay historia que defina que
 tenga que verse.
 
+#### Los tres huecos que faltaban, cerrados el 2026-09-05
+
+| Archivo | Qué cubre |
+|---|---|
+| `tests/bloque-a/calendario.spec.ts` | operatividad día por día de los doce meses, contra `ServiceCalendar` y `ServiceMonth` |
+| `tests/bloque-a/multiidioma.spec.ts` | el selector del encabezado en los tres idiomas, contra `ServiceDetail` |
+| `tests/bloque-b/anulacion.spec.ts` | cancelación de una reserva emitida, de punta a punta |
+
+**El calendario** compara cada día del rango contra las dos tablas que lo
+gobiernan. Del servicio 5: `ServiceCalendar` tiene dos reglas habituales
+(`IsDefault = 1`, modalidades 6 y 7, los siete días) y tres con fecha **vencidas
+en 2025**; `ServiceMonth` tiene **junio y julio en 0**. De ahí sale lo exigido: en
+los diez meses habilitados operan todos los días, y en junio y julio ninguno.
+Mirar sólo `ServiceCalendar` no alcanza — es lo que hizo fallar la primera
+versión del test, que daba 61 días de diferencia.
+
+**El multiidioma** recorre Español, Inglés y Portugués y exige el nombre y la
+descripción de cada idioma según `ServiceDetail`, y que no caigan al español por
+defecto. Las dos incógnitas que el traspaso pedía medir quedaron resueltas:
+
+1. **El idioma vive en una cookie**, `Advisor.CustomerLanguage`, 365 días
+   (`AdvisorContext.cs:265`). No se guarda por usuario del lado del servidor, y
+   como cada test arranca de su propio `storageState`, cambiarlo **no contamina a
+   los demás**: no hay que restaurarlo ni correr ese test al final.
+2. **Cambiar el idioma recarga la pantalla** (`ReloadCurrentPage`), así que se
+   pierden los resultados del tarifario y hay que rehacer filtro y búsqueda.
+
+Dos detalles que sólo se supieron ejecutando: el control **esconde el idioma
+activo** (no se puede elegir el que ya está puesto), y al tarifario hay que entrar
+por URL porque **la etiqueta del menú también se traduce**.
+
+**La anulación** emite y cancela la misma reserva, así que es el único test del
+Bloque B que **no deja una reserva viva en QA**. Reserva a **30 días** y no a 7:
+el riel clásico pone la fecha límite de cancelación en la fecha del servicio menos
+15 días, así que una reserva a 7 días nace dentro de la ventana de penalidad y el
+portal contesta "Esta reserva no puede ser cancelada". Es la política funcionando
+bien, no un defecto — medido en QA: `ExpirationDate` 27/08 para un servicio del
+11/09. El multidestino usa otra regla, `InDate − 48hs`.
+
+Y una cosa que la pantalla no dice como uno espera: el detalle refleja la
+cancelación como **"Elementos cancelados"**, no con el cartel de reserva
+cancelada. Lo que la cancelación marca son los elementos; el flag `Canceled` de la
+reserva queda en cero y el historial deriva su cartel de los elementos.
+
 #### Lo que sigue sin cubrirse, y por qué
 
-- **Horarios y excepciones del calendario de Salidas.** `.svc-calendar` trae
-  `data-days` con un código por día (`-1` fuera de operatividad, `-2` cierre por
-  excepción, `>= 0` día con salida). Exigirlo necesita el esperado derivado de
-  `ServiceCalendar` y `ServiceMonth`, guardado como línea base en `data/`. Es
-  medio día de trabajo y quedó planteado aparte.
-- **Multiidioma del encabezado**, ya explicado más abajo: antes de escribirlo hay
-  que medir si el idioma persiste del lado del servidor, porque los tests
-  comparten usuario y `storageState`.
 - **La octava pestaña `#travel-sale` y el filtro `ddResident`** vienen con
-  `Visible="false"`.
-- **Anulación de una reserva emitida**: no está cubierta en ningún bloque.
+  `Visible="false"`: no son alcanzables para un usuario.
+- **El botón de refresco por pestaña**, por lo mismo: `StyleTariff.css:583` lo
+  deja en `display: none` siempre.
 
 ### Bloque A — pendientes menores
 
@@ -748,7 +790,15 @@ tenga que verse.
   `op.HasMoreObservations`, cuyo criterio vive en `ServiceOperativityData`, que no
   está en el repo del WEB. Se adjunta al reporte pero no se exige.
 
-### Multiidioma del portal: diferido a propósito
+### Multiidioma del portal: cubierto el 2026-09-05
+
+> Esta sección quedó como estaba escrita, porque el análisis que tiene sigue
+> siendo válido y explica la diferencia entre los dos mecanismos. Lo que ya **no**
+> corre es que esté diferido: el toggle del encabezado se cubre en
+> `tests/bloque-a/multiidioma.spec.ts`, y las dos preguntas que planteaba para
+> medir antes de escribirlo están respondidas más arriba.
+
+### Multiidioma del portal: el análisis original
 
 Los siete tests corren en **Español** y así quedan por ahora. No es un olvido:
 se decidió esperar a tener Bloques B y C armados y recién ahí evaluar si conviene
