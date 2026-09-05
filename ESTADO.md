@@ -10,8 +10,7 @@ Documento de traspaso. Última actualización: **2026-09-04**.
 > USD y 188 ARS, categoría 18) para no tocar los saldos reales de QA. El
 > **Bloque C está terminado**: los cinco eslabones en verde, de la factura de
 > proveedor a la caja diaria, más un test de casos negativos. Quedan dos temas
-> abiertos, los dos por decisión y no por olvido: el cierre definitivo de caja y
-> la verificación en base de datos.
+> abierto por decisión y no por olvido: el cierre definitivo de caja.
 >
 > Antes de arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
@@ -1677,15 +1676,41 @@ una persona.
 este sistema **una fecha no se escribe**. Si un campo de fecha acepta texto, hay
 que desconfiar y verificar qué llegó al servidor, no qué quedó en pantalla.
 
-#### El único hueco que queda, y necesita una decisión
+#### Verificación en base: medida y descartada
 
-**No se verifica nada en base.** `BO_File.CashedAmount` y
-`BO_FileItem.AllocatedAmount` se escriben y ninguna pantalla los muestra: hoy se
-verifican de forma indirecta, porque el ítem deja de figurar entre los
-pendientes. Cerrarlo de verdad implica que la suite se conecte a SQL — sumar el
-driver `mssql`, la cadena de conexión al `.env` y a los secrets de CI, y decidir
-si un test de UI puede leer la base. **Es una decisión de producto y de
-infraestructura, no técnica**, y por eso queda planteada y no resuelta.
+`BO_File.CashedAmount` y `BO_FileItem.AllocatedAmount` se escriben y ninguna
+pantalla los muestra. La suite los verifica de forma **indirecta**: el ítem deja
+de figurar entre los pendientes cuando queda imputado.
+
+Antes de decidir si valía la pena conectar la suite a SQL, se midió contra los
+files que dejaron las corridas:
+
+| Caso | CashedAmount | AllocatedAmount |
+|---|---|---|
+| Cadena completa | 10 (la venta) | 6 (el costo) |
+| Sólo la rama del proveedor | 0 | 6 |
+| Sólo la rama del cliente | 10 | 0 |
+| Sólo la factura al cliente | 0 | 0 |
+
+Cada file coincide exactamente con el test que lo generó: `AllocatedAmount` vale
+el costo cuando se imputó la factura del proveedor y `CashedAmount` vale la venta
+cuando se aprobó la orden de cobro, sin cruces ni valores a medias.
+
+**La verificación indirecta se corresponde uno a uno con lo que queda en base**,
+así que **no se conecta la suite a SQL**: sería sumar el driver `mssql`, la
+cadena de conexión al `.env` y a los secrets de CI para una ganancia marginal. Si
+en algún momento aparece un caso donde la pantalla y la base difieran, ahí se
+revisa la decisión.
+
+```sql
+-- La consulta con la que se midió
+SELECT TOP 10 f.ID AS FileID, f.CashedAmount, fi.ID AS ItemID,
+       fi.TotalCostRate, fi.AllocatedAmount, fi.TotalRate, fi.CostCurrency
+FROM qa.dbo.BO_File f
+JOIN qa.dbo.BO_FileItem fi ON fi.FileID = f.ID
+WHERE f.ID >= 31920
+ORDER BY f.ID DESC;
+```
 
 ### Decisiones que quedaron tomadas
 
