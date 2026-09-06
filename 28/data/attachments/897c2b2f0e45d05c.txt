@@ -1,0 +1,17 @@
+fuente: ServiceInfo.MeetingPoint, .DropOff y .CancellationPolicy por ServiceID y LanguageID = 1
+
+OBSERVACIONES esperadas:
+  [destacada] Sujeto a modificaciones según condiciones del río
+  [destacada] Traer ropa cómoda y calzado antideslizante
+               La navegación puede reprogramarse por mal tiempo
+OBSERVACIONES en pantalla:
+  [destacada] Sujeto a modificaciones según condiciones del río
+  [destacada] Traer ropa cómoda y calzado antideslizante
+               La navegación puede reprogramarse por mal tiempo
+
+CAMPOS en pantalla:
+  Duración: Regular 02:00 Hs · Privado 04:00 Hs
+  Temporada: De Agosto a Mayo
+  Idiomas: Español, English, Portuguese
+  Punto de encuentro: Desde el hotel
+  Drop-off: Puente de la Mujer (Puerto Madero) /Av. Córdoba y Florida (Galerías Pacifico) /Av. Córdoba y Pellegrini /Av. Córdoba y Cerrito / Cerrito y Juncal / Cerrito y Corrientes / 9 de Julio y Av. De Mayo / Corrientes y Florida. En caso de ser en servicio regular estos puntos pueden ser modificados por el guia de la excursion dependiendo las condiciones del trafico en el dia del paseo.
