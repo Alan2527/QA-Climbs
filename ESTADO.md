@@ -833,13 +833,14 @@ idioma no aplique y el modal caiga al texto por defecto.
 
 ## BLOQUE B — Reservas: terminado
 
-Cuatro flujos: **sólo servicio, sólo hotel, sólo oferta y multidestino**. En todos
-se guardan los datos con los que se generó la reserva y se valida que el BO los
-conserve idénticos, **y que sigan idénticos después de generar el file**.
+Cinco flujos: **sólo servicio, sólo hotel, sólo oferta, multidestino y serie**.
+En todos se guardan los datos con los que se generó la reserva y se valida que el
+BO los conserve idénticos, **y que sigan idénticos después de generar el file**.
+Más dos tests negativos: el del checkout clásico y el del asistente de series.
 
-**Terminado: los cuatro flujos.**
+**Terminado: los cinco flujos.**
 
-Con los datos de QA en su estado actual, el resultado esperado es **3 en verde y
+Con los datos de QA en su estado actual, el resultado esperado es **4 en verde y
 1 en rojo**: el de Servicio marca el hallazgo 7, que su ítem llega al file oculto
 para SIX. No es una regresión de la suite.
 
@@ -849,6 +850,7 @@ para SIX. No es una regresión de la suite.
 | Hotel | clásico | solapa HOTELES | verde |
 | Oferta | CustomTours | solapa OFERTAS, Ushuaia | verde |
 | Multidestino | CustomTours | solapa MULTIDESTINO, Buenos Aires | verde |
+| Serie | asistente propio | `serieall.aspx`, por URL | verde |
 
 Los dos flujos de CustomTours comparten el recorrido del portal entero
 (`armarCircuitoYEmitir`): cambian la solapa, la ciudad y el combo donde se elige
@@ -1052,14 +1054,211 @@ fallado se verificaron **inyectándoles el defecto que existen para atrapar**:
 Las dos se revirtieron después de comprobarlas. **Conviene repetir este ejercicio
 con cada comparación nueva que se agregue** y no darla por buena porque pase.
 
+### Serie — el quinto riel, agregado el 2026-09-05
+
+El asistente de series no se parece a ninguno de los otros cuatro: **no pasa por
+el carrito**. Es un asistente de tres o cuatro pasos que vive en una sola pantalla
+y emite desde ahí. El paso de Adicionales sólo aparece si el circuito tiene
+extras; el nuestro no los tiene, así que muestra tres pasos.
+
+    serieall.aspx                        listado de series
+    serieDetail.aspx?serie=N             circuitos de esa serie
+    serieTour.aspx?serieID=N&tourID=M    el asistente
+
+**Al listado se entra por URL.** INICIO no tiene solapa de series y el menú del
+encabezado no lo enlaza: no hay una sola referencia a `serieall.aspx` fuera de las
+tres pantallas de series. Los otros cuatro flujos entran por INICIO porque ahí sí
+hay puerta; acá no la hay. No se anota como hallazgo: no hay historia que diga que
+tenga que estar enlazado.
+
+Archivos: `pages/serie.page.ts` y tres tests más en `tests/bloque-b/reservas.spec.ts`.
+
+| Test | Qué cubre | Emite |
+|---|---|---|
+| Serie: la reserva emitida conserva los datos en el BackOffice | listado → serie → circuito → asistente completo → BO → file | sí |
+| Serie: el asistente no deja avanzar con datos incompletos | los rechazos y los frenos del asistente | no |
+| Serie: las pantallas se muestran en el idioma elegido | las tres pantallas en ES, EN y PT | no |
+
+**La reserva que emite es de dos habitaciones, y una lleva un menor.** Con una
+sola habitación de adultos no se ejercitaba ni el agrupamiento —la reserva arma
+un grupo por habitación— ni el recargo del menor. Las dos son dobles a propósito:
+así las dos filas del file dicen DOBLE y la comparación de la modalidad no depende
+de cuál se mire primero. Son 5 pasajeros: 4 adultos y 1 menor, y `PaxCount` los
+cuenta a todos.
+
+El primero reutiliza `verificarEnElBackOffice` completo: bandeja, detalle,
+rooming, Destinos & Servicios, ojito por ítem y conciliación de importes. Se le
+agregó una sola opción nueva, `sinReferenciaNiComentario`, y los cuatro flujos
+anteriores quedaron sin tocar.
+
+#### Datos AUTO-QA de la serie — creados por SQL el 2026-09-05
+
+| Pieza | IDs |
+|---|---|
+| Servicios de serie (`IsSerie = 1`, copiados del 1223) | 7948, 7949 |
+| Habitaciones de serie (`IsSerie = 1`, hotel 5003) | 18348–18351 |
+| Serie + `SerieDetail` ×3 idiomas | **19** |
+| Tour (2 noches, Buenos Aires) + Detail ×3 | **5061** |
+| `ReceptiveTourToCity` | 7275 |
+| `ReceptiveTourToRoom` | 4 filas, GroupOrder 1–4 |
+| `ReceptiveTourToService` | 7948 (día 1) y 7949 (día 2) |
+| Salidas | 52 semanales, 05/10/2026 → 27/09/2027, BaseRate 1000 |
+| Tarifas | 624 = 4 categorías × 3 ocupaciones × 52 salidas |
+| Cupo (`SerieQuota`) | 208 filas, 200 cada una, **menos dos salidas** (ver abajo) |
+| Categorías (`ReceptiveTourTariffCutDetail` + Loc) | 5499–5502 |
+
+**Dos salidas de 2027 tienen el cupo bajo a propósito** — en las cuatro
+categorías, para que el caso no dependa de cuál se elija:
+
+| Salida | Cupo | Para qué |
+|---|---|---|
+| 20/09/2027 | **3** | aviso de pocos cupos, y la cuarta habitación choca contra el cupo agotado |
+| 27/09/2027 | **0** | la salida se dibuja sin tarifa y elegirla deriva a consulta por email |
+
+Están al final del calendario porque el flujo que emite toma siempre la primera
+salida (05/10/2026) y nunca las toca. **No hay que "arreglarlas" volviéndolas a
+200**: son la precondición de dos casos del test negativo. Filas
+`SerieQuota` 1673/1725/1777/1829 (cupo 3) y 1674/1726/1778/1830 (cupo 0).
+
+Se armó aparte y no sobre una serie de QA por lo mismo que el resto de los datos
+del bloque: **reservar consume cupo**. `SerieQuotaManager.UseQuota` resta una
+unidad por habitación de la salida elegida, así que correr la regresión contra una
+serie real le sacaría lugar a la operación. Con 200 de cupo por salida y una
+habitación por corrida, la salida del 05/10/2026 aguanta 200 corridas; cuando se
+agote, hay que reponer el cupo por SQL sobre `SerieQuota` de la serie 19.
+
+#### El descubrimiento que costaba caro
+
+**`hasAvailability` se calcula como `ddlHotelCategory.Items.Count > 0`**
+(`SerieBookControl.ascx.cs:274`), y esas categorías salen de
+`ReceptiveTourTariffCutDetail` + `ReceptiveTourTariffCutDetailLoc`, **no** del
+`GroupOrder` de las habitaciones. Sin esas dos tablas cargadas el portal muestra
+"Por el momento no hay disponibilidad para este circuito" aunque la serie tenga
+salidas, tarifas y cupo. Es lo que pasó al armar la serie la primera vez.
+
+Y otra cosa medida en QA: la serie 4972, que funciona, usa ítems con
+`IsSerie = 0`. La exclusividad la impone `SerieItemRules.CanUseInTour` **sólo en
+la UI del WebAdmin al editar**; la reserva lee los ítems del tour sin mirar ese
+flag.
+
+#### Lo que sólo se supo ejecutando
+
+- **El asistente escribe la fecha sin ceros a la izquierda** ("5/10/2026"):
+  `serieTourFormatDate` la arma con `parseInt`. El resumen de confirmación del
+  último paso, en cambio, la arma en el servidor con `dd/MM/yyyy` y sí los lleva.
+  Son dos formatos de la misma fecha y hay que exigir cada uno donde corresponde.
+- **El historial usa la coma como separador de miles** ("USD 2,500"), igual que la
+  oferta y el multidestino, mientras el asistente usa
+  `toLocaleString('es-AR')` — punto de miles. Con un solo parser, 2.500 se leía
+  como 2,5.
+- **Cambiar la cantidad de adultos hace postback**, en los dos sentidos: las
+  tarifas son por ocupación, así que el calendario se redibuja con otros precios.
+  Sin esperarlo, el click siguiente cae sobre un TomSelect que se está remontando
+  y el desplegable no abre.
+- **Los combos son TomSelect**: el `<select>` original queda oculto y
+  `selectOption` no sirve.
+- **Reserva y `Comment` viajan vacíos**: el asistente no tiene dónde cargar
+  referencia, observaciones ni comentario por ítem, y el código guarda el
+  `WholesalerBook` con `Reference` y `Comment` en blanco. Por eso la opción
+  `sinReferenciaNiComentario` del verificador: exigirlos sería exigir un dato que
+  nadie pudo cargar.
+- **La reserva cae en la solapa "Reservas circuitos"** del historial, no en
+  "Reservas": es un `CT_Tour` con su `WholesalerBook`.
+- **Volver al paso 1 con cuatro habitaciones cargadas no se puede** desde la
+  pantalla: el asistente guarda todo en el ViewState, así que el test vuelve a
+  pedir la URL, que es lo que hace una persona para empezar de nuevo.
+
+#### El cupo se verifica sin mirar la base
+
+`InyectarTarifasDesdeDB` publica en la pantalla tres variables: **`liveCupos`**
+—el cupo disponible del grupo por fecha—, **`liveChildRates`** —la tarifa de menor
+por fecha, `RateTypeID = 20`— y **`serieKidsPolicy`** —hasta qué edad el menor no
+paga y cuál es la edad máxima del desplegable.
+
+Con eso el test exige el consumo de cupo de punta a punta: lee `liveCupos` de la
+salida antes de reservar, emite, vuelve a entrar al asistente y lo relee. Tiene
+que haber bajado **una unidad por habitación**, que es lo que hace
+`SerieQuotaManager.UseQuota`. Medido: 197 → 195 con dos habitaciones. El cupo es
+por categoría, así que al volver hay que elegir la misma.
+
+Y el recargo del menor se concilia con la misma fuente: las dos habitaciones
+tienen la misma ocupación de adultos, así que la diferencia entre sus totales
+tiene que ser exactamente la tarifa de menor de esa salida por los menores con
+cargo. **Hoy la serie AUTO-QA no tiene tarifas de menor cargadas** (`liveChildRates`
+vacío) y `freeMaxAge` es 0, así que la diferencia esperada es cero; la fórmula
+empieza a valer sola el día que se carguen.
+
+#### Los rechazos y los frenos que cubre el test negativo
+
+No emite ninguna reserva, así que no deja nada vivo en QA ni consume cupo.
+
+1. Avanzar sin elegir fecha de salida.
+2. El calendario **no ofrece salidas vencidas**: una salida pasada se dibuja sin
+   `data-key` y no es clickeable. Es la única forma de llegar al rechazo por fecha
+   vencida, así que lo que se exige es que no la ofrezca.
+3. Avanzar con fecha pero sin habitaciones.
+4. Topes de ocupación: hasta 3 adultos, hasta 2 menores, nunca más menores que
+   adultos y nunca más de 4 ocupantes.
+5. La quinta habitación: no da error de campo, abre el modal que deriva la
+   consulta a una reserva de grupo.
+6. **Quitar habitaciones** con la "x" de cada fila.
+7. **Volver un paso** y que no se pierda la habitación cargada —
+   `GeneratePassengerForms` repuebla los formularios desde `SavedData`.
+8. **Cambiar de categoría con un menor cargado**: pide confirmación. Cancelar
+   conserva la selección y vuelve el combo a la categoría anterior; confirmar
+   reinicia las habitaciones — **la fecha sobrevive**, `ResetSeleccion` no la
+   toca. Sin menores el cambio se aplica directo y no hay modal: la política de
+   edades es lo único que depende de la categoría.
+9. Avanzar con los pasajeros vacíos.
+10. Fecha de nacimiento que no coincide con la edad elegida para el menor — la
+    edad se calcula a la fecha de salida.
+11. Sin aceptar los términos, el botón de finalizar está deshabilitado.
+12. **Aviso de pocos cupos**: con 5 o menos avisa cuántos quedan, y descuenta las
+    habitaciones ya cargadas — cargadas las tres que hay de cupo, el aviso se
+    apaga.
+13. **Cupo agotado**: pedir una habitación más de las que hay de cupo abre el modal
+    de cupo, no el de reserva de grupo. Son las dos variantes del mismo
+    `#cupoModal` y se disparan por caminos distintos: el de grupo a partir de la
+    quinta habitación, el de cupo cuando `Habitaciones.Count >= avail`. El chequeo
+    de las cuatro va primero, así que para ver el de cupo hace falta una salida con
+    menos de cuatro.
+14. **Salida sin cupo**: el servidor la manda **sin tarifa** (`hasPrice` es
+    `HasPrice && hasQuota`), así que la celda se dibuja pero elegirla no habilita
+    habitaciones: aparece el cartel de consultar por email y el botón de avanzar
+    queda deshabilitado.
+
+#### Multiidioma de las series
+
+Las tres pantallas se recorren en Español, Inglés y Portugués. Lo que se exige es
+**el contenido**, no las etiquetas: el nombre de la serie y el del circuito salen
+de `SerieDetail` y `ReceptiveTourDetail`, cargados en los tres idiomas, y no
+pueden caer al español por defecto.
+
+Las etiquetas del asistente y el mes del calendario **se adjuntan como evidencia y
+no se exigen**: ninguna historia define que tengan que estar traducidas, así que
+compararlas sería inventar un resultado esperado. Lo que se ve hoy en QA, para
+quien lo quiera llevar a producto: los pasos y los títulos sí se traducen
+(Availability / Passengers / Summary), pero **el mes del calendario sigue en
+español** ("Octubre 2026") en los tres idiomas, y **el badge de días de la card
+del circuito también** ("3 días").
+
+#### El paso Adicionales no es alcanzable
+
+`ShowExtrasStep` devuelve `false` fijo (`SerieBookControl.ascx.cs:231`), así que el
+asistente siempre muestra tres pasos. Y aunque se encendiera, el panel del paso 3
+no tiene contenido: es un cartel que dice "No hay adicionales disponibles por el
+momento". No se cubre, por lo mismo que el botón de refresco del tarifario.
+
 ### Lo que queda del Bloque B
 
-- Nada de los cuatro flujos. Lo que sigue es el **Bloque C**.
+- Nada de los cinco flujos. Lo que sigue es el **Bloque C**.
 - **Auditar los costos del candidato antes de escribir cada flujo.** Hotel 5003,
   oferta 5060 y paquete 5059 tienen sus propias tablas. Encontrar el hueco antes
   de escribir el test y no a mitad de la corrida, como pasó con el servicio.
 - Las reservas y los files quedan en QA. Se identifican por la referencia
-  `AUTO-QA <sello>`, que viaja intacta del portal al BO.
+  `AUTO-QA <sello>`, que viaja intacta del portal al BO. **La de la serie no**:
+  viaja sin referencia, y se ubica por el apellido de sus pasajeros
+  (`Regresion<sello>`) o por el circuito AUTO-QA.
 
 
 ## BLOQUE C — Cobranzas: terminado
