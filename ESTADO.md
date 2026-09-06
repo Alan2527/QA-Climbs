@@ -1,6 +1,6 @@
 # Estado de la suite E2E — AMV Travel (QA)
 
-Documento de traspaso. Última actualización: **2026-09-04**.
+Documento de traspaso. Última actualización: **2026-09-05**.
 
 > **Para retomar en otra conversación:** leer este archivo entero y el `CLAUDE.md`
 > de la carpeta padre. El **Bloque A está terminado**. Del **Bloque B — Reservas**
@@ -14,14 +14,124 @@ Documento de traspaso. Última actualización: **2026-09-04**.
 > que dejaría en rojo los eslabones 2 y 4 por el resto del día y no se puede
 > deshacer.
 >
-> **Los tres bloques quedaron sin huecos de cobertura** (auditado el 2026-09-05).
-> Lo unico que queda afuera son cosas que un usuario no puede alcanzar — la
-> pestaña `#travel-sale` y el filtro `ddResident`, ambos con `Visible="false"`, y
-> el botón de refresco del tarifario, que el CSS deja oculto siempre.
+> **El Bloque B tiene un quinto riel**: el asistente de reserva de **series**, con
+> tres tests propios. La suite al 2026-09-05 da **27 en verde y 2 en rojo**, y los
+> dos rojos son esperados: Cruceros (hallazgos 1 y 2) y Servicio (hallazgo 7).
+>
+> **Las pantallas de los tres bloques quedaron sin huecos** (auditado el
+> 2026-09-05), pero **sí quedan huecos de alcance**, acordados y todavía sin
+> empezar: están en la sección **"Plan acordado"**, que es lo primero a leer.
 >
 > Antes de arrancar, mirar las dos secciones marcadas con ⚠️: los datos de QA que
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
 > toda en verde.
+
+## ⚠️ Plan acordado el 2026-09-05 — nada de esto está empezado
+
+Salió de un análisis de la suite entera pedido por Alan, y quedó acordado con él.
+Se documenta **antes** de hacerlo porque la conversación se estaba quedando sin
+contexto. Nada de lo que sigue está escrito: es el próximo trabajo.
+
+### Huecos de alcance a cerrar
+
+**1. La anulación cubre un solo riel.** `tests/bloque-b/anulacion.spec.ts` reserva y
+cancela un **servicio**. Faltan hotel, oferta, multidestino y serie. Las reglas de
+cancelación **no son la misma**: el riel clásico corta en la fecha del servicio
+− 15 días —por eso ese test reserva a 30— y el de circuitos y series usa
+`InDate − 48hs` (`WholesalerBook.ExpirationDate`), así que ahí alcanza con
+reservar con más de dos días de anticipación.
+
+Lo que ya se sabe del flujo, para no volver a averiguarlo:
+
+- `Online/BookingHistoryDetail.aspx:583` — `lnkCancelBook`, visible sólo si la
+  reserva no está confirmada ni cancelada (`BookingHistoryDetail.aspx.cs:222`).
+- `Online/Module/CancelBookControl.ascx` — `#modal-bookcancel`, `#chkTerms`,
+  `btnCancelBook`. Aceptar **redirige al historial** (`CancelBookControl.ascx.cs:128`).
+- El detalle refleja la cancelación como **"Elementos cancelados"**, no con el
+  cartel de reserva cancelada: el flag `Canceled` de la reserva queda en cero.
+- La fila del historial hay que acotarla a la solapa y a lo visible: la tabla de
+  circuitos vive oculta y `first()` se queda con ella.
+- Las reservas de circuito y de serie caen en `#tabCustomTour`.
+
+**2. Bloque C: liquidación del file y bandejas de no asignados.** `FileLiq.aspx`, y
+`UnassignedInvoices` / `UnassignedPayorders` como validación negativa. Vienen de
+la lista de "lo que el PM no pidió y conviene sumar", más abajo.
+
+**3. Multiidioma de hoteles, ofertas y multidestino.** Hoy sólo se mira en el
+tarifario (`tests/bloque-a/multiidioma.spec.ts`) y en las series. Se reusa el mismo
+patrón, con lo ya medido: el idioma vive en la cookie `Advisor.CustomerLanguage`
+(365 días, `AdvisorContext.cs:265`) y no por usuario, así que no contamina a los
+otros tests; el control **esconde el idioma activo**; cambiarlo **recarga la
+pantalla** y hay que rehacer filtro y búsqueda. El esperado sale de la tabla de
+traducción, nunca de la pantalla.
+
+**4. Tarifas de menor de la serie.** Cargar `ReceptiveTourDepartureRate` con
+`RateTypeID = 20` (`ReceptiveTourDepartureRateManager.ChildRateTypeId`) y el
+`GroupOrder` de cada categoría, para las 52 salidas del tour 5061. Con eso la
+fórmula del recargo del menor —**ya escrita** en el test que emite— deja de
+exigir cero. Hoy `liveChildRates` viene vacío y `serieKidsPolicy.freeMaxAge` es 0,
+así que el menor no suma nada y la comparación pasa igual.
+
+### Un hueco que queda en pausa, y por qué
+
+**Puntos de fidelidad.** No se automatiza todavía. La acreditación ocurre
+`file.OutDate + AccreditationDelayDays`, y esos **15 días están hardcodeados**: un
+test tendría que esperar quince días para verificar lo único que importa. Alan va a
+pedirle al PM que **en QA se acrediten al momento**; recién ahí se arma el bloque.
+
+Lo relevado del flujo, para cuando se retome: configuración 1 el multiplicador,
+3 y 4 los puntos del usuario, 5 y 6 los no-online; categoría 1 acumula y 2 canjea;
+`AvailableFromDate = file.OutDate + 15`.
+
+### Mejoras acordadas
+
+**1. Los retries no pueden aplicar a los tests que emiten.** Hoy
+`retries: process.env.CI ? 1 : 0`. Si el Bloque B falla por intermitencia en CI, el
+reintento **emite una segunda reserva y consume dos cupos más** de la serie. Ojo:
+`retries` es global y los tres bloques comparten el mismo proyecto de Playwright,
+así que no alcanza con ponerlo por proyecto tal como está armado — o se baja a 0,
+o se parten los bloques en proyectos distintos, que además agruparía mejor el
+Allure.
+
+**2. `conResaltado` está duplicado en los 8 archivos de test.** Se dejó así a
+propósito para no tocar bloques ya terminados. Ahora que están todos en verde y
+pusheados, va a `utils/pasos.ts` una sola vez.
+
+**3. Sacar los `waitForTimeout` fijos de `pages/serie.page.ts`** (hay 9). Son
+esperas a ciegas: alargan la corrida y son la fuente típica de intermitencia. Se
+cambian por espera sobre condición — que el calendario tenga celdas, que TomSelect
+esté montado, que el UpdatePanel haya terminado.
+
+**4. Partir `tests/bloque-b/reservas.spec.ts`** (2.226 líneas) por riel: clásico,
+circuitos y series. Sin tocar el `describe`, para no mover el árbol de Allure.
+`tests/bloque-c/cobranzas.spec.ts` va por el mismo camino (2.160).
+
+**5. Chequear las precondiciones de los datos AUTO-QA antes de correr.** Si alguien
+borra o renombra un candidato, hoy el test falla diez pasos adentro con un error de
+locator en vez de decir "falta el dato".
+
+### Lo que quedó afuera a propósito
+
+**La limpieza de los datos que deja la suite la hace Alan a mano cada cierto
+tiempo**, no la suite. Datos para cuando toque:
+
+- Cada corrida del Bloque B deja 4 reservas emitidas con su file. Se ubican por la
+  referencia `AUTO-QA <sello>`; **la de la serie no tiene referencia** y se ubica
+  por el apellido de sus pasajeros (`Regresion<sello>`) o por el circuito AUTO-QA.
+- Cada corrida del Bloque C deja facturas, órdenes aprobadas y movimientos en las
+  cajas propias 187 y 188.
+- El cupo de la serie 19 baja **2 por corrida** del test que emite, sobre la salida
+  del 05/10/2026. Arrancó en 200 y al 2026-09-05 quedan **195**. Se repone con un
+  `UPDATE` sobre `qa.dbo.SerieQuota` para los RoomID 18348–18351.
+- **No tocar** las filas 1673/1725/1777/1829 (cupo 3) ni 1674/1726/1778/1830
+  (cupo 0): son la precondición de dos casos del test negativo de series.
+
+**Y dos cosas que no se van a exigir**, porque no hay historia que las defina: el
+mes del calendario y el badge "3 días" siguen en español en inglés y portugués
+—quedan adjuntos como evidencia—, y la UI inalcanzable del tarifario
+(`#travel-sale`, `ddResident`, el botón de refresco).
+
+---
 
 ## Qué es esto
 
