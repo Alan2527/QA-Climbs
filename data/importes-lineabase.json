@@ -1,6 +1,6 @@
 {
   "_nota": "Linea base de los importes tal como los muestra el tarifario. Capturada con tools/capturar-lineabase.spec.ts y consolidada con tools/consolidar-lineabase.mjs (npm run lineabase). Si un cambio del sistema altera un importe, el recargo por idioma o la marca TARIFA EXTENDIDA, la comparacion falla.",
-  "_capturada": "2026-09-01",
+  "_capturada": "2026-09-05",
   "_ambiente": "QA",
   "items": {
     "cenaShow": {
@@ -1887,6 +1887,12 @@
             "USD 5,398",
             "USD 2,820",
             "USD 2,258"
+          ],
+          [
+            "01/03/2028 - 05/03/2028",
+            "USD 5,170",
+            "USD 2,728",
+            "USD 2,196"
           ]
         ]
       },
@@ -2008,6 +2014,12 @@
             "USD 4,684",
             "USD 2,444",
             "USD 1,964"
+          ],
+          [
+            "01/03/2028 - 05/03/2028",
+            "USD 4,456",
+            "USD 2,352",
+            "USD 1,902"
           ]
         ],
         "Inglés": [
@@ -2121,6 +2133,12 @@
             "USD 4,716",
             "USD 2,474",
             "USD 1,994"
+          ],
+          [
+            "01/03/2028 - 05/03/2028",
+            "USD 4,488",
+            "USD 2,382",
+            "USD 1,932"
           ]
         ],
         "Portugués": [
@@ -2234,6 +2252,12 @@
             "USD 4,684",
             "USD 2,444",
             "USD 1,964"
+          ],
+          [
+            "01/03/2028 - 05/03/2028",
+            "USD 4,456",
+            "USD 2,352",
+            "USD 1,902"
           ]
         ]
       },
