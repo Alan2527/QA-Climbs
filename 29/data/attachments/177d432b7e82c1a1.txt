@@ -1,0 +1,3 @@
+nombre: ficha-5.pdf
+bytes:  98248
+firma:  "%PDF"  (un PDF valido empieza con %PDF)
