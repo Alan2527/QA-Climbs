@@ -10,7 +10,7 @@ import { OrdenDeCobroPage } from '../../pages/orden-de-cobro.page';
 import { CajaDiariaPage } from '../../pages/caja-diaria.page';
 import {
   paso, adjuntarTexto, esperarFinDeCarga, fechaDeBusqueda, formatearFecha,
-  importeANumero, reiniciarNumeracionDePasos, conResaltado,
+  importeANumero, reiniciarNumeracionDePasos, conResaltado, selloEnLetras,
 } from '../../utils/pasos';
 
 /**
@@ -122,7 +122,7 @@ test.describe('Cobranzas', () => {
       referencia: `AUTO-QA ${sello}`,
       observaciones: `Reserva de regresion automatica ${sello}. No operar.`,
       detalleDelItem: `Vuelo de llegada AR1234 ${sello}`,
-      apellido: `Regresion${sello.slice(-6)}`,
+      apellido: `Regresion${selloEnLetras(sello.slice(-6))}`,
       cantidadPax: 0,
       pasajeros: [] as Pasajero[],
     };
@@ -137,9 +137,7 @@ test.describe('Cobranzas', () => {
       await servicio.buscarPorNombre(datos.terminoDeBusqueda, datos.servicio);
       await servicio.abrirFicha(datos.servicio.slice(0, 24));
 
-      const fila = page.locator('tr')
-        .filter({ has: page.locator("select[id*='ddPax']") })
-        .filter({ hasText: datos.modalidad }).first();
+      const fila = servicio.bloqueDeModalidad(datos.modalidad);
       await expect(
         fila,
         `La ficha tiene que ofrecer la modalidad ${datos.modalidad} para el ${datos.fecha}. ` +
@@ -148,15 +146,18 @@ test.describe('Cobranzas', () => {
 
       const texto = (await fila.innerText()).replace(/\s+/g, ' ');
       datos.cantidadPax = Number(texto.match(/M[ií]nimo\s+(\d+)/i)?.[1] ?? 1);
-      await fila.locator("select[id*='ddPax']").selectOption(String(datos.cantidadPax));
+      await fila.locator(servicio.comboPax).selectOption(String(datos.cantidadPax));
       await esperarFinDeCarga(page);
       await page.locator("[id$='lnkBookService']").first().click();
       await esperarFinDeCarga(page);
+      // El contador del encabezado cuenta **items** del carrito, no pasajeros: lo
+      // confirmo el PM tras el rediseno del 2026-09-05. Aca se agrega una sola
+      // excursion, asi que tiene que mostrar 1 aunque lleve dos pasajeros.
       await expect.poll(() => carrito.paxEnElCarrito(), { timeout: 30_000 })
-        .toBe(datos.cantidadPax);
+        .toBe(1);
 
       datos.pasajeros = Array.from({ length: datos.cantidadPax }, (_, i) => ({
-        nombre: `Pasajero${i + 1}`,
+        nombre: `Pasajero${['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco', 'Seis', 'Siete', 'Ocho'][i] ?? 'Extra'}`,
         apellido: datos.apellido,
         pasaporte: `QA${sello.slice(-8)}${i + 1}`,
         nacimiento: `0${i + 1}/03/1990`,

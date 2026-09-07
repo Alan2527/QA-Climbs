@@ -122,17 +122,27 @@ salidas y con ese valor.
 | Partir `cobranzas.spec.ts` | sin empezar (2.160 líneas) |
 | Multiidioma de las pantallas de reserva | sin empezar |
 
-**Por qué se paró el hueco 2 en vez de escribirlo igual.** Medido: el eslabón 1 del
-Bloque C falla en el mismo lugar que el Bloque B — "La ficha tiene que ofrecer la
-modalidad Regular" — porque `reservarServicioYGenerarFile` empieza reservando.
-Escribir trescientas líneas contra dos pantallas del BO que no se pueden operar, con
-la anulación ya esperando sin verificar, era apilar una segunda entrega sin probar
-sobre la primera.
+**El hueco 2 se paró mientras se creía que no se podía reservar.** El eslabón 1 del
+Bloque C fallaba en el mismo lugar que el Bloque B, porque
+`reservarServicioYGenerarFile` empieza reservando. Con el localizador de la ficha
+corregido, ese bloqueo ya no existe: el hueco 2 se puede escribir y correr.
 
 **Y lo primero de todo al retomar**: la corrida del 2026-09-05 después del deploy
 dio **13 rojos** — 8 en el Bloque A y 7 en el B — y **no son de la suite**. Se
 verificó haciendo `git stash` del refactor entero y corriendo el test de Servicio
 con el código anterior: falla igual. Lo que el deploy cambió, medido:
+
+0. **El contador del carrito del encabezado pasó a contar items**, no la suma de
+   las cantidades. `UserStatusControl.js` hacía `count += parseInt(value.Quantity)`
+   —pasajeros en un servicio, habitaciones en un hotel— y ahora hace
+   `var count = items.length`. Con una excursión para dos personas el ícono mostraba
+   2 y ahora muestra 1.
+
+   **Se planteó como consulta y el PM confirmó que contar items es lo correcto**: lo
+   anterior estaba mal. Con esa definición el test volvió a exigir el número exacto
+   —una excursión agregada, un item— en vez del "mayor que cero" con el que había
+   quedado mientras no hubo criterio. El mismo número alimenta el aviso de
+   "agregado al carrito", así que ese aviso también habla de items.
 
 1. **Desapareció el componente "copiar" de las cards** — excursiones, cena show y
    traslados.
@@ -141,9 +151,95 @@ con el código anterior: falla igual. Lo que el deploy cambió, medido:
    30/09/2026 | USD 860 | ...`.
 3. **Cambiaron los rangos de vigencia**: `01/03/2028 - 05/03/2028` ahora termina el
    **07/03/2028**, igual que el `to=07-03-2028` del link del menú.
-4. **El servicio AUTO-QA no se puede reservar en ninguna fecha**: 0 filas con tarifa
-   a 7, 14, 30 y 60 días. Es lo que voltea el Bloque B entero.
+4. **La ficha de servicio dejó de ser una tabla.** Cada modalidad era un `<tr>` y
+   ahora es un `div.sd-rate` dentro de `div.sd-rates`; en la pantalla no queda un
+   solo `tr`. Es lo que volteó el Bloque B entero y el C.
+
+   El síntoma era engañoso y me llevó a dar por hecho que **el servicio no se podía
+   reservar**, que era falso: los tests cortaban con "La ficha tiene que ofrecer la
+   modalidad Regular" como si el servicio hubiera perdido sus tarifas. Medido con
+   los propios page objects: la ficha muestra "CHECK-IN Regular Mínimo 2
+   pasajeros", los dos `ctrlPaxQuantityControl_ddPax` están y el botón "Agregar al
+   carrito" también. Lo único que faltaba era la tabla.
+
+   El localizador vivía repetido en cuatro archivos como
+   `page.locator('tr').filter({ has: ddPax })`. Pasó a `ServicioPage`, que es donde
+   debería haber estado: `bloquesDeTarifa()`, `bloqueDeModalidad(modalidad)` y
+   `comboPax`. **Esto no es adaptar el test a la implementación**: el paso funcional
+   —elegir la cantidad de pasajeros de una modalidad y agregarla al carrito— no
+   cambió; cambió el HTML donde vive.
 5. **El menú tiene una entrada nueva**: `Series → /online/serieAll.aspx`.
+
+### La migración del rediseno — 2026-09-07
+
+El deploy es la **US 4613, "Rediseno multidestinos y Perfo"** (`f70394eb`, con
+`8f556f5c` y otros mergeados a QA el 06/09). **Sacó las tablas del portal** — el
+propio `BookingHistoryDetail.aspx` lo comenta: *"Esta pantalla dejo de tener
+tablas"*. Ocho localizadores de la suite se apoyaban en esa estructura:
+
+| Pantalla | Antes | Ahora |
+|---|---|---|
+| Ficha de servicio | `tr` con `ddPax` | `.sd-rate` dentro de `.sd-rates` |
+| Ícono del carrito | navegaba al carrito | abre un panel lateral; adentro está "Ir al carrito" (`#btnFinalizar`) |
+| Filas del carrito | `table.table-bordered tbody tr` | `.ct-row` en `.ct-list--cart` |
+| Total del ítem | última celda `td` | último importe del texto de la fila |
+| Apellido del checkout | `txtSurName` | `txtSurname` |
+| Comentarios del detalle | `p.pdiscl` y `tr` con `h6` | `.bhd-row__policy` / `.bhd-row__note` y `.bhd-fact` |
+| Itinerario de CustomTours | `table` con el botón adentro | panel `.ct-sum` |
+| Carrito de CustomTours | `tr` | `.ct-row` |
+
+**El más caro fue el del carrito, por silencioso.** `vaciar()` cuenta las filas y
+**se va temprano si no encuentra ninguna**, así que daba el carrito por vacío sin
+limpiar nada. Las corridas fallidas fueron acumulando ítems y el test siguiente
+encontraba 5 pasajeros donde esperaba 1: fallaba lejos de donde estaba el problema.
+
+#### Dos cambios de comportamiento, no de maquetado
+
+**El contador del carrito cuenta ítems**, ya explicado arriba: confirmado por el PM
+como el comportamiento correcto.
+
+**El checkout de CustomTours rechaza nombres y apellidos con dígitos.**
+`TourPassangerControl.ascx.cs:199` valida `!valor.Any(char.IsDigit)` y la única
+señal es que el campo se pinta con `border-danger`: **no hay ningún mensaje**, la
+reserva no se guarda, el postback devuelve 200 y no queda nada en el log. La suite
+mandaba `Pasajero1` y `Regresion002745`, así que dejó de emitir sin decir por qué.
+
+Se resolvió con `selloEnLetras()` en `utils/pasos.ts`: los nombres pasan a
+`PasajeroUno`, `PasajeroDos`… y el apellido conserva su marcador único mapeando
+cada dígito a una letra (`002745` → `AACHEF`). Hace falta que sea único porque es
+como se ubican después las reservas que la suite deja, **sobre todo la de series,
+que viaja sin referencia**.
+
+#### Dos defectos del test que el rediseno destapó
+
+Ninguno de los dos es del sistema; los dos estaban latentes:
+
+- **El calendario de hoteles muestra dos meses.** `elegirFechas` buscaba el día con
+  `td.available` sobre el picker entero, y mientras la fecha cayera en el mes de la
+  izquierda no se notaba. La anulación reserva a **30 días**, la fecha cayó en el
+  mes de la derecha y eligió el mismo número de día **del mes equivocado**. Ahora se
+  ubica el calendario por sus desplegables de mes y año.
+- **"Elementos cancelados" no aplica a un servicio suelto.** Esa tarjeta lista
+  **hoteles** cancelados (`LoadElementsCanceled` → `GetHotelsCanceled`) y sin
+  ninguno no se dibuja. Exigirla en una reserva sin hotelería era pedir algo que no
+  aplica: pasó a ser condicional.
+
+#### El hallazgo que quedó abierto
+
+**Ninguna reserva de serie se puede emitir.** Al confirmar, el postback vuelve
+`28|error|500|One or more errors occurred.` y **la pantalla no muestra nada**.
+Reproducido a mano por Alan, no sólo por la suite. En el log quedan tres
+excepciones en el mismo segundo:
+
+    El nombre de objeto 'BedSetup' no es valido.              (LogTypeID 0, capturada)
+    El nombre de columna 'SerieDepartureID' no es valido.     (LogTypeID 50)
+    AggregateException -> SerializationException: esperaba
+      'CreateCustomTourResponse' y recibio 'boolean'          (PostApiCall)
+
+Las dos primeras son objetos de base que **el código desplegado usa y QA no tiene**
+(`SerieDepartureID` lo introdujo `8f556f5c`). La tercera es la que sale como 500.
+Cuál de las tres lo causa quedó sin determinar. **El multidestino no está
+afectado**: emite bien, verificado a mano y por la suite.
 
 **No se tocó ni la línea base ni un solo selector.** Regenerarlos haría que todo
 vuelva a verde tapando lo que la suite acaba de encontrar. El 2 y el 3 parecen

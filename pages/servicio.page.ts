@@ -29,6 +29,45 @@ export class ServicioPage {
   readonly btnReservar      = "[id$='lnkBookService']";
 
   /**
+   * Bloque de una modalidad en la ficha ("Regular", "Privado").
+   *
+   * **Hasta el 2026-09-05 cada modalidad era una fila de tabla**, y los tests la
+   * ubicaban con `page.locator('tr').filter({ has: ddPax })`. El deploy de ese dia
+   * rediseño la ficha: ahora cada modalidad es un `div.sd-rate` dentro de
+   * `div.sd-rates`, y no queda un solo `tr` en la pantalla.
+   *
+   * El sintoma era enganioso. El test cortaba con "La ficha tiene que ofrecer la
+   * modalidad Regular", como si el servicio hubiera perdido sus tarifas, cuando en
+   * realidad la modalidad estaba a la vista: lo que faltaba era la tabla. Medido en
+   * QA: la ficha muestra "CHECK-IN Regular Minimo 2 pasajeros", los dos
+   * `ctrlPaxQuantityControl_ddPax` existen y el boton "Agregar al carrito" tambien.
+   *
+   * El paso funcional no cambio —elegir la cantidad de pasajeros de una modalidad y
+   * agregarla al carrito—, cambio el HTML donde vive. Por eso el localizador ahora
+   * es del page object y no de cada test: son cuatro los archivos que lo usaban.
+   */
+  readonly bloqueDeTarifa = '.sd-rate';
+  readonly comboPax = "select[id*='ctrlPaxQuantityControl_ddPax']";
+
+  /** Todas las modalidades reservables que ofrece la ficha. */
+  bloquesDeTarifa(): Locator {
+    return this.page.locator(this.bloqueDeTarifa)
+      .filter({ has: this.page.locator(this.comboPax) });
+  }
+
+  /** La modalidad pedida, por su nombre tal como lo muestra la ficha. */
+  bloqueDeModalidad(modalidad: string): Locator {
+    return this.bloquesDeTarifa().filter({ hasText: modalidad }).first();
+  }
+
+  /** Elige la cantidad de pasajeros dentro de una modalidad. */
+  async elegirCantidadDePax(modalidad: string, cantidad: number) {
+    await this.bloqueDeModalidad(modalidad).locator(this.comboPax)
+      .selectOption(String(cantidad));
+    await esperarFinDeCarga(this.page);
+  }
+
+  /**
    * Elige una fecha abriendo el calendario y clickeando el dia, como en la
    * pantalla.
    *

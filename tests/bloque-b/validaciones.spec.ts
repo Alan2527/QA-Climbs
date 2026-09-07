@@ -4,7 +4,7 @@ import { ServicioPage } from '../../pages/servicio.page';
 import { CarritoPage } from '../../pages/carrito.page';
 import {
   paso, adjuntarTexto, esperarFinDeCarga, fechaDeBusqueda, formatearFecha,
-  reiniciarNumeracionDePasos, conResaltado,
+  reiniciarNumeracionDePasos, conResaltado, selloEnLetras,
 } from '../../utils/pasos';
 
 /**
@@ -79,9 +79,7 @@ test.describe('Reservas — validaciones', () => {
       await servicio.buscarPorNombre(datos.terminoDeBusqueda, datos.servicio);
       await servicio.abrirFicha(datos.servicio.slice(0, 24));
 
-      const fila = page.locator('tr')
-        .filter({ has: page.locator("select[id*='ddPax']") })
-        .filter({ hasText: datos.modalidad }).first();
+      const fila = servicio.bloqueDeModalidad(datos.modalidad);
       await expect(
         fila,
         `La ficha tiene que ofrecer la modalidad ${datos.modalidad} para el ${datos.fecha}`,
@@ -95,7 +93,7 @@ test.describe('Reservas — validaciones', () => {
         'validacion de cantidad')
         .toBeGreaterThan(1);
 
-      await fila.locator("select[id*='ddPax']").selectOption(String(datos.cantidadPax));
+      await fila.locator(servicio.comboPax).selectOption(String(datos.cantidadPax));
       await esperarFinDeCarga(page);
       await page.locator("[id$='lnkBookService']").first().click();
       await esperarFinDeCarga(page);
@@ -132,8 +130,8 @@ test.describe('Reservas — validaciones', () => {
       // asi el unico motivo del rechazo es ese campo.
       for (let i = 0; i < datos.cantidadPax; i++) {
         await carrito.completarPasajero(i, {
-          nombre: `Pasajero${i + 1}`,
-          apellido: `Regresion${sello.slice(-6)}`,
+          nombre: `Pasajero${['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco', 'Seis', 'Siete', 'Ocho'][i] ?? 'Extra'}`,
+          apellido: `Regresion${selloEnLetras(sello.slice(-6))}`,
           pasaporte: `QA${sello.slice(-8)}${i + 1}`,
           nacimiento: `0${i + 1}/03/1990`,
           nacionalidad: 'Argentina',
@@ -143,7 +141,7 @@ test.describe('Reservas — validaciones', () => {
         datos.cantidadPax, datos.referencia, datos.observaciones,
       );
 
-      const apellido = page.locator("[id*='lvPassengersData'][id$='_txtSurName']").first();
+      const apellido = page.locator("[id*='lvPassengersData'][id$='_txtSurname']").first();
       await apellido.fill('');
       await intentarConfirmar();
 
@@ -153,7 +151,7 @@ test.describe('Reservas — validaciones', () => {
       });
 
       // El aviso no alcanza: la pantalla tiene que senalar cual es el campo.
-      const marcado = page.locator("[id*='lvPassengersData'][id$='_txtSurName'].border-danger").first();
+      const marcado = page.locator("[id*='lvPassengersData'][id$='_txtSurname'].border-danger").first();
       await conResaltado(page, apellido, 'Campo marcado en rojo', async () => {
         await expect(marcado, 'El apellido vacio tiene que quedar marcado en rojo')
           .toBeVisible({ timeout: 30_000 });
@@ -164,7 +162,7 @@ test.describe('Reservas — validaciones', () => {
     await paso(page, 'Intentar confirmar con menos pasajeros que los cargados', async () => {
       await carrito.completarPasajero(0, {
         nombre: 'Pasajero1',
-        apellido: `Regresion${sello.slice(-6)}`,
+        apellido: `Regresion${selloEnLetras(sello.slice(-6))}`,
         pasaporte: `QA${sello.slice(-8)}1`,
         nacimiento: '01/03/1990',
         nacionalidad: 'Argentina',

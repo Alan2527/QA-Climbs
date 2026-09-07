@@ -42,7 +42,10 @@ export class CarritoCustomToursPage {
    * importe de su fila, que es el total de esa linea.
    */
   async importePorItem(fragmentos: string[]): Promise<Record<string, string>> {
-    const filas = await this.page.locator('tr').evaluateAll((trs) =>
+    // **Con el rediseno del 2026-09-05 esta pantalla dejo de ser una tabla**: cada
+    // item es un `.ct-row`, igual que en el carrito del riel clasico. Buscando `tr`
+    // no encontraba ninguna fila y devolvia todos los importes vacios.
+    const filas = await this.page.locator('.ct-row').evaluateAll((trs) =>
       trs.map((tr) => (tr.textContent || '').replace(/\s+/g, ' ').trim()));
 
     const salida: Record<string, string> = {};
@@ -86,7 +89,8 @@ export class CarritoCustomToursPage {
    * Carga un pasajero.
    *
    * Ojo con el apellido: en esta pantalla el campo es `txtSurname` y en el
-   * checkout del otro riel es `txtSurName`, con la N mayuscula.
+   * checkout del otro riel tambien es `txtSurname`: hasta el rediseno del
+   * 2026-09-05 era `txtSurName`, con la N mayuscula.
    */
   async completarPasajero(indice: number, pax: Pasajero) {
     const prefijo = await this.prefijoDelPasajero(indice);

@@ -114,25 +114,38 @@ export class CustomToursPage {
     await esperarFinDeCarga(this.page);
   }
 
-  /** La tabla de totales del itinerario, que es la que trae el boton Continuar. */
+  /**
+   * El panel de resumen del itinerario, que es el que trae el boton Continuar.
+   *
+   * **Hasta el rediseno del 2026-09-05 era una tabla** y esto la buscaba con
+   * `table` + el boton adentro. Ahora es el panel `.ct-sum`, con una tarjeta por
+   * hotel y las lineas de habitacion, servicios y total.
+   */
   tablaDeTotales(): Locator {
-    return this.page.locator('table').filter({ has: this.page.locator(this.btnContinuar) }).last();
+    return this.page.locator('.ct-sum').first();
   }
 
   /**
-   * Celdas de la fila de totales: hotel, SGL, DBL, TPL, servicios y total.
+   * Las lineas del resumen: los hoteles con su precio, la habitacion, los
+   * servicios y el total.
    *
-   * El total de la pantalla es la suma de la habitacion mas los servicios, y
-   * asi se puede verificar sin reimplementar ningun calculo: la propia fila lo
-   * demuestra (2.024 + 558 = 2.582).
+   * Antes eran las celdas de una fila —hotel, SGL, DBL, TPL, servicios, total— y
+   * ahora son las lineas del panel. **El orden de los importes se mantiene**: los
+   * tres ultimos siguen siendo habitacion, servicios y total, asi que la
+   * conciliacion de la pantalla sigue valiendo sin reimplementar ningun calculo.
+   * Medido en QA: 2.024 de la doble + 182 de servicios = 2.206 de total.
    */
   async filaDeTotales(): Promise<string[]> {
-    const fila = this.tablaDeTotales().locator('tr').filter({ has: this.page.locator(this.btnContinuar) }).last();
-    return (await fila.locator('td').allInnerTexts()).map((c) => c.replace(/\s+/g, ' ').trim());
+    const texto = await this.tablaDeTotales().innerText();
+    return texto.split(String.fromCharCode(10))
+      .map((l) => l.replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
   }
 
   async continuarAlCarrito() {
-    await this.page.locator(this.btnContinuar).first().click();
+    // Acotado al panel de resumen: la pantalla trae varios `lnkReservar` —uno por
+    // opcion armada— y `.first()` a secas podia quedarse con el de otra.
+    await this.tablaDeTotales().locator(this.btnContinuar).first().click();
     await this.page.waitForURL(/shoppingcartcustomtour/i, { timeout: 120_000 });
     await esperarFinDeCarga(this.page);
   }

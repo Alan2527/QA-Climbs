@@ -87,7 +87,9 @@ test.describe('Reservas', () => {
       claveDeReferencia: 'itinerario (total)',
       // En circuitos el comentario del item va a CT_Service.Comment, que se
       // imprime junto al nombre del alojamiento y no en el p.pdiscl del otro riel.
-      selectorDelComentario: 'td:has(h6:has-text("Park Hyatt")) p strong',
+      // El comentario del item del circuito. Con el rediseno del 2026-09-05 esta
+      // pantalla dejo de tener tablas.
+      selectorDelComentario: '.bhd-row__note',
       modalidadEnElFile: 'DOBLE',
       itemUnico: false,
       itemsEsperados: reserva.items,
@@ -171,7 +173,9 @@ test.describe('Reservas', () => {
     await verificarEnElBackOffice({
       page, bo, codigo, contexto, importes, capturar,
       claveDeReferencia: 'itinerario (total)',
-      selectorDelComentario: 'td:has(h6:has-text("Park Hyatt")) p strong',
+      // El comentario del item del circuito. Con el rediseno del 2026-09-05 esta
+      // pantalla dejo de tener tablas.
+      selectorDelComentario: '.bhd-row__note',
       modalidadEnElFile: 'DOBLE',
       itemUnico: false,
       itemsEsperados: reserva.items,

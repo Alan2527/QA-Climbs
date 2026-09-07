@@ -80,20 +80,37 @@ export async function esperarFinDeCarga(page: Page, timeout = 60_000) {
 }
 
 /**
- * Reemplaza la fecha de hoy por el token <HOY> dentro de un texto.
+ * Neutraliza en un texto las dos fechas que se mueven solas con el calendario.
  *
- * La vigencia de la primera fila del tarifario arranca en la fecha del dia, asi
- * que la linea base capturada un dia no servia al siguiente: fallaba por la
- * fecha aunque los importes fueran identicos. No se habia notado porque se
- * capturaba y se corria el mismo dia.
+ * **El tarifario filtra desde hoy hasta hoy + 18 meses**
+ * (`TariffFilterControl.ascx.cs:197`) y la columna de vigencia muestra el rango de
+ * cada tarifa **recortado a esa ventana**. O sea que los dos extremos se corren un
+ * dia por dia, aunque no cambie ni una tarifa:
  *
- * Normalizando de los dos lados, la comparacion deja de depender del dia en que
- * se corre y sigue detectando cualquier cambio real de fechas o de importes.
+ *   la primera fila arranca en la fecha de hoy        -> <HOY>
+ *   la ultima termina en hoy + 18 meses               -> <HOY+18M>
+ *
+ * Al principio solo se normalizaba el inicio, y por eso la linea base capturada un
+ * dia dejaba de servir al siguiente por el otro extremo: el 2026-09-07 fallaron
+ * Paquetes y Ofertas porque la ultima vigencia decia `01/03/2028 - 07/03/2028`
+ * donde la base, capturada el 05/09, tenia `- 05/03/2028`. Parecia una tarifa
+ * cambiada y era el almanaque.
+ *
+ * Normalizando los dos extremos, la comparacion deja de depender del dia en que se
+ * corre y sigue detectando cualquier cambio real de fechas o de importes.
  */
 export function normalizarFechaDeHoy(texto: string, hoy = new Date()): string {
-  const dia = String(hoy.getDate()).padStart(2, '0');
-  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-  return texto.split(`${dia}/${mes}/${hoy.getFullYear()}`).join('<HOY>');
+  const comoTexto = (d: Date) =>
+    `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/` +
+    `${d.getFullYear()}`;
+
+  // El fin de la ventana: hoy + 18 meses.
+  const limite = new Date(hoy);
+  limite.setMonth(limite.getMonth() + 18);
+
+  return texto
+    .split(comoTexto(hoy)).join('<HOY>')
+    .split(comoTexto(limite)).join('<HOY+18M>');
 }
 
 /** Fecha de busqueda estandar de la suite: hoy + 7 dias. */
@@ -230,4 +247,22 @@ export async function conResaltado(
     await resaltarYCapturar(page, locator, `FALLA: ${etiqueta}`);
     expect.soft(false, (error as Error).message).toBe(true);
   }
+}
+
+/**
+ * Convierte el sello de la corrida a letras, para poder usarlo en un nombre.
+ *
+ * **Desde el rediseño del 2026-09-05 el checkout de CustomTours rechaza nombres y
+ * apellidos con digitos**: `TourPassangerControl.ascx.cs:199` valida
+ * `!valor.Any(char.IsDigit)`. Y la unica senial es que el campo se pinta con
+ * `border-danger` — no hay ningun mensaje. La reserva simplemente no se guarda: el
+ * postback vuelve 200, la pantalla se redibuja igual y no queda nada en el log.
+ *
+ * La suite necesita que el apellido siga siendo unico por corrida, porque es como
+ * se ubican despues las reservas que deja —sobre todo la de series, que viaja sin
+ * referencia—. Se mapea cada digito a una letra (0 -> A, 1 -> B, ... 9 -> J), asi
+ * el marcador sigue siendo unico y se puede volver al sello leyendolo al reves.
+ */
+export function selloEnLetras(sello: string): string {
+  return sello.replace(/\d/g, (d) => 'ABCDEFGHIJ'[Number(d)]);
 }

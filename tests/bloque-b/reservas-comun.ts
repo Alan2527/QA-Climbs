@@ -5,7 +5,7 @@ import { InicioPage } from '../../pages/inicio.page';
 import { CustomToursPage } from '../../pages/customtours.page';
 import { CarritoCustomToursPage } from '../../pages/carrito-customtours.page';
 import {
-paso, adjuntarTexto, esperarFinDeCarga, importeANumero, formatearFecha, conResaltado,
+paso, adjuntarTexto, esperarFinDeCarga, importeANumero, formatearFecha, conResaltado, selloEnLetras,
 } from '../../utils/pasos';
 
 /**
@@ -160,7 +160,17 @@ export async function verificarEnElBackOffice(opciones: {
 }) {
   const { page, bo, codigo, reserva, contexto, importes, capturar } = opciones;
   const claveDeReferencia = opciones.claveDeReferencia ?? 'ficha (total)';
-  const selectorDelComentario = opciones.selectorDelComentario ?? 'p.pdiscl';
+  /**
+   * Donde vive el comentario del item en el detalle de la reserva.
+   *
+   * **El rediseno del 2026-09-05 (US 4613) saco las tablas de esta pantalla** - el
+   * propio aspx lo dice en un comentario: "Esta pantalla dejo de tener tablas".
+   * Era `p.pdiscl` y ahora el riel clasico lo pone en `.bhd-row__policy`
+   * (`WholesalerBookItemDetailDTO.Detail`) y el de circuitos en `.bhd-row__note`
+   * (`litComments`). Se buscan los dos: el paso junta todas las coincidencias.
+   */
+  const selectorDelComentario = opciones.selectorDelComentario
+    ?? '.bhd-row__policy, .bhd-row__note';
   const modalidadEnElFile = opciones.modalidadEnElFile ?? reserva.modalidad;
   const itemUnico = opciones.itemUnico ?? true;
   const itemsEsperados = opciones.itemsEsperados ?? [reserva.textoEnElBO];
@@ -191,8 +201,10 @@ export async function verificarEnElBackOffice(opciones: {
       ).toContain(reserva.detalleDelItem);
     });
 
-    const filaComentario = page.locator('tr')
-      .filter({ has: page.locator('h6', { hasText: 'Comentario' }) }).first();
+    // Las observaciones de la reserva son un `.bhd-fact` con su etiqueta
+    // ("Comentario(s)") y su valor. Antes eran una fila de tabla con un `h6`.
+    const filaComentario = page.locator('.bhd-fact')
+      .filter({ hasText: 'Comentario' }).first();
     await conResaltado(page, filaComentario, 'Observaciones en el detalle de la reserva', async () => {
       expect(
         (await filaComentario.innerText()).replace(/\s+/g, ' '),
@@ -693,8 +705,8 @@ export async function armarCircuitoYEmitir(opciones: {
     });
 
     reserva.pasajeros = Array.from({ length: reserva.cantidadPax }, (_, i) => ({
-      nombre: `Pasajero${i + 1}`,
-      apellido: `Regresion${sello.slice(-6)}`,
+      nombre: `Pasajero${['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco', 'Seis', 'Siete', 'Ocho'][i] ?? 'Extra'}`,
+      apellido: `Regresion${selloEnLetras(sello.slice(-6))}`,
       pasaporte: `QA${sello.slice(-8)}${i + 1}`,
       nacimiento: `0${i + 1}/03/1990`,
       nacionalidad: 'Argentina',

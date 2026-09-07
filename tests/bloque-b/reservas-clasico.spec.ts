@@ -6,10 +6,10 @@ import { CarritoPage, Pasajero } from '../../pages/carrito.page';
 import { BackOfficePage } from '../../pages/backoffice.page';
 import {
   paso, adjuntarTexto, reiniciarNumeracionDePasos, fechaDeBusqueda,
-  formatearFecha, esperarFinDeCarga, conResaltado,
+  formatearFecha, esperarFinDeCarga, conResaltado, selloEnLetras,
 } from '../../utils/pasos';
 import {
-  SALTO, importe, completarCheckoutYEmitir, verificarEnElBackOffice,
+  SALTO, importe, importeDelPortal, completarCheckoutYEmitir, verificarEnElBackOffice,
 } from './reservas-comun';
 
 /**
@@ -116,7 +116,7 @@ test.describe('Reservas', () => {
       // test no puede elegir un dia operable: la persona tampoco lo ve. Lo que
       // si se hace es cortar con el motivo si la fecha no tiene tarifas, en vez
       // de morir mas adelante en un timeout que parece un defecto.
-      const filasDeTarifa = page.locator('tr').filter({ has: page.locator("select[id*='ddPax']") });
+      const filasDeTarifa = servicio.bloquesDeTarifa();
       await expect(
         filasDeTarifa.first(),
         `La ficha tiene que ofrecer tarifas para el ${reserva.fecha}. Si no las ofrece, ` +
@@ -125,9 +125,7 @@ test.describe('Reservas', () => {
     });
 
     await paso(page, 'Elegir la modalidad Regular con la cantidad minima de pax y reservar', async () => {
-      const fila = page.locator('tr')
-        .filter({ has: page.locator("select[id*='ddPax']") })
-        .filter({ hasText: reserva.modalidad }).first();
+      const fila = servicio.bloqueDeModalidad(reserva.modalidad);
 
       // El minimo se lee de la pantalla, no se fija en el test: es lo que ve la
       // persona ("Minimo 2 pasajeros") y lo que la ficha manda a la API.
@@ -138,7 +136,7 @@ test.describe('Reservas', () => {
       // Precio unitario de la modalidad, tal como lo ve la persona en la fila.
       capturarDelPortal('ficha (precio unitario)', texto.match(/[A-Z]{3}\s*\d[\d.,]*/)?.[0] ?? '');
 
-      await fila.locator("select[id*='ddPax']").selectOption(String(reserva.cantidadPax));
+      await fila.locator(servicio.comboPax).selectOption(String(reserva.cantidadPax));
       await esperarFinDeCarga(page);
 
       // Total que arma la ficha al elegir la cantidad: es el primer importe de
@@ -148,13 +146,31 @@ test.describe('Reservas', () => {
       await page.locator("[id$='lnkBookService']").first().click();
       await esperarFinDeCarga(page);
 
+      /**
+       * El contador del encabezado, que **cuenta items del carrito**.
+       *
+       * Hasta el rediseño del 2026-09-05 sumaba el `Quantity` de cada item, que en
+       * un servicio son los pasajeros: por eso este paso exigia 2 al agregar una
+       * excursion para dos personas. Ahora cuenta lineas, y con esa misma excursion
+       * muestra 1.
+       *
+       * **Se planteo como consulta y el PM confirmo que contar items es lo
+       * correcto**: el comportamiento anterior estaba mal. Con esa definicion la
+       * comparacion vuelve a ser exacta —una excursion agregada, un item— en vez de
+       * conformarse con "mayor que cero". Si el numero vuelve a moverse con los
+       * pasajeros, esto lo marca.
+       *
+       * La cantidad de pasajeros se sigue exigiendo donde vive: en la fila del
+       * carrito, en el paso siguiente.
+       */
+      const ITEMS_AGREGADOS = 1;
       await expect
         .poll(() => carrito.paxEnElCarrito(), { timeout: 30_000 })
-        .toBe(reserva.cantidadPax);
+        .toBe(ITEMS_AGREGADOS);
 
       reserva.pasajeros = Array.from({ length: reserva.cantidadPax }, (_, i) => ({
-        nombre: `Pasajero${i + 1}`,
-        apellido: `Regresion${sello.slice(-6)}`,
+        nombre: `Pasajero${['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco', 'Seis', 'Siete', 'Ocho'][i] ?? 'Extra'}`,
+        apellido: `Regresion${selloEnLetras(sello.slice(-6))}`,
         pasaporte: `QA${sello.slice(-8)}${i + 1}`,
         nacimiento: `0${i + 1}/03/1990`,
         nacionalidad: 'Argentina',
@@ -176,9 +192,12 @@ test.describe('Reservas', () => {
         expect(texto, 'El carrito tiene que mostrar la fecha elegida').toContain(reserva.fecha);
       });
 
-      // Ultima celda de la fila: el total del item.
-      const celdas = await fila.locator('td').allInnerTexts();
-      const conImporte = celdas.filter((c) => /[A-Z]{3}\s*\d[\d.,]*/.test(c));
+      // Ultimo importe de la fila: el total del item.
+      //
+      // Se leen del texto de la fila y no celda por celda: **con el rediseno del
+      // 2026-09-05 el carrito dejo de ser una tabla**, asi que ya no hay `td` que
+      // recorrer. El texto es ademas lo que lee la persona.
+      const conImporte = texto.match(/[A-Z]{3}\s*\d[\d.,]*/g) ?? [];
       capturarDelPortal('carrito (total del item)', conImporte.at(-1) ?? '');
       await conResaltado(page, fila, 'Total del carrito', () => {
         expect(importes['carrito (total del item)'].valor,
@@ -313,15 +332,16 @@ test.describe('Reservas', () => {
     await paso(page, 'Elegir la habitacion y confirmar', async () => {
       await hotel.reservarHabitacion(reserva.habitacion, reserva.habitaciones);
 
-      // El contador del encabezado cuenta habitaciones, no pasajeros: en el
-      // flujo de servicio contaba pax.
+      // El contador cuenta items del carrito, confirmado por el PM. Una habitacion
+      // es un item, asi que aca el numero no cambio con el rediseño: lo que cambio
+      // fue el flujo de servicios, que antes sumaba pasajeros.
       await expect
         .poll(() => carrito.paxEnElCarrito(), { timeout: 30_000 })
         .toBe(reserva.habitaciones);
 
       reserva.pasajeros = Array.from({ length: reserva.adultos }, (_, i) => ({
-        nombre: `Pasajero${i + 1}`,
-        apellido: `Regresion${sello.slice(-6)}`,
+        nombre: `Pasajero${['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco', 'Seis', 'Siete', 'Ocho'][i] ?? 'Extra'}`,
+        apellido: `Regresion${selloEnLetras(sello.slice(-6))}`,
         pasaporte: `QA${sello.slice(-8)}${i + 1}`,
         nacimiento: `0${i + 1}/03/1990`,
         nacionalidad: 'Argentina',
@@ -344,8 +364,12 @@ test.describe('Reservas', () => {
         expect(texto, 'El carrito tiene que mostrar la fecha de salida').toContain(reserva.fechaDeSalida);
       });
 
-      const celdas = await fila.locator('td').allInnerTexts();
-      const conImporte = celdas.filter((c) => /[A-Z]{3}\s*\d[\d.,]*/.test(c));
+      // Ultimo importe de la fila: el total del item.
+      //
+      // Se leen del texto de la fila y no celda por celda: **con el rediseno del
+      // 2026-09-05 el carrito dejo de ser una tabla**, asi que ya no hay `td` que
+      // recorrer. El texto es ademas lo que lee la persona.
+      const conImporte = texto.match(/[A-Z]{3}\s*\d[\d.,]*/g) ?? [];
       capturarDelPortal('carrito (total del item)', conImporte.at(-1) ?? '');
       await conResaltado(page, fila, 'Total del carrito', () => {
         expect(importes['carrito (total del item)'].valor,

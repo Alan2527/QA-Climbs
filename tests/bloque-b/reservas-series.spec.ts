@@ -5,7 +5,7 @@ import { Pasajero } from '../../pages/carrito.page';
 import { BackOfficePage } from '../../pages/backoffice.page';
 import {
   paso, adjuntarTexto, reiniciarNumeracionDePasos, fechaDeBusqueda,
-  formatearFecha, esperarFinDeCarga, conResaltado,
+  formatearFecha, esperarFinDeCarga, conResaltado, selloEnLetras,
 } from '../../utils/pasos';
 import {
   SALTO, sinCeros, importe, importeDelPortal, verificarEnElBackOffice,
@@ -347,8 +347,8 @@ test.describe('Reservas', () => {
         `${anio - reserva.edadDelMenor}`;
 
       reserva.pasajeros = Array.from({ length: reserva.cantidadPax }, (_, i) => ({
-        nombre: `Pasajero${i + 1}`,
-        apellido: `Regresion${sello.slice(-6)}`,
+        nombre: `Pasajero${['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco', 'Seis', 'Siete', 'Ocho'][i] ?? 'Extra'}`,
+        apellido: `Regresion${selloEnLetras(sello.slice(-6))}`,
         pasaporte: `QA${sello.slice(-8)}${i + 1}`,
         nacimiento: i === reserva.cantidadPax - 1 ? nacimientoDelMenor : `0${i + 1}/03/1990`,
         nacionalidad: 'Argentina',

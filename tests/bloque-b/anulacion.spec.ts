@@ -8,7 +8,7 @@ import { CarritoCustomToursPage } from '../../pages/carrito-customtours.page';
 import { SeriePage } from '../../pages/serie.page';
 import {
   paso, adjuntarTexto, esperarFinDeCarga, fechaDeBusqueda, formatearFecha,
-  reiniciarNumeracionDePasos, conResaltado,
+  reiniciarNumeracionDePasos, conResaltado, selloEnLetras,
 } from '../../utils/pasos';
 import { armarCircuitoYEmitir, importeDelPortal } from './reservas-comun';
 
@@ -70,6 +70,17 @@ test.describe('Reservas — anulacion', () => {
    */
   async function cancelarYVerificar(page: Page, opciones: {
     codigo: string; solapa: '#tabBooking' | '#tabCustomTour'; referencia?: string;
+    /**
+     * Si la reserva incluye hoteleria.
+     *
+     * La tarjeta "Elementos cancelados" del detalle lista **hoteles** cancelados:
+     * `LoadElementsCanceled` resuelve por `GetHotelsCanceled`, y sin ninguno la
+     * tarjeta entera no se dibuja — el propio aspx lo comenta: "Un titulo anunciando
+     * 'No se encontraron resultados' es una seccion que existe para decir que no
+     * existe". En una reserva de servicio suelto no hay hoteleria, asi que exigirla
+     * ahi seria pedir algo que no aplica.
+     */
+    conHoteleria: boolean;
   }) {
     const { codigo, solapa } = opciones;
 
@@ -192,12 +203,16 @@ test.describe('Reservas — anulacion', () => {
       // flag `Canceled` de la reserva queda en cero. El historial deriva su cartel
       // de los elementos. Medido en QA sobre las reservas que cancelan estos
       // mismos tests.
-      await conResaltado(page, page.locator('body'), 'Elementos cancelados en el detalle', async () => {
-        await expect(
-          page.getByText('Elementos cancelados', { exact: false }).filter({ visible: true }).first(),
-          'Cancelada, el detalle tiene que listar los elementos cancelados',
-        ).toBeVisible({ timeout: 60_000 });
-      });
+      //
+      // Solo cuando la reserva tiene hoteleria: la tarjeta lista hoteles.
+      if (opciones.conHoteleria) {
+        await conResaltado(page, page.locator('body'), 'Elementos cancelados en el detalle', async () => {
+          await expect(
+            page.getByText('Elementos cancelados', { exact: false }).filter({ visible: true }).first(),
+            'Cancelada, el detalle tiene que listar los elementos cancelados',
+          ).toBeVisible({ timeout: 60_000 });
+        });
+      }
 
       await conResaltado(page, page.locator('body'), 'Sin opcion de volver a cancelar', async () => {
         await expect(
@@ -211,8 +226,8 @@ test.describe('Reservas — anulacion', () => {
   /** Pasajeros de relleno: la anulacion no compara datos, solo necesita emitir. */
   const pasajerosDe = (cantidad: number, sello: string): Pasajero[] =>
     Array.from({ length: cantidad }, (_, i) => ({
-      nombre: `Pasajero${i + 1}`,
-      apellido: `Regresion${sello.slice(-6)}`,
+      nombre: `Pasajero${['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco', 'Seis', 'Siete', 'Ocho'][i] ?? 'Extra'}`,
+      apellido: `Regresion${selloEnLetras(sello.slice(-6))}`,
       pasaporte: `QA${sello.slice(-8)}${i + 1}`,
       nacimiento: `0${i + 1}/03/1990`,
       nacionalidad: 'Argentina',
@@ -248,9 +263,7 @@ test.describe('Reservas — anulacion', () => {
       await servicio.buscarPorNombre(datos.terminoDeBusqueda, datos.servicio);
       await servicio.abrirFicha(datos.servicio.slice(0, 24));
 
-      const fila = page.locator('tr')
-        .filter({ has: page.locator("select[id*='ddPax']") })
-        .filter({ hasText: datos.modalidad }).first();
+      const fila = servicio.bloqueDeModalidad(datos.modalidad);
       await expect(
         fila,
         `La ficha tiene que ofrecer la modalidad ${datos.modalidad} para el ${datos.fecha}`,
@@ -258,7 +271,7 @@ test.describe('Reservas — anulacion', () => {
 
       const texto = (await fila.innerText()).replace(/\s+/g, ' ');
       datos.cantidadPax = Number(texto.match(/M[ií]nimo\s+(\d+)/i)?.[1] ?? 1);
-      await fila.locator("select[id*='ddPax']").selectOption(String(datos.cantidadPax));
+      await fila.locator(servicio.comboPax).selectOption(String(datos.cantidadPax));
       await esperarFinDeCarga(page);
       await page.locator("[id$='lnkBookService']").first().click();
       await esperarFinDeCarga(page);
@@ -277,7 +290,7 @@ test.describe('Reservas — anulacion', () => {
       await adjuntarTexto('Reserva emitida para anular', codigo);
     });
 
-    await cancelarYVerificar(page, { codigo, solapa: '#tabBooking', referencia });
+    await cancelarYVerificar(page, { codigo, solapa: '#tabBooking', referencia, conHoteleria: false });
   });
 
   test('Hotel: una reserva emitida se puede cancelar y el portal lo refleja', async ({ page }) => {
@@ -340,7 +353,7 @@ test.describe('Reservas — anulacion', () => {
       await adjuntarTexto('Reserva emitida para anular', codigo);
     });
 
-    await cancelarYVerificar(page, { codigo, solapa: '#tabBooking', referencia });
+    await cancelarYVerificar(page, { codigo, solapa: '#tabBooking', referencia, conHoteleria: true });
   });
 
   test('Multidestino: una reserva emitida se puede cancelar y el portal lo refleja', async ({ page }) => {
@@ -384,7 +397,7 @@ test.describe('Reservas — anulacion', () => {
       },
     });
 
-    await cancelarYVerificar(page, { codigo, solapa: '#tabCustomTour', referencia });
+    await cancelarYVerificar(page, { codigo, solapa: '#tabCustomTour', referencia, conHoteleria: true });
   });
 
   test('Serie: una reserva emitida se puede cancelar y el portal lo refleja', async ({ page }) => {
@@ -432,7 +445,7 @@ test.describe('Reservas — anulacion', () => {
 
     // La serie no ofrece donde cargar una referencia: la reserva viaja con
     // Reference en blanco, asi que no se le exige al historial.
-    await cancelarYVerificar(page, { codigo, solapa: '#tabCustomTour' });
+    await cancelarYVerificar(page, { codigo, solapa: '#tabCustomTour', conHoteleria: true });
 
     await paso(page, 'Dejar registrado que pasa con el cupo al cancelar', async () => {
       // **No se exige nada**: ninguna historia define si cancelar tiene que

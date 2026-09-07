@@ -83,16 +83,64 @@ export class HotelPage {
    * Como en el buscador de servicios, no se escribe la fecha: el widget la
    * reescribe con la suya al perder el foco. Se abre y se clickean los dos dias.
    */
+  /**
+   * Elige el rango de fechas en el calendario del buscador.
+   *
+   * **El widget muestra dos meses a la vez** —`.drp-calendar.left` y `.right`— y
+   * cada uno trae sus desplegables de mes y anio. Antes se buscaba el dia con
+   * `td.available` sobre el picker entero, y eso funciona de casualidad: mientras
+   * la fecha caiga en el mes de la izquierda no se nota, pero apenas cae en el
+   * otro, `.first()` se queda con el mismo numero de dia **del mes equivocado**.
+   *
+   * Salio a la luz con la anulacion, que reserva a 30 dias: buscando el 7 de
+   * octubre elegia el 7 de septiembre, que tambien estaba disponible. Los flujos a
+   * 7 dias nunca lo mostraron. Es un defecto del test, no del sistema.
+   *
+   * Ahora se ubica el calendario que muestra el mes buscado y, si ninguno de los
+   * dos lo muestra, se lo lleva ahi con los desplegables — que es lo que hace una
+   * persona.
+   */
   async elegirFechas(entrada: Date, salida: Date) {
     await this.page.locator(this.campoFechas).click();
     const picker = this.page.locator('.daterangepicker:visible').first();
-    await expect(picker).toBeVisible();
+    await expect(picker, 'El campo de fechas tiene que abrir el calendario').toBeVisible();
 
-    const dia = (d: Date) =>
-      picker.locator('td.available:not(.off)').filter({ hasText: new RegExp(`^${d.getDate()}$`) }).first();
+    await this.elegirDia(picker, entrada);
+    await this.elegirDia(picker, salida);
+  }
 
-    await dia(entrada).click();
-    await dia(salida).click();
+  /** Elige un dia dentro del calendario que muestra su mes. */
+  private async elegirDia(picker: Locator, fecha: Date) {
+    const lados = ['left', 'right'];
+
+    const calendarioDelMes = async (): Promise<Locator | null> => {
+      for (const lado of lados) {
+        const cal = picker.locator(`.drp-calendar.${lado}`).first();
+        if (!(await cal.count())) continue;
+        const mes = await cal.locator('select.monthselect').inputValue().catch(() => '');
+        const anio = await cal.locator('select.yearselect').inputValue().catch(() => '');
+        if (Number(mes) === fecha.getMonth() && Number(anio) === fecha.getFullYear()) return cal;
+      }
+      return null;
+    };
+
+    let cal = await calendarioDelMes();
+    if (!cal) {
+      // Ninguno de los dos meses visibles sirve: se lo lleva con los desplegables.
+      const izquierda = picker.locator('.drp-calendar.left').first();
+      await izquierda.locator('select.yearselect').selectOption(String(fecha.getFullYear()));
+      await izquierda.locator('select.monthselect').selectOption(String(fecha.getMonth()));
+      cal = await calendarioDelMes();
+    }
+
+    expect(
+      cal,
+      `El calendario tiene que poder mostrar ${fecha.getDate()}/${fecha.getMonth() + 1}/` +
+      `${fecha.getFullYear()}`,
+    ).not.toBeNull();
+
+    await cal!.locator('td.available:not(.off)')
+      .filter({ hasText: new RegExp(`^${fecha.getDate()}$`) }).first().click();
   }
 
   /**

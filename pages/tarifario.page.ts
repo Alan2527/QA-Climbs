@@ -289,10 +289,17 @@ export class TarifarioPage {
   readonly fichaSolapas = '.svc-tab';
   readonly fichaPanel   = '.svc-panel';
 
-  /** Abre el popup "Ver Detalle" del item y espera a que cargue la ficha. */
+  /**
+   * Abre el popup "Ver Detalle" del item y espera a que cargue la ficha.
+   *
+   * **Hasta el rediseno del 2026-09-05 el boton traia el handler en el `onclick`**
+   * (`openServiceSheet(...)`) y se lo ubicaba por ahi. Ahora es un
+   * `a.tariff-op-detail-btn.svc-sheet-open` con `href="javascript:void(0)"` y sin
+   * `onclick`: el handler se engancha por la clase. La ficha que abre sigue siendo
+   * la misma.
+   */
   async abrirFichaDetalle(container: string) {
-    const boton = this.contenedor(container)
-      .locator("a[onclick*='openServiceSheet']").first();
+    const boton = this.contenedor(container).locator('.svc-sheet-open').first();
     await expect(boton).toBeVisible({ timeout: 30_000 });
     await boton.click();
     await expect(this.page.locator('.svc-sheet')).toBeVisible({ timeout: 60_000 });
@@ -637,9 +644,15 @@ export class TarifarioPage {
     return descarga;
   }
 
-  /** Boton de descarga PDF de la ficha, para resaltarlo si no baja nada. */
-  locatorBotonPdf(container: string): Locator {
-    return this.contenedor(container).locator('.tariff-pdf-btn').first();
+  /**
+   * Boton de descarga PDF de la ficha, para resaltarlo si no baja nada.
+   *
+   * Se busca en la pantalla y no dentro de la card: desde el rediseno del
+   * 2026-08-22 el boton vive en `ServiceSheetModal.ascx`, que se renderiza fuera
+   * del contenedor del item.
+   */
+  locatorBotonPdf(_container: string): Locator {
+    return this.page.locator('.tariff-pdf-btn').first();
   }
 
   /**
@@ -757,14 +770,31 @@ export class TarifarioPage {
       tagRecomendado:   await hay('.featured-tag'),
       observaciones:    (await c.locator('.tariff-obs-item').count()) > 0,
       iconosTooltips:   (await c.locator('.tariff-op-item').count()) > 0,
-      // Copia titulo + cuerpo del detalle al portapapeles. Lo tienen los cinco
-      // controles, asi que se exige en las siete pestanias. Ojo que en los
-      // servicios este mismo boton dice "Copiar todo".
-      copiar:           await hay('.tariff-copy-btn'),
-      // Estos dos son solo de la ficha de servicios (ServiceTariffControl.ascx):
-      // copiar la solapa abierta y bajar la ficha en PDF.
-      copiarSolapa:     await hay('.tariff-copy-tab-btn'),
-      descargaPdf:      await hay('.tariff-pdf-btn'),
+      /**
+       * Copia titulo + cuerpo del detalle al portapapeles.
+       *
+       * **Se busca en toda la pantalla y no dentro de la card**, porque no todos
+       * los productos lo tienen en el mismo lugar. En hoteles, cruceros, paquetes y
+       * ofertas vive en el modal de su propio control de tarifa, que se renderiza
+       * junto a la card. En los **servicios** ya no: el commit `8eea0a9b` del
+       * 2026-08-22 —de la US 4613— lo saco de `ServiceTariffControl.ascx` y lo puso
+       * en `ServiceSheetModal.ascx`, o sea dentro de la ficha "Ver Detalle", que se
+       * inyecta fuera del contenedor de la card.
+       *
+       * El boton sigue existiendo y haciendo lo mismo; lo que cambio es donde vive.
+       * Acotarlo a la card daba un falso negativo en las tres pestanias de
+       * servicios — excursiones, traslados y cena show.
+       *
+       * No hay riesgo de agarrar el de otro item: cuando esto corre, la busqueda
+       * por nombre ya dejo un solo item en pantalla.
+       */
+      copiar:           (await this.page.locator('.tariff-copy-btn').count()) > 0,
+      // Estos dos son solo de la ficha de servicios: copiar la solapa abierta y
+      // bajar la ficha en PDF. Se mudaron junto con el de copiar — hoy los tres
+      // viven en `ServiceSheetModal.ascx` y no en el control de tarifa, asi que se
+      // buscan en la pantalla y no dentro de la card.
+      copiarSolapa:     (await this.page.locator('.tariff-copy-tab-btn').count()) > 0,
+      descargaPdf:      (await this.page.locator('.tariff-pdf-btn').count()) > 0,
     };
   }
 

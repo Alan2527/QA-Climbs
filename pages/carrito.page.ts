@@ -22,8 +22,35 @@ export type Pasajero = {
 export class CarritoPage {
   constructor(private readonly page: Page) {}
 
+  /**
+   * El icono del encabezado.
+   *
+   * Cuenta **items del carrito**, no pasajeros: `UserStatusControl.js` hace
+   * `var count = items.length`. Hasta el rediseño del 2026-09-05 sumaba el
+   * `Quantity` de cada item —pasajeros en un servicio, habitaciones en un hotel—.
+   * El PM confirmo que contar items es lo correcto y que lo anterior estaba mal.
+   *
+   * Desde ese mismo rediseño **ya no navega**: abre un panel lateral.
+   */
   readonly iconoCarrito = '#AncoreShoppingCart';
-  readonly filas = 'table.table-bordered tbody tr';
+  /** El boton "Ir al carrito", dentro del panel lateral que abre el icono. */
+  readonly btnIrAlCarrito = '#btnFinalizar';
+  /**
+   * Cada item del carrito.
+   *
+   * **Hasta el rediseño del 2026-09-05 el carrito era una tabla** y esto valia
+   * `table.table-bordered tbody tr`. Ahora cada item es un `.ct-row` dentro de
+   * `.ct-list--cart`, y en la pantalla no queda un solo `tr`.
+   *
+   * El sintoma fue silencioso y caro: `vaciar()` cuenta las filas y **se va
+   * temprano si no hay ninguna**, asi que daba el carrito por vacio y no limpiaba
+   * nada. Las corridas fallidas fueron dejando items adentro y el test siguiente
+   * encontraba 5 pasajeros donde esperaba 1. No fallaba donde estaba el problema.
+   *
+   * Se acota a las filas que tienen boton de borrar para no contar el encabezado
+   * de la lista, que tambien es un `.ct-row`.
+   */
+  readonly filas = ".ct-list--cart .ct-row:has([id*='lnkDeleteItem'])";
   readonly campoReferencia = "[id$='_txtReference']";
   readonly campoObservaciones = "[id$='_txtComment']";
   readonly btnCrearReserva = "[id$='lnkCreateBook']";
@@ -37,14 +64,52 @@ export class CarritoPage {
   readonly checkTerminos = "[id$='cbxTermsAndConditions']";
   readonly btnConfirmar = "[id$='btnSaveBook']";
 
-  /** Cantidad de pasajeros que muestra el icono del carrito (cuenta pax, no items). */
+  /** Numero que muestra el icono del carrito: la cantidad de items. */
   async paxEnElCarrito(): Promise<number> {
     const texto = (await this.page.locator(this.iconoCarrito).first().innerText()).trim();
     return Number(texto.replace(/\D/g, '') || 0);
   }
 
+  /**
+   * Va al carrito.
+   *
+   * **El icono dejo de navegar con el rediseño del 2026-09-05** (US 4613). Sigue
+   * siendo un `<a>` con su `href` a `ShoppingCartPage.aspx`, pero ahora es tambien
+   * un `cart-trigger` con un popover de Bootstrap —`data-toggle="popover"`,
+   * `data-content="Item añadido"`— y el click se queda en el popover: la pantalla
+   * no se mueve. El sintoma era un `waitForURL` esperando sesenta segundos una
+   * navegacion que ya nadie dispara.
+   *
+   * Lo que hace ahora el icono es **abrir un panel lateral** con lo que hay en el
+   * carrito, y adentro de ese panel esta el boton **"Ir al carrito"**
+   * (`#btnFinalizar`, clase `cart-drawer__go-btn`). Ese es el recorrido de una
+   * persona hoy: icono para abrir el panel, boton para entrar.
+   *
+   * El detalle que lo delata: el boton existe en el DOM desde el principio, pero
+   * con el panel cerrado queda **fuera del viewport**, asi que clickearlo directo
+   * termina en un timeout de treinta segundos que no explica nada.
+   */
   async irAlCarrito() {
-    await this.page.locator(this.iconoCarrito).first().click();
+    const boton = this.page.locator(this.btnIrAlCarrito).first();
+    const icono = this.page.locator(this.iconoCarrito).first();
+
+    if (await boton.count()) {
+      await icono.click();
+      await expect(
+        boton,
+        'El icono del carrito tiene que abrir el panel con el boton de ir al carrito',
+      ).toBeInViewport({ timeout: 15_000 });
+      await boton.click();
+    } else {
+      // Pantallas que todavia no tienen el panel: se entra por el icono, que en
+      // ellas sigue navegando.
+      await expect(
+        icono,
+        'La pantalla tiene que ofrecer alguna forma de ir al carrito',
+      ).toBeVisible({ timeout: 30_000 });
+      await icono.click();
+    }
+
     await this.page.waitForURL(/shoppingcartpage/i, { timeout: 60_000 });
     await esperarFinDeCarga(this.page);
   }
@@ -124,7 +189,9 @@ export class CarritoPage {
     const prefijo = await this.prefijoDelPasajero(indice);
     const campo = (sufijo: string) => this.page.locator(`#${prefijo}_${sufijo}`).first();
     await campo('txtName').fill(pax.nombre);
-    await campo('txtSurName').fill(pax.apellido);
+    // El rediseño del 2026-09-05 (US 4613) le cambio la mayuscula al id: era
+    // `txtSurName` y quedo `txtSurname`. Confirmado en CheckOut.aspx:208.
+    await campo('txtSurname').fill(pax.apellido);
     await campo('txtPassport').fill(pax.pasaporte);
     await campo('txtBirthday').fill(pax.nacimiento);
     await campo('txtNationality').fill(pax.nacionalidad);
