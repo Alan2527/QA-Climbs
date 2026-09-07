@@ -20,7 +20,12 @@ const NOTA =
   'Linea base de los importes tal como los muestra el tarifario. Capturada con ' +
   'tools/capturar-lineabase.spec.ts y consolidada con tools/consolidar-lineabase.mjs ' +
   '(npm run lineabase). Si un cambio del sistema altera un importe, el recargo por ' +
-  'idioma o la marca TARIFA EXTENDIDA, la comparacion falla.';
+  'idioma o la marca TARIFA EXTENDIDA, la comparacion falla. ' +
+  'Las dos fechas que se mueven solas con el almanaque se guardan como token y no ' +
+  'como fecha: <HOY> es el inicio de la ventana del tarifario y <HOY+18M> su fin, ' +
+  'que es hoy mas 18 meses (TariffFilterControl.ascx.cs:197). Sin eso la foto ' +
+  'dejaba de servir al dia siguiente por un extremo del rango, sin que cambiara ' +
+  'ninguna tarifa. Ver normalizarFechaDeHoy en utils/pasos.ts.';
 
 if (!fs.existsSync(ORIGEN)) {
   console.error(`No existe la carpeta "${ORIGEN}". Correr antes el capturador.`);

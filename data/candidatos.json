@@ -62,9 +62,7 @@
         "tagRecomendado": false,
         "observaciones": false,
         "iconosTooltips": false,
-        "copiar": true,
-        "copiarSolapa": false,
-        "descargaPdf": false
+        "copiar": true
       },
       "imagen": "31082026121993.jpg",
       "serviciosCantidad": 3,
@@ -346,9 +344,7 @@
         "tagRecomendado": true,
         "observaciones": false,
         "iconosTooltips": false,
-        "copiar": true,
-        "copiarSolapa": false,
-        "descargaPdf": false
+        "copiar": true
       },
       "imagen": "31082026182308.jpg",
       "ubicacion": "Recoleta",
@@ -867,9 +863,7 @@
         "tagRecomendado": false,
         "observaciones": false,
         "iconosTooltips": false,
-        "copiar": true,
-        "copiarSolapa": false,
-        "descargaPdf": false
+        "copiar": true
       },
       "imagen": "31082026272428.jpg",
       "cabinasCantidad": 6,
@@ -966,9 +960,7 @@
         "tagRecomendado": false,
         "observaciones": false,
         "iconosTooltips": false,
-        "copiar": true,
-        "copiarSolapa": false,
-        "descargaPdf": false
+        "copiar": true
       },
       "imagen": "31082026282177.jpg",
       "serviciosCantidad": 3,
