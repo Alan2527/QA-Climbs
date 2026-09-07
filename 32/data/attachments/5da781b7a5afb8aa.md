@@ -1,0 +1,514 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: bloque-b/reservas-circuitos.spec.ts >> Reservas >> Multidestino: la reserva emitida conserva los datos en el BackOffice
+- Location: tests/bloque-b/reservas-circuitos.spec.ts:112:7
+
+# Error details
+
+```
+Error: El itinerario tiene que armarse con el hotel del paquete
+
+expect(received).toContain(expected) // indexOf
+
+Expected substring: "Park Hyatt"
+Received string:    ""
+
+expect(received).toBe(expected) // Object.is equality
+
+Expected: true
+Received: false
+```
+
+```
+Error: El total del itinerario tiene que ser la habitacion mas los servicios
+
+expect(received).toBe(expected) // Object.is equality
+
+Expected: 0
+Received: null
+
+expect(received).toBe(expected) // Object.is equality
+
+Expected: true
+Received: false
+```
+
+```
+Error: El carrito tiene que mostrar el importe del item Park Hyatt
+
+expect(received).not.toBe(expected) // Object.is equality
+
+Expected: not ""
+```
+
+# Page snapshot
+
+```yaml
+- generic [active] [ref=f3e1]:
+  - generic [ref=f3e2]:
+    - generic [ref=f3e4]:
+      - generic [ref=f3e5]:
+        - link " hello@amv.travel" [ref=f3e6] [cursor=pointer]:
+          - /url: mailto:hello@amv.travel
+          - generic [ref=f3e7]: 
+          - text: hello@amv.travel
+        - link "Emergencia 24hs  +54 9 11 3256 2827" [ref=f3e8] [cursor=pointer]:
+          - /url: https://api.whatsapp.com/send/?phone=5491132562827&text=Hola%20AMV%20Travel&type=phone_number&app_absent=0
+          - generic [ref=f3e9]: 
+          - text: Emergencia 24hs
+          - generic [ref=f3e10]: 
+          - strong [ref=f3e11]: +54 9 11 3256 2827
+        - paragraph: TEST ENVIRONMENT
+      - generic [ref=f3e13]:
+        - combobox [ref=f3e14]:
+          - option "Buscar agencia" [selected]
+        - generic [ref=f3e16] [cursor=pointer]:
+          - text: 
+          - combobox "Buscar agencia..." [ref=f3e17]
+          - generic "Volver a mi agencia" [ref=f3e18]: ⨯
+        - combobox [ref=f3e19]:
+          - option "Usuario" [selected]
+        - combobox [ref=f3e21] [cursor=pointer]:
+          - text: 
+          - generic [ref=f3e22]: Usuario
+        - text:  
+    - complementary:
+      - generic [ref=f3e24]:
+        - link [ref=f3e26] [cursor=pointer]:
+          - /url: /online/Default.aspx
+        - list [ref=f3e28]:
+          - listitem [ref=f3e29]:
+            - link "Inicio" [ref=f3e30] [cursor=pointer]:
+              - /url: /online/Default.aspx
+          - listitem [ref=f3e31]:
+            - link "Multidestino" [ref=f3e32] [cursor=pointer]:
+              - /url: /online/tourall.aspx?country=10&city=5000&tour=0&resident=false
+          - listitem [ref=f3e33]:
+            - link "Tarifario" [ref=f3e34] [cursor=pointer]:
+              - /url: /online/defaulttariff.aspx?country=10&city=5000&from=07-09-2026&to=07-03-2028&resident=false&tab=tour&tourId=0
+          - listitem [ref=f3e35]:
+            - link "Series" [ref=f3e36] [cursor=pointer]:
+              - /url: /online/serieAll.aspx
+          - listitem [ref=f3e37]:
+            - link "Reservas" [ref=f3e38] [cursor=pointer]:
+              - /url: /online/bookinghistory.aspx
+          - listitem [ref=f3e39]:
+            - link "Cotizaciones" [ref=f3e40] [cursor=pointer]:
+              - /url: /online/quotehistory.aspx
+          - text: 
+        - generic [ref=f3e42]:
+          - list [ref=f3e43]:
+            - listitem [ref=f3e44]:
+              - link [ref=f3e45] [cursor=pointer]:
+                - /url: https://qa.amv.travel/online/ShoppingCartPage.aspx
+          - list [ref=f3e51]:
+            - listitem [ref=f3e52]:
+              - link "M 0.50 " [ref=f3e53] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=f3e54]:
+                  - generic [ref=f3e55]: M 0.50
+                  - generic [ref=f3e56]: 
+          - list [ref=f3e57]:
+            - listitem [ref=f3e58]:
+              - link "Pablo " [ref=f3e59] [cursor=pointer]:
+                - /url: "#"
+                - text: Pablo
+                - generic [ref=f3e60]: 
+          - list [ref=f3e61]:
+            - listitem [ref=f3e62]:
+              - link "ES " [ref=f3e63] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=f3e64]: ES
+                - generic [ref=f3e65]: 
+    - complementary
+    - generic [ref=f3e71]:
+      - generic [ref=f3e72]:
+        - link " Volver" [ref=f3e73] [cursor=pointer]:
+          - /url: javascript:WebForm_DoPostBackWithOptions(new WebForm_PostBackOptions("ctl00$cphMain$lnkBack", "", true, "", "", false, true))
+          - generic [ref=f3e74]: 
+          - generic [ref=f3e75]: Volver
+        - heading "Datos de la reserva" [level=1] [ref=f3e76]
+      - generic [ref=f3e77]:
+        - generic [ref=f3e78]:
+          - generic [ref=f3e79]: 
+          - generic [ref=f3e80]:
+            - generic [ref=f3e81]: Cantidad de Pasajeros
+            - generic [ref=f3e82]: "2"
+        - generic [ref=f3e84]:
+          - generic [ref=f3e85]: 
+          - generic [ref=f3e86]:
+            - generic [ref=f3e87]: Habitaciones
+            - generic [ref=f3e88]: 1 DBL
+      - generic [ref=f3e90]:
+        - generic [ref=f3e91]: 
+        - generic [ref=f3e93]: Buenos Aires - Argentina
+        - generic [ref=f3e95]: 3 Noche(s)
+        - generic [ref=f3e96]:
+          - text: 14/09/2026
+          - generic [ref=f3e97]: –
+          - text: 17/09/2026
+      - generic [ref=f3e98]:
+        - generic [ref=f3e99]: Hoteles
+        - generic [ref=f3e102]:
+          - generic [ref=f3e103]:
+            - generic [ref=f3e104]: Lun
+            - generic [ref=f3e105]: 14-09-2026
+            - generic [ref=f3e106]: –
+            - generic [ref=f3e107]: Jue
+            - generic [ref=f3e108]: 17-09-2026
+          - generic [ref=f3e109]: 
+          - generic [ref=f3e111]:
+            - heading "AUTO-QA NO TOCAR - Park Hyatt Palacio Duhau Lujo" [level=6] [ref=f3e112]:
+              - text: AUTO-QA NO TOCAR - Park Hyatt Palacio Duhau
+              - generic [ref=f3e113]: Lujo
+            - generic [ref=f3e114]: King Deluxe - Edificio Posadas ..
+            - generic [ref=f3e116]: Se podrá cancelar sin cargo hasta 72 horas antes del ingreso (Excepto fechas especiales), pasado este plazo se cobrará penalidad. En caso de No Show se cobrará a todos los clientes, (extranjeros y argentinos), los gastos previstos por el hotel + IVA
+            - textbox "Comentarios/Indicaciones (opcional)" [ref=f3e117]
+          - generic [ref=f3e118]: USD 1,290
+        - generic [ref=f3e121]: Servicios
+        - generic [ref=f3e123]:
+          - generic [ref=f3e124]:
+            - generic [ref=f3e125]:
+              - generic [ref=f3e126]: Lun
+              - generic [ref=f3e127]: 14-09-2026
+            - generic [ref=f3e128]: 
+            - generic [ref=f3e130]:
+              - generic [ref=f3e131]:
+                - heading "AUTO-QA NO TOCAR - Tigre y Delta" [level=6] [ref=f3e132]
+                - button "" [ref=f3e134] [cursor=pointer]: 
+              - generic [ref=f3e136]:
+                - generic [ref=f3e137]: Serv. de Guía
+                - generic [ref=f3e138]: Español
+            - generic "Pax" [ref=f3e140]:
+              - generic [ref=f3e141]: 
+              - generic [ref=f3e142]: "2"
+            - generic [ref=f3e145]:
+              - text: USD 42
+              - generic [ref=f3e146]: Privado
+          - generic [ref=f3e147]:
+            - generic [ref=f3e148]:
+              - generic [ref=f3e149]: Lun
+              - generic [ref=f3e150]: 14-09-2026
+            - generic [ref=f3e151]: 
+            - generic [ref=f3e153]:
+              - generic [ref=f3e154]:
+                - heading "AUTO-QA NO TOCAR - Aeropuerto Internacional / Hotel céntrico con servicio de guía" [level=6] [ref=f3e155]
+                - button "" [ref=f3e157] [cursor=pointer]: 
+              - generic [ref=f3e159]:
+                - generic [ref=f3e160]: Traslado
+                - generic [ref=f3e161]: Español
+              - generic [ref=f3e162]:
+                - generic [ref=f3e163]:
+                  - generic [ref=f3e164]: Nro. Vuelo (opcional)
+                  - 'textbox "Ej: AR0025" [ref=f3e165]'
+                - generic [ref=f3e166]:
+                  - generic [ref=f3e167]: Hora salida
+                  - textbox "HH:MM (24 h)" [ref=f3e168]
+                - generic [ref=f3e169]:
+                  - generic [ref=f3e170]: Comentarios/Indicaciones (opcional)
+                  - textbox [ref=f3e171]
+            - generic "Pax" [ref=f3e173]:
+              - generic [ref=f3e174]: 
+              - generic [ref=f3e175]: "2"
+            - generic [ref=f3e178]:
+              - text: USD 2
+              - generic [ref=f3e179]: Privado
+          - generic [ref=f3e180]:
+            - generic [ref=f3e181]:
+              - generic [ref=f3e182]: Lun
+              - generic [ref=f3e183]: 14-09-2026
+            - generic [ref=f3e184]: 
+            - generic [ref=f3e186]:
+              - generic [ref=f3e187]:
+                - heading "AUTO-QA NO TOCAR - Café de los Angelitos" [level=6] [ref=f3e188]
+                - button "" [ref=f3e190] [cursor=pointer]: 
+              - generic [ref=f3e192]:
+                - generic [ref=f3e193]: Cena Show
+                - generic [ref=f3e194]: Español
+            - generic "Pax" [ref=f3e196]:
+              - generic [ref=f3e197]: 
+              - generic [ref=f3e198]: "2"
+            - generic [ref=f3e201]:
+              - text: USD 138
+              - generic [ref=f3e202]: Regular
+      - generic [ref=f3e203]:
+        - generic [ref=f3e204]: 
+        - generic [ref=f3e206]: Ushuaia - Argentina
+        - generic [ref=f3e208]: 2 Noche(s)
+        - generic [ref=f3e209]:
+          - text: 17/09/2026
+          - generic [ref=f3e210]: –
+          - text: 19/09/2026
+      - generic [ref=f3e211]:
+        - generic [ref=f3e212]: Hoteles
+        - generic [ref=f3e215]:
+          - generic [ref=f3e216]:
+            - generic [ref=f3e217]: Jue
+            - generic [ref=f3e218]: 17-09-2026
+            - generic [ref=f3e219]: –
+            - generic [ref=f3e220]: Sáb
+            - generic [ref=f3e221]: 19-09-2026
+          - generic [ref=f3e222]: 
+          - generic [ref=f3e224]:
+            - heading "AUTO-QA NO TOCAR - Arakur Resort & Spa Lujo" [level=6] [ref=f3e225]:
+              - text: AUTO-QA NO TOCAR - Arakur Resort & Spa
+              - generic [ref=f3e226]: Lujo
+            - generic [ref=f3e227]: Standard (Solo MAT)
+            - generic [ref=f3e229]: Se podrá cancelar sin cargo hasta 72 horas antes del ingreso (Excepto fechas especiales), pasado este plazo se cobrará penalidad. En caso de No Show se cobrará a todos los clientes, (extranjeros y argentinos), los gastos previstos por el hotel + IVA
+            - textbox "Comentarios/Indicaciones (opcional)" [ref=f3e230]
+          - generic [ref=f3e231]: USD 734
+        - generic [ref=f3e234]: Servicios
+        - generic [ref=f3e236]: No hay servicios seleccionados
+      - generic [ref=f3e238]:
+        - generic [ref=f3e239]: Resumen de la reserva
+        - generic [ref=f3e240]:
+          - generic [ref=f3e241]: HOTELES
+          - generic [ref=f3e242]: USD 2,024
+        - generic [ref=f3e243]:
+          - generic [ref=f3e244]: Servicios
+          - generic [ref=f3e245]: USD 182
+        - generic [ref=f3e246]:
+          - generic [ref=f3e247]: Total
+          - generic [ref=f3e248]: USD 2,206
+      - generic [ref=f3e250]:
+        - generic [ref=f3e251]:
+          - heading " Pasajeros" [level=4] [ref=f3e252]:
+            - generic [ref=f3e253]: 
+            - text: Pasajeros
+          - generic [ref=f3e254]: 1/2
+        - generic [ref=f3e255]:
+          - text: 
+          - generic [ref=f3e256]:
+            - heading "Pasajero 1" [level=6] [ref=f3e258]
+            - generic [ref=f3e259]:
+              - generic [ref=f3e260]: 
+              - generic [ref=f3e261]:
+                - generic [ref=f3e262]:
+                  - heading "Nombre" [level=5] [ref=f3e263]
+                  - textbox "Nombre" [ref=f3e264]
+                - generic [ref=f3e265]:
+                  - heading "Apellido" [level=5] [ref=f3e266]
+                  - textbox "Apellido" [ref=f3e267]
+            - generic [ref=f3e268]:
+              - generic [ref=f3e269]:
+                - heading "Pasaporte" [level=5] [ref=f3e270]
+                - textbox [ref=f3e271]
+              - generic [ref=f3e272]:
+                - heading "Fecha de Nacimiento" [level=5] [ref=f3e273]
+                - textbox "DD/MM/AAAA" [ref=f3e274]
+              - generic [ref=f3e275]:
+                - heading "Nacionalidad" [level=5] [ref=f3e276]
+                - textbox [ref=f3e277]
+              - generic [ref=f3e278]:
+                - heading "Servicios" [level=5] [ref=f3e279]
+                - combobox [ref=f3e280] [cursor=pointer]:
+                  - option "AUTO-QA NO TOCAR - Park Hyatt Palacio Duhau - King Deluxe - Edificio Posadas .."
+                  - option "AUTO-QA NO TOCAR - Arakur Resort & Spa - Standard (Solo MAT)"
+                  - option "AUTO-QA NO TOCAR - Tigre y Delta"
+                  - option "AUTO-QA NO TOCAR - Aeropuerto Internacional / Hotel céntrico con servicio de guía"
+                  - option "AUTO-QA NO TOCAR - Café de los Angelitos"
+                  - option "Todos los Servicios" [selected]
+                - combobox [ref=f3e282] [cursor=pointer]:
+                  - text: 
+                  - generic [ref=f3e283]: Todos los Servicios
+          - link "Añadir Pasajero" [ref=f3e284] [cursor=pointer]:
+            - /url: javascript:WebForm_DoPostBackWithOptions(new WebForm_PostBackOptions("ctl00$cphMain$ctrlTourPassanger$lnkAdd", "", true, "", "", false, true))
+            - generic [ref=f3e285]: 
+      - generic [ref=f3e287]:
+        - generic [ref=f3e288]:
+          - generic [ref=f3e289]: 
+          - generic [ref=f3e290]: Detalles de la Reserva
+        - generic [ref=f3e291]:
+          - generic [ref=f3e292]:
+            - generic [ref=f3e293]: Referencia
+            - textbox [ref=f3e294]
+          - generic [ref=f3e295]:
+            - generic [ref=f3e296]: Comentarios
+            - textbox "Ingrese comentarios adicionales sobre la reserva o inidque el PNR de los vuelos (opcional)" [ref=f3e297]
+      - generic [ref=f3e298]:
+        - button "Volver" [ref=f3e299] [cursor=pointer]
+        - generic [ref=f3e300]:
+          - checkbox [ref=f3e301] [cursor=pointer]
+          - link "Términos y condiciones" [ref=f3e302] [cursor=pointer]:
+            - /url: javascript:void(0);
+        - button "Reservar" [ref=f3e303] [cursor=pointer]
+      - paragraph
+      - generic [ref=f3e304]:
+        - generic [ref=f3e305]: 
+        - generic [ref=f3e306]: » Los valores están expresados en dólares americanos. » Hotelería Argentina exenta de impuestos para pasajeros extranjeros. » La presente cotización no implica disponibilidad ni reserva en los hoteles mencionados. » Tarifas sujetas a modificaciones a la hora de hacer la reserva. » No incluye ticket internacionales ni nacionales.
+    - generic [ref=f3e310]:
+      - generic [ref=f3e311]: AMV. TRAVEL
+      - generic [ref=f3e312]:
+        - generic [ref=f3e313]:
+          - generic [ref=f3e314]: 
+          - text: Avenida Córdoba 673 1°B
+        - link " 54 11 50313060" [ref=f3e315] [cursor=pointer]:
+          - /url: tel:54 11 50313060
+          - generic [ref=f3e316]: 
+          - text: 54 11 50313060
+        - link "hello@amv.travel" [ref=f3e317] [cursor=pointer]:
+          - /url: mailto:hello@amv.travel
+    - text:    
+  - dialog [ref=f3e321]:
+    - generic [ref=f3e322]:
+      - heading [level=2] [ref=f3e323]: Tu carrito
+      - button [ref=f3e324] [cursor=pointer]:
+        - generic [ref=f3e325]: 
+    - generic [ref=f3e327]:
+      - generic [ref=f3e328]: 
+      - generic [ref=f3e329]: Tu carrito está vacío
+      - generic [ref=f3e330]: Buscá hoteles, excursiones o traslados y los vas a ver acá.
+    - text: 
+```
+
+# Test source
+
+```ts
+  585 |           'La suma de las ventas de los items tiene que dar el total del file')
+  586 |           .toBe(importes['file (Venta en Totales)']?.valor);
+  587 |       });
+  588 |     }
+  589 |   });
+  590 | }
+  591 | 
+  592 | /**
+  593 |  * Recorrido del portal por el riel de CustomTours, del buscador a la emision.
+  594 |  *
+  595 |  * Lo comparten la oferta y el multidestino: cambia la solapa de INICIO, la
+  596 |  * ciudad y el combo donde se elige el viaje, no lo que hay que hacer despues.
+  597 |  * Devuelve el codigo BOxxxxxxxx de la reserva emitida.
+  598 |  */
+  599 | export async function armarCircuitoYEmitir(opciones: {
+  600 |   page: Page; inicio: InicioPage; ct: CustomToursPage; carrito: CarritoCustomToursPage;
+  601 |   viaje: { solapa: 'ofertas' | 'multidestino'; ciudad: string; id: string; combo: string };
+  602 |   reserva: {
+  603 |     cantidadPax: number; dobles: number; fecha: string; fechaDeSalida: string;
+  604 |     referencia: string; observaciones: string; detalleDelItem: string;
+  605 |     items: string[]; importePorItem: Record<string, string>; pasajeros: Pasajero[];
+  606 |   };
+  607 |   fecha: Date;
+  608 |   sello: string;
+  609 |   importes: Record<string, { moneda: string; valor: number | null }>;
+  610 |   capturarDelPortal: (donde: string, texto: string) => { moneda: string; valor: number | null };
+  611 | }): Promise<string> {
+  612 |   const { page, inicio, ct, carrito, viaje, reserva, fecha, sello, importes, capturarDelPortal } = opciones;
+  613 |   let codigo = '';
+  614 |   await paso(page, `Abrir la solapa ${viaje.solapa.toUpperCase()} de INICIO y elegir el viaje`, async () => {
+  615 |     const panel = await inicio.abrirSolapa(viaje.solapa);
+  616 |     await expect(panel).toBeVisible();
+  617 |     await ct.buscarViaje(panel, {
+  618 |       pais: 'Argentina', ciudad: viaje.ciudad, id: viaje.id, combo: viaje.combo,
+  619 |     });
+  620 |     // Eligiendo una oferta concreta se entra directo al armado; con "Todos"
+  621 |     // se iria al listado.
+  622 |     await expect(page).toHaveURL(new RegExp(`tour=${viaje.id}`));
+  623 |   });
+  624 | 
+  625 |   await paso(page, 'Cargar la fecha de inicio, los pax y las habitaciones', async () => {
+  626 |     await ct.configurarViaje(fecha, reserva.cantidadPax, reserva.dobles);
+  627 | 
+  628 |     // El calendario de esta pantalla es otro widget que el de los demas
+  629 |     // flujos: si no tomo la fecha, el viaje se arma para otro dia.
+  630 |     await expect(
+  631 |       page.locator(ct.campoFecha),
+  632 |       'El armado tiene que quedar con la fecha de inicio elegida',
+  633 |     ).toHaveValue(reserva.fecha);
+  634 |     await expect(page.locator(ct.comboPax)).toHaveValue(String(reserva.cantidadPax));
+  635 | 
+  636 |     // La salida del primer destino sale de las noches que define la oferta, no
+  637 |     // de un numero fijo en el test.
+  638 |     const noches = await ct.nochesDelDestino(0);
+  639 |     const salida = new Date(fecha);
+  640 |     salida.setDate(salida.getDate() + noches);
+  641 |     reserva.fechaDeSalida = formatearFecha(salida);
+  642 |     await adjuntarTexto('Noches del primer destino y fecha de salida',
+  643 |       noches + ' noches -> ' + reserva.fechaDeSalida);
+  644 |   });
+  645 | 
+  646 |   await paso(page, 'Revisar el itinerario y tomar su total', async () => {
+  647 |     await ct.irAlItinerario();
+  648 | 
+  649 |     const celdas = await ct.filaDeTotales();
+  650 |     await adjuntarTexto('Fila de totales del itinerario',
+  651 |       `Hotel | SGL | DBL | TPL | Servicios | Total => ${celdas.join(' | ')}`);
+  652 | 
+  653 |     const fila = ct.tablaDeTotales();
+  654 |     await conResaltado(page, fila, 'Hotel del paquete en el itinerario', () => {
+  655 |       expect(celdas.join(' | '), 'El itinerario tiene que armarse con el hotel del paquete')
+  656 |         .toContain('Park Hyatt');
+  657 |     });
+  658 | 
+  659 |     // El total es la ultima celda con importe. Se verifica ademas que sea la
+  660 |     // suma de la habitacion mas los servicios, que es lo que la propia fila
+  661 |     // muestra: asi no se reimplementa ningun calculo, se comprueba el de ella.
+  662 |     const conImporte = celdas.filter((c) => /[A-Z]{3}\s*\d[\d.,]*/.test(c));
+  663 |     capturarDelPortal('itinerario (total)', conImporte.at(-1) ?? '');
+  664 |     const habitacion = importeDelPortal(conImporte.at(-3) ?? '').valor;
+  665 |     const servicios = importeDelPortal(conImporte.at(-2) ?? '').valor;
+  666 | 
+  667 |     await conResaltado(page, fila, 'Total del itinerario', () => {
+  668 |       expect(importes['itinerario (total)'].valor,
+  669 |         'El total del itinerario tiene que ser la habitacion mas los servicios')
+  670 |         .toBe((habitacion ?? 0) + (servicios ?? 0));
+  671 |     });
+  672 |   });
+  673 | 
+  674 |   await paso(page, 'Continuar al carrito y revisar que conserve el total', async () => {
+  675 |     await ct.continuarAlCarrito();
+  676 | 
+  677 |     const delCarrito = await carrito.importes();
+  678 |     await adjuntarTexto('Importes del carrito de circuitos', delCarrito.join(' | '));
+  679 | 
+  680 |     // Importe de cada item, para exigirselo despues al BO uno por uno.
+  681 |     reserva.importePorItem = await carrito.importePorItem(reserva.items);
+  682 |     await adjuntarTexto('Importe de cada item en el carrito',
+  683 |       Object.entries(reserva.importePorItem).map(([k, v]) => k + ": " + v).join(SALTO));
+  684 |     for (const [item, valor] of Object.entries(reserva.importePorItem)) {
+> 685 |       expect(valor, "El carrito tiene que mostrar el importe del item " + item).not.toBe("");
+      |                                                                                     ^ Error: El carrito tiene que mostrar el importe del item Park Hyatt
+  686 |     }
+  687 |     capturarDelPortal('carrito (total del item)', delCarrito.at(-1) ?? '');
+  688 | 
+  689 |     await conResaltado(page, page.locator('body'), 'Total del carrito', () => {
+  690 |       expect(importes['carrito (total del item)'].valor,
+  691 |         'El carrito tiene que conservar el total que mostro el itinerario')
+  692 |         .toBe(importes['itinerario (total)'].valor);
+  693 |     });
+  694 | 
+  695 |     reserva.pasajeros = Array.from({ length: reserva.cantidadPax }, (_, i) => ({
+  696 |       nombre: `Pasajero${i + 1}`,
+  697 |       apellido: `Regresion${sello.slice(-6)}`,
+  698 |       pasaporte: `QA${sello.slice(-8)}${i + 1}`,
+  699 |       nacimiento: `0${i + 1}/03/1990`,
+  700 |       nacionalidad: 'Argentina',
+  701 |     }));
+  702 |     await adjuntarTexto('Datos con los que se genera la reserva', JSON.stringify(reserva, null, 2));
+  703 |   });
+  704 | 
+  705 |   await paso(page, 'Cargar los pasajeros y emitir la reserva', async () => {
+  706 |     await carrito.asegurarPasajeros(reserva.cantidadPax);
+  707 |     for (const [i, pax] of reserva.pasajeros.entries()) await carrito.completarPasajero(i, pax);
+  708 |     await carrito.completarComentarioDelItem(reserva.detalleDelItem);
+  709 |     await carrito.completarDatosDeLaReserva(reserva.referencia, reserva.observaciones);
+  710 |     await carrito.aceptarTerminos();
+  711 | 
+  712 |     codigo = await carrito.confirmarReserva();
+  713 |     await adjuntarTexto('Codigo de la reserva emitida', codigo);
+  714 |     expect(codigo, 'El historial tiene que mostrar el codigo de la reserva emitida')
+  715 |       .toMatch(/^BO\d{8}$/);
+  716 | 
+  717 |     const filaHistorial = page.locator('tr').filter({ hasText: codigo }).first();
+  718 |     const deLaFila = ((await filaHistorial.innerText()).match(/[A-Z]{3}\s*\d[\d.,]*/g) ?? []);
+  719 |     capturarDelPortal('historial (total)', deLaFila.at(-1) ?? '');
+  720 |     await adjuntarTexto('Importes de la fila del historial', deLaFila.join(' | '));
+  721 |   });
+  722 |   return codigo;
+  723 | }
+  724 | 
+```
