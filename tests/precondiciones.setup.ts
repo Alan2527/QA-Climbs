@@ -66,6 +66,15 @@ const SERIE = {
   circuito: 'AUTO-QA NO TOCAR - Serie: Buenos Aires (3 dias / 2 noches)',
   categorias: 4,
   cupos: { '2027-09-20': 3, '2027-09-27': 0 },
+  /**
+   * Tarifa de menor de la serie, cargada por SQL el 2026-09-05
+   * (`ReceptiveTourDepartureRate`, `RateTypeID = 20`, 500 en las 52 salidas de las
+   * cuatro categorias).
+   *
+   * Sin ella el recargo del menor da cero y la formula que lo concilia en el test
+   * que emite pasa sin comparar nada real.
+   */
+  tarifaDeMenor: 500,
 };
 
 setup('Precondiciones: los datos AUTO-QA estan en QA', async ({ page }) => {
@@ -155,6 +164,20 @@ setup('Precondiciones: los datos AUTO-QA estan en QA', async ({ page }) => {
             'volverla a 200.');
         }
       }
+      const { tarifasDeMenor, politicaDeMenores } = await serie.datosDelCalendario();
+      const conTarifa = Object.values(tarifasDeMenor);
+      if (!conTarifa.length || conTarifa.some((r) => r !== SERIE.tarifaDeMenor)) {
+        faltantes.push(
+          `series: la tarifa de menor tendria que ser ${SERIE.tarifaDeMenor} en todas las ` +
+          `salidas y hay ${conTarifa.length} cargadas` +
+          `${conTarifa.length ? ` (valores: ${[...new Set(conTarifa)].join(', ')})` : ''}. ` +
+          'Sin ella el recargo del menor da cero y el test que emite deja de comparar nada.');
+      }
+      await adjuntarTexto('Tarifa de menor de la serie',
+        `politica: ${JSON.stringify(politicaDeMenores)}${String.fromCharCode(10)}` +
+        `salidas con tarifa de menor: ${conTarifa.length}, valores: ` +
+        `${[...new Set(conTarifa)].join(', ') || '(ninguna)'}`);
+
       await adjuntarTexto('Cupo de las salidas preparadas',
         Object.entries(SERIE.cupos)
           .map(([f, e]) => `${f}: esperado ${e}, en QA ${cupos[f]}`).join(String.fromCharCode(10)));

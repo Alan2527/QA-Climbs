@@ -165,4 +165,192 @@ test.describe('Tarifario — multiidioma del encabezado', () => {
       await cambiarIdioma(page, IDIOMAS[0]);
     });
   });
+
+  /**
+   * Los otros tres rieles del tarifario: hoteles, paquetes y ofertas.
+   *
+   * El primer test cubre una excursion. Este cubre el resto, y **no exige lo mismo
+   * en los tres**, porque el modelo de datos no traduce lo mismo:
+   *
+   *   `ReceptiveTourDetail`  tiene **Name y Detail por idioma** -> paquetes y
+   *                          ofertas traducen el nombre y la descripcion.
+   *   `HotelDetail`          tiene **solo Detail**. El nombre del hotel vive en
+   *                          `Hotel.Name`, que es uno solo para todos los idiomas.
+   *
+   * Por eso al hotel se le exige la **descripcion** y no el nombre: pedirle que el
+   * nombre cambie de idioma seria inventar un requisito que el sistema no puede
+   * cumplir. Verificado en la base del 5003: las tres filas de `HotelDetail` traen
+   * el mismo `Hotel.Name` y descripciones distintas.
+   *
+   * Como en el primer test, lo que se exige sale de la base y no de la pantalla.
+   */
+  test('El tarifario muestra hoteles, paquetes y ofertas en el idioma elegido', async ({ page }) => {
+    test.setTimeout(900_000);
+
+    /**
+     * Que tiene que mostrar cada item en cada idioma.
+     *
+     * Los nombres son los de `ReceptiveTourDetail.Name`. Las marcas de la
+     * descripcion son fragmentos textuales de `HotelDetail.Detail` y
+     * `ReceptiveTourDetail.Detail`: se compara un fragmento y no el texto entero
+     * porque la descripcion del hotel viene con HTML de por medio.
+     */
+    const ITEMS = [
+      {
+        clave: 'hoteles',
+        tab: 'a-hotels',
+        container: 'hotels-container',
+        ciudad: 'Buenos Aires',
+        // El nombre es el mismo en los tres idiomas: `HotelDetail` no lo traduce.
+        nombreUnico: 'AUTO-QA NO TOCAR - Park Hyatt Palacio Duhau',
+        busqueda: { ES: 'Park Hyatt', EN: 'Park Hyatt', PT: 'Park Hyatt' },
+        nombre: null as Record<string, string> | null,
+        marca: {
+          ES: 'barrio selecto de Recoleta',
+          EN: 'Allow Park Hyatt Buenos Aires',
+          PT: 'está localizado',
+        },
+      },
+      {
+        clave: 'paquetes',
+        tab: 'a-tours',
+        container: 'tours-container',
+        ciudad: 'Buenos Aires',
+        nombreUnico: null,
+        busqueda: {
+          ES: 'Paquete Buenos Aires',
+          EN: 'Buenos Aires and Ushuaia Package',
+          PT: 'Pacote Buenos Aires',
+        },
+        nombre: {
+          ES: 'AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia (6 días / 5 noches)',
+          EN: 'AUTO-QA NO TOCAR - Buenos Aires and Ushuaia Package (6 days / 5 nights)',
+          PT: 'AUTO-QA NO TOCAR - Pacote Buenos Aires e Ushuaia (6 dias / 5 noites)',
+        },
+        marca: {
+          ES: 'Paquete de datos fijos para pruebas automatizadas',
+          EN: 'Fixed data package for automated testing',
+          PT: 'Pacote de dados fixos para testes automatizados',
+        },
+      },
+      {
+        clave: 'ofertas',
+        tab: 'a-opportunities',
+        container: 'opportunities-container',
+        // La oferta se lista bajo Ushuaia: con Buenos Aires la pestania ni se
+        // renderiza, porque es un PlaceHolder condicional.
+        ciudad: 'Ushuaia',
+        nombreUnico: null,
+        busqueda: {
+          ES: 'Oferta Buenos Aires',
+          EN: 'Buenos Aires and Ushuaia Offer',
+          PT: 'Oferta Buenos Aires',
+        },
+        nombre: {
+          ES: 'AUTO-QA NO TOCAR - Oferta Buenos Aires y Ushuaia (6 días / 5 noches)',
+          EN: 'AUTO-QA NO TOCAR - Buenos Aires and Ushuaia Offer (6 days / 5 nights)',
+          PT: 'AUTO-QA NO TOCAR - Oferta Buenos Aires e Ushuaia (6 dias / 5 noites)',
+        },
+        marca: {
+          ES: 'Oferta de datos fijos para pruebas automatizadas',
+          EN: 'Fixed data offer for automated testing',
+          PT: 'Oferta de dados fixos para testes automatizados',
+        },
+      },
+    ];
+
+    for (const idioma of IDIOMAS) {
+      const codigo = idioma.codigo as 'ES' | 'EN' | 'PT';
+
+      await paso(page, `Pasar el sitio a ${idioma.nombre}`, async () => {
+        await page.goto('/online/');
+        await esperarFinDeCarga(page);
+        await cambiarIdioma(page, idioma);
+        await conResaltado(page, page.locator('.ddLanguage').first(), `Encabezado en ${idioma.nombre}`, async () => {
+          expect(await idiomaActivo(page),
+            `El encabezado tiene que quedar en ${codigo} despues de elegir ${idioma.nombre}`)
+            .toBe(codigo);
+        });
+      });
+
+      for (const item of ITEMS) {
+        await paso(page, `${item.clave} en ${idioma.nombre}`, async () => {
+          const tarifario = new TarifarioPage(page);
+
+          // Al tarifario se entra por URL: la etiqueta del menu tambien se traduce,
+          // asi que buscarla por nombre solo funcionaria en espaniol. El recorrido
+          // por el menu ya lo cubren los siete tests del tarifario.
+          await page.goto('/online/DefaultTariff.aspx');
+          await esperarFinDeCarga(page);
+          await expect(
+            page.locator(tarifario.comboPais),
+            'El tarifario tiene que abrir con sus filtros',
+          ).toBeVisible({ timeout: 60_000 });
+
+          await tarifario.seleccionarPais('Argentina');
+          await tarifario.seleccionarCiudad(item.ciudad);
+          await tarifario.buscar();
+          await tarifario.abrirPestania(item.tab, item.container);
+
+          const esperado = item.nombre ? item.nombre[codigo] : item.nombreUnico!;
+          await tarifario.buscarPorNombre(item.busqueda[codigo], esperado);
+
+          const nombre = await tarifario.nombreDelItem(item.container);
+          const texto = await tarifario.textoDe(item.container);
+          await adjuntarTexto(`Card de ${item.clave} en ${idioma.nombre}`,
+            `${nombre}${String.fromCharCode(10)}${texto.slice(0, 400)}`);
+
+          const contenedor = page.locator(`#${item.container}`);
+
+          if (item.nombre) {
+            // Paquetes y ofertas: el nombre esta traducido en ReceptiveTourDetail.
+            await conResaltado(page, contenedor, `Nombre de ${item.clave} en ${idioma.nombre}`, () => {
+              expect(nombre,
+                `En ${idioma.nombre} la card tiene que mostrar el nombre de ese idioma, ` +
+                'el que tiene cargado ReceptiveTourDetail')
+                .toBe(item.nombre![codigo]);
+            });
+            if (codigo !== 'ES') {
+              await conResaltado(page, contenedor, `Sin caer al espaniol en ${item.clave} / ${idioma.nombre}`, () => {
+                expect(nombre,
+                  `En ${idioma.nombre} el nombre no puede ser el espaniol: seria el filtro por ` +
+                  'idioma sin aplicar')
+                  .not.toBe(item.nombre!.ES);
+              });
+            }
+          } else {
+            // Hoteles: el nombre no se traduce, y exigir que cambie seria pedirle
+            // al sistema algo que su modelo de datos no contempla.
+            await conResaltado(page, contenedor, `Nombre del hotel en ${idioma.nombre}`, () => {
+              expect(nombre,
+                'El nombre del hotel sale de Hotel.Name, que es uno solo para todos los ' +
+                'idiomas: tiene que ser el mismo en los tres')
+                .toBe(item.nombreUnico!);
+            });
+          }
+
+          await conResaltado(page, contenedor, `Descripcion de ${item.clave} en ${idioma.nombre}`, () => {
+            expect(texto,
+              `En ${idioma.nombre} la descripcion de ${item.clave} tiene que ser la de ese idioma`)
+              .toContain(item.marca[codigo]);
+          });
+
+          if (codigo !== 'ES') {
+            await conResaltado(page, contenedor, `Descripcion sin caer al espaniol / ${item.clave} / ${idioma.nombre}`, () => {
+              expect(texto,
+                `En ${idioma.nombre} la descripcion no puede traer la marca del espaniol`)
+                .not.toContain(item.marca.ES);
+            });
+          }
+        });
+      }
+    }
+
+    await paso(page, 'Dejar el sitio en Español', async () => {
+      await page.goto('/online/');
+      await esperarFinDeCarga(page);
+      await cambiarIdioma(page, IDIOMAS[0]);
+    });
+  });
+
 });

@@ -71,31 +71,63 @@ después cancela.
 `UnassignedInvoices` / `UnassignedPayorders` como validación negativa. Vienen de
 la lista de "lo que el PM no pidió y conviene sumar", más abajo.
 
-**3. Multiidioma de hoteles, ofertas y multidestino.** *(sin empezar)* Hoy sólo se mira en el
-tarifario (`tests/bloque-a/multiidioma.spec.ts`) y en las series. Se reusa el mismo
-patrón, con lo ya medido: el idioma vive en la cookie `Advisor.CustomerLanguage`
-(365 días, `AdvisorContext.cs:265`) y no por usuario, así que no contamina a los
-otros tests; el control **esconde el idioma activo**; cambiarlo **recarga la
-pantalla** y hay que rehacer filtro y búsqueda. El esperado sale de la tabla de
-traducción, nunca de la pantalla.
+**3. Multiidioma de hoteles, paquetes y ofertas — hecho el 2026-09-05, en verde.**
+Segundo test dentro de `tests/bloque-a/multiidioma.spec.ts`. Recorre los tres
+idiomas por las pestañas de hoteles, paquetes y ofertas.
 
-**4. Tarifas de menor de la serie.** *(sin empezar, necesita una carga por SQL)* Cargar `ReceptiveTourDepartureRate` con
-`RateTypeID = 20` (`ReceptiveTourDepartureRateManager.ChildRateTypeId`) y el
-`GroupOrder` de cada categoría, para las 52 salidas del tour 5061. Con eso la
-fórmula del recargo del menor —**ya escrita** en el test que emite— deja de
-exigir cero. Hoy `liveChildRates` viene vacío y `serieKidsPolicy.freeMaxAge` es 0,
-así que el menor no suma nada y la comparación pasa igual.
+**No exige lo mismo en los tres, porque el modelo de datos no traduce lo mismo:**
+
+| Tabla | Qué traduce |
+|---|---|
+| `ReceptiveTourDetail` | **Name y Detail** por idioma → paquetes y ofertas traducen nombre y descripción |
+| `HotelDetail` | **sólo Detail**. El nombre sale de `Hotel.Name`, que es uno solo para todos los idiomas |
+
+Por eso al hotel se le exige la **descripción** y no el nombre: pedirle que el
+nombre cambie de idioma sería inventar un requisito que el sistema no puede
+cumplir. Medido en la base del 5003: las tres filas de `HotelDetail` traen el mismo
+`Hotel.Name` y descripciones distintas.
+
+Lo que se compara sale de la base, no de la pantalla. Del hotel se compara un
+**fragmento** de la descripción y no el texto entero, porque viene con HTML de por
+medio.
+
+Queda afuera el multiidioma de las **pantallas de reserva** — el buscador de
+hoteles y el armado de CustomTours —: no se pudo ni intentar con el ambiente en el
+estado en que quedó tras el deploy.
+
+**4. Tarifas de menor de la serie — dato cargado el 2026-09-05, test sin correr.**
+Se cargaron **208 filas** en `ReceptiveTourDepartureRate` — las 52 salidas del tour
+5061 × las 4 categorías — con `RateTypeID = 20` y `Rate = 500`. Verificado desde el
+portal: `liveChildRates` ahora trae las 52 fechas en 500, y `serieKidsPolicy` sigue
+con `freeMaxAge` 0, así que **el menor paga**.
+
+Con eso la fórmula del recargo —ya escrita en el test que emite— pasa a exigir una
+diferencia de **USD 500** entre las dos habitaciones, en vez de cero. **El test no
+se pudo correr**: no se puede reservar.
+
+La tarifa quedó sumada a las precondiciones, que verifican que esté en las 52
+salidas y con ese valor.
 
 ### Dónde quedó todo al cerrar el 2026-09-05
 
 | | Estado |
 |---|---|
-| Mejoras 1 a 5 | **hechas**. Las 1, 2, 3 y 5 quedaron verificadas en verde antes del deploy; la 4 se probó con `--list` y con los tres tests de serie |
+| Mejoras 1 a 5 | **hechas** |
 | Hueco 1 — anulación de los otros rieles | **escrito, sin correr ni una vez** |
-| Huecos 2, 3 y 4 | sin empezar |
+| Hueco 2 — Bloque C: liquidación del file y bandejas de no asignados | **sin empezar, y bloqueado**: los cinco eslabones arrancan reservando para armarse un file |
+| Hueco 3 — multiidioma de hoteles, paquetes y ofertas | **hecho, en verde** |
+| Hueco 4 — tarifas de menor de la serie | dato cargado y verificado; el test que lo usa no se pudo correr |
+| Entrada de series por el menú | **hecha, en verde**: se ubica el link por su `href`, que no se traduce |
 | Puntos de fidelidad | en pausa, esperando que el PM haga que en QA se acrediten al momento |
-| Partir `cobranzas.spec.ts` | sin empezar (2.160 líneas, mismo tratamiento que reservas) |
-| Mover la entrada del test de series al menú | sin hacer: el menú recién lo enlaza desde el deploy de hoy |
+| Partir `cobranzas.spec.ts` | sin empezar (2.160 líneas) |
+| Multiidioma de las pantallas de reserva | sin empezar |
+
+**Por qué se paró el hueco 2 en vez de escribirlo igual.** Medido: el eslabón 1 del
+Bloque C falla en el mismo lugar que el Bloque B — "La ficha tiene que ofrecer la
+modalidad Regular" — porque `reservarServicioYGenerarFile` empieza reservando.
+Escribir trescientas líneas contra dos pantallas del BO que no se pueden operar, con
+la anulación ya esperando sin verificar, era apilar una segunda entrega sin probar
+sobre la primera.
 
 **Y lo primero de todo al retomar**: la corrida del 2026-09-05 después del deploy
 dio **13 rojos** — 8 en el Bloque A y 7 en el B — y **no son de la suite**. Se

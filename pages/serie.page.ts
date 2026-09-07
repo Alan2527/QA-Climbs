@@ -13,15 +13,11 @@ import { Pasajero } from './carrito.page';
  *   serieDetail.aspx?serie=N             circuitos de esa serie
  *   serieTour.aspx?serieID=N&tourID=M    el asistente
  *
- * **Al listado se entra por URL.** Cuando esto se escribio, INICIO no tenia solapa
- * de series y el menu del encabezado no lo enlazaba en ninguna parte: no habia una
- * sola referencia a `serieall.aspx` fuera de las tres pantallas de series.
- *
- * **Eso cambio el 2026-09-05**: un deploy de QA agrego la entrada `Series` al menu,
- * apuntando a `/online/serieAll.aspx`. Queda pendiente mover la entrada del test al
- * menu, que es como entra una persona y como entran los otros cuatro rieles. No se
- * hizo en el momento porque el mismo deploy dejo media suite en rojo y no convenia
- * mezclar los dos cambios.
+ * **Al listado se entra por el menu**, como a los otros cuatro rieles. No siempre
+ * fue asi: cuando se escribio este riel, INICIO no tenia solapa de series y el menu
+ * no enlazaba `serieall.aspx` en ninguna parte, asi que se entraba por URL a la
+ * fuerza. El deploy de QA del **2026-09-05** agrego la entrada, y el test paso a
+ * usarla el mismo dia.
  *
  * Los cuatro pasos:
  *
@@ -167,9 +163,28 @@ export class SeriePage {
       cantidad, { timeout: 30_000 });
   }
 
-  /** Abre el listado de series. Se entra por URL: el portal no lo enlaza. */
+  /**
+   * Abre el listado de series desde el menu del encabezado.
+   *
+   * Se ubica el link **por su destino y no por su etiqueta**: la etiqueta se
+   * traduce ("Series" / "Series" / "Séries") y buscarla por texto solo funcionaria
+   * en un idioma. El `href` es el mismo en los tres.
+   *
+   * Si el menu dejara de ofrecerlo, el test corta aca diciendolo, en vez de entrar
+   * igual por URL y tapar que la puerta desaparecio.
+   */
   async abrirListado() {
-    await this.page.goto('/online/serieall.aspx');
+    await this.page.goto('/online/');
+    await esperarFinDeCarga(this.page);
+
+    const enElMenu = this.page.locator("a[href*='serieall.aspx' i]").first();
+    await expect(
+      enElMenu,
+      'El menu del encabezado tiene que ofrecer la entrada a Series',
+    ).toBeVisible({ timeout: 30_000 });
+    await enElMenu.click();
+
+    await this.page.waitForURL(/serieall/i, { timeout: 60_000 });
     await esperarFinDeCarga(this.page);
   }
 
