@@ -1,7 +1,7 @@
-import { test, expect, Page, Locator } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { TarifarioPage } from '../../pages/tarifario.page';
 import {
-  paso, adjuntarTexto, resaltarYCapturar, reiniciarNumeracionDePasos,
+  paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado,
 } from '../../utils/pasos';
 
 /**
@@ -52,16 +52,6 @@ test.describe('Tarifario — operatividad del calendario', () => {
     await new TarifarioPage(page).irDesdeElMenu();
   });
 
-  async function conResaltado(
-    page: Page, locator: Locator, etiqueta: string, fn: () => void | Promise<void>,
-  ) {
-    try {
-      await fn();
-    } catch (error) {
-      await resaltarYCapturar(page, locator, `FALLA: ${etiqueta}`);
-      expect.soft(false, (error as Error).message).toBe(true);
-    }
-  }
 
   test('El calendario opera todos los dias que declaran sus reglas', async ({ page }) => {
     test.setTimeout(600_000);

@@ -1,9 +1,9 @@
-import { test, expect, Page, Locator } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import * as fs from 'fs';
 import { TarifarioPage } from '../../pages/tarifario.page';
 import {
   paso, adjuntarTexto, precioMostrado, importeANumero, resaltarYCapturar,
-  reiniciarNumeracionDePasos,
+  reiniciarNumeracionDePasos, conResaltado,
 } from '../../utils/pasos';
 import candidatos from '../../data/candidatos.json';
 import lineaBase from '../../data/importes-lineabase.json';
@@ -54,27 +54,6 @@ test.describe('Tarifario', () => {
   /** Normaliza para comparar: el front cambia mayusculas ("Pick Up" -> "Pick up"). */
   const norm = (x: string) => x.trim().toLowerCase();
 
-  /**
-   * Corre una comparacion y, si falla, marca en rojo la zona de la pantalla que
-   * la origino antes de propagar el error.
-   *
-   * Sin esto el reporte mostraba el diff pero la captura era una pantalla entera
-   * sin senalar nada, y habia que buscar a ojo donde estaba la diferencia.
-   */
-  async function conResaltado(
-    page: Page, locator: Locator, etiqueta: string, fn: () => void | Promise<void>,
-  ) {
-    try {
-      await fn();
-    } catch (error) {
-      await resaltarYCapturar(page, locator, `FALLA: ${etiqueta}`);
-      // Se registra como fallo blando en vez de cortar el test: una diferencia de
-      // contenido no impide seguir mirando el resto de la pantalla. Antes, el
-      // primer texto que no coincidia dejaba sin ejecutar todos los pasos
-      // siguientes y habia que corregir y volver a correr para ver el resto.
-      expect.soft(false, (error as Error).message).toBe(true);
-    }
-  }
 
   /**
    * Compara el texto del detalle que muestra la pantalla contra el que tiene la

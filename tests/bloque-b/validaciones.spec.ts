@@ -1,10 +1,10 @@
-import { test, expect, Page, Locator } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { InicioPage } from '../../pages/inicio.page';
 import { ServicioPage } from '../../pages/servicio.page';
 import { CarritoPage } from '../../pages/carrito.page';
 import {
   paso, adjuntarTexto, esperarFinDeCarga, fechaDeBusqueda, formatearFecha,
-  resaltarYCapturar, reiniciarNumeracionDePasos,
+  reiniciarNumeracionDePasos, conResaltado,
 } from '../../utils/pasos';
 
 /**
@@ -33,17 +33,6 @@ test.describe('Reservas — validaciones', () => {
     await new InicioPage(page).abrir();
   });
 
-  /** Marca en rojo la zona que origino el fallo y lo registra como fallo blando. */
-  async function conResaltado(
-    page: Page, locator: Locator, etiqueta: string, fn: () => void | Promise<void>,
-  ) {
-    try {
-      await fn();
-    } catch (error) {
-      await resaltarYCapturar(page, locator, `FALLA: ${etiqueta}`);
-      expect.soft(false, (error as Error).message).toBe(true);
-    }
-  }
 
   test('Checkout: el portal no deja emitir una reserva incompleta', async ({ page }) => {
     test.setTimeout(600_000);

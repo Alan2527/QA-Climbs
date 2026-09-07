@@ -26,38 +26,52 @@ Documento de traspaso. Última actualización: **2026-09-05**.
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
 > toda en verde.
 
-## ⚠️ Plan acordado el 2026-09-05 — nada de esto está empezado
+## ⚠️ Plan acordado el 2026-09-05
 
 Salió de un análisis de la suite entera pedido por Alan, y quedó acordado con él.
-Se documenta **antes** de hacerlo porque la conversación se estaba quedando sin
-contexto. Nada de lo que sigue está escrito: es el próximo trabajo.
+
+**Las cinco mejoras están hechas** (más abajo, con lo que cambió cada una). **Los
+huecos de alcance siguen abiertos**: son el próximo trabajo.
 
 ### Huecos de alcance a cerrar
 
-**1. La anulación cubre un solo riel.** `tests/bloque-b/anulacion.spec.ts` reserva y
-cancela un **servicio**. Faltan hotel, oferta, multidestino y serie. Las reglas de
-cancelación **no son la misma**: el riel clásico corta en la fecha del servicio
-− 15 días —por eso ese test reserva a 30— y el de circuitos y series usa
-`InDate − 48hs` (`WholesalerBook.ExpirationDate`), así que ahí alcanza con
-reservar con más de dos días de anticipación.
+**1. La anulación de los otros rieles — escrita, SIN VERIFICAR.**
+`tests/bloque-b/anulacion.spec.ts` pasó de un test a cuatro: servicio, hotel,
+multidestino y serie. La parte que cancela es una sola función
+(`cancelarYVerificar`) porque es identica en los cinco rieles: cambia cómo se llegó
+a tener la reserva, no qué hay que hacer después.
 
-Lo que ya se sabe del flujo, para no volver a averiguarlo:
+**No se pudo correr ni una vez**: el deploy de QA del 2026-09-05 dejó el servicio
+AUTO-QA sin filas reservables en ninguna fecha, así que no hay forma de emitir para
+después cancelar. **Lo primero al retomar es correr estos cuatro.** Compila y
+Playwright los lista, pero eso no es haberlos probado.
 
-- `Online/BookingHistoryDetail.aspx:583` — `lnkCancelBook`, visible sólo si la
-  reserva no está confirmada ni cancelada (`BookingHistoryDetail.aspx.cs:222`).
-- `Online/Module/CancelBookControl.ascx` — `#modal-bookcancel`, `#chkTerms`,
-  `btnCancelBook`. Aceptar **redirige al historial** (`CancelBookControl.ascx.cs:128`).
-- El detalle refleja la cancelación como **"Elementos cancelados"**, no con el
-  cartel de reserva cancelada: el flag `Canceled` de la reserva queda en cero.
-- La fila del historial hay que acotarla a la solapa y a lo visible: la tabla de
-  circuitos vive oculta y `first()` se queda con ella.
-- Las reservas de circuito y de serie caen en `#tabCustomTour`.
+Decisiones que lleva escritas:
 
-**2. Bloque C: liquidación del file y bandejas de no asignados.** `FileLiq.aspx`, y
+- **La ventana de cancelación no es la misma en los dos rieles.** El clásico corta
+  en la fecha del servicio − 15 días y el de circuitos en `InDate − 48hs`, así que
+  servicio y hotel reservan a **30 días** y los circuitos a 7. Una reserva clásica a
+  7 días nace dentro de la ventana de penalidad y el portal contesta "Esta reserva
+  no puede ser cancelada": es la política funcionando, no un defecto.
+- **La oferta no tiene test propio.** Comparte riel, pantalla, regla y armado con el
+  multidestino: lo único distinto es la solapa de INICIO, que ya se cubre en
+  `reservas-circuitos.spec.ts`.
+- **La serie no exige referencia** en el historial: el asistente no ofrece dónde
+  cargarla y la reserva viaja con `Reference` en blanco.
+- El multidestino **reusa `armarCircuitoYEmitir`** de `reservas-comun.ts` en vez de
+  repetir el armado.
+- Al cancelar una reserva de serie se mide el cupo antes y después y **se adjunta
+  como evidencia, sin exigir nada**: ninguna historia define si cancelar tiene que
+  devolver el cupo. Sirve además para saber cuánto consume de verdad cada corrida.
+
+Ninguno de los cuatro deja una reserva viva en QA: la que emite cada uno es la que
+después cancela.
+
+**2. Bloque C: liquidación del file y bandejas de no asignados.** *(sin empezar)* `FileLiq.aspx`, y
 `UnassignedInvoices` / `UnassignedPayorders` como validación negativa. Vienen de
 la lista de "lo que el PM no pidió y conviene sumar", más abajo.
 
-**3. Multiidioma de hoteles, ofertas y multidestino.** Hoy sólo se mira en el
+**3. Multiidioma de hoteles, ofertas y multidestino.** *(sin empezar)* Hoy sólo se mira en el
 tarifario (`tests/bloque-a/multiidioma.spec.ts`) y en las series. Se reusa el mismo
 patrón, con lo ya medido: el idioma vive en la cookie `Advisor.CustomerLanguage`
 (365 días, `AdvisorContext.cs:265`) y no por usuario, así que no contamina a los
@@ -65,12 +79,44 @@ otros tests; el control **esconde el idioma activo**; cambiarlo **recarga la
 pantalla** y hay que rehacer filtro y búsqueda. El esperado sale de la tabla de
 traducción, nunca de la pantalla.
 
-**4. Tarifas de menor de la serie.** Cargar `ReceptiveTourDepartureRate` con
+**4. Tarifas de menor de la serie.** *(sin empezar, necesita una carga por SQL)* Cargar `ReceptiveTourDepartureRate` con
 `RateTypeID = 20` (`ReceptiveTourDepartureRateManager.ChildRateTypeId`) y el
 `GroupOrder` de cada categoría, para las 52 salidas del tour 5061. Con eso la
 fórmula del recargo del menor —**ya escrita** en el test que emite— deja de
 exigir cero. Hoy `liveChildRates` viene vacío y `serieKidsPolicy.freeMaxAge` es 0,
 así que el menor no suma nada y la comparación pasa igual.
+
+### Dónde quedó todo al cerrar el 2026-09-05
+
+| | Estado |
+|---|---|
+| Mejoras 1 a 5 | **hechas**. Las 1, 2, 3 y 5 quedaron verificadas en verde antes del deploy; la 4 se probó con `--list` y con los tres tests de serie |
+| Hueco 1 — anulación de los otros rieles | **escrito, sin correr ni una vez** |
+| Huecos 2, 3 y 4 | sin empezar |
+| Puntos de fidelidad | en pausa, esperando que el PM haga que en QA se acrediten al momento |
+| Partir `cobranzas.spec.ts` | sin empezar (2.160 líneas, mismo tratamiento que reservas) |
+| Mover la entrada del test de series al menú | sin hacer: el menú recién lo enlaza desde el deploy de hoy |
+
+**Y lo primero de todo al retomar**: la corrida del 2026-09-05 después del deploy
+dio **13 rojos** — 8 en el Bloque A y 7 en el B — y **no son de la suite**. Se
+verificó haciendo `git stash` del refactor entero y corriendo el test de Servicio
+con el código anterior: falla igual. Lo que el deploy cambió, medido:
+
+1. **Desapareció el componente "copiar" de las cards** — excursiones, cena show y
+   traslados.
+2. **Las filas del tarifario traen la periodicidad**: `01/04/2026 - 30/09/2026
+   Todos los días | USD 860 | ...` donde la línea base tiene `01/04/2026 -
+   30/09/2026 | USD 860 | ...`.
+3. **Cambiaron los rangos de vigencia**: `01/03/2028 - 05/03/2028` ahora termina el
+   **07/03/2028**, igual que el `to=07-03-2028` del link del menú.
+4. **El servicio AUTO-QA no se puede reservar en ninguna fecha**: 0 filas con tarifa
+   a 7, 14, 30 y 60 días. Es lo que voltea el Bloque B entero.
+5. **El menú tiene una entrada nueva**: `Series → /online/serieAll.aspx`.
+
+**No se tocó ni la línea base ni un solo selector.** Regenerarlos haría que todo
+vuelva a verde tapando lo que la suite acaba de encontrar. El 2 y el 3 parecen
+cambios intencionales —si lo son, se regenera la línea base con `npm run lineabase`
+y listo—; el 1 y el 4 hay que preguntarlos.
 
 ### Un hueco que queda en pausa, y por qué
 
@@ -83,32 +129,84 @@ Lo relevado del flujo, para cuando se retome: configuración 1 el multiplicador,
 3 y 4 los puntos del usuario, 5 y 6 los no-online; categoría 1 acumula y 2 canjea;
 `AvailableFromDate = file.OutDate + 15`.
 
-### Mejoras acordadas
+### Mejoras — hechas el 2026-09-05
 
-**1. Los retries no pueden aplicar a los tests que emiten.** Hoy
-`retries: process.env.CI ? 1 : 0`. Si el Bloque B falla por intermitencia en CI, el
-reintento **emite una segunda reserva y consume dos cupos más** de la serie. Ojo:
-`retries` es global y los tres bloques comparten el mismo proyecto de Playwright,
-así que no alcanza con ponerlo por proyecto tal como está armado — o se baja a 0,
-o se parten los bloques en proyectos distintos, que además agruparía mejor el
-Allure.
+**1. Los reintentos ya no alcanzan a los tests que emiten.** `retries` no se puede
+definir por archivo, sólo por proyecto, así que la suite pasó de **un proyecto a
+cuatro**: `Login`, `Precondiciones`, y uno por bloque. El global quedó en **0** y
+el Bloque A —que sólo lee— conserva su reintento en CI. Antes, una corrida
+intermitente del Bloque B en CI emitía una segunda reserva de verdad y consumía dos
+cupos más de la serie.
 
-**2. `conResaltado` está duplicado en los 8 archivos de test.** Se dejó así a
-propósito para no tocar bloques ya terminados. Ahora que están todos en verde y
-pusheados, va a `utils/pasos.ts` una sola vez.
+Cada proyecto declara su `testDir`, así que `npm run test:bloque-a` y los filtros
+por ruta siguen funcionando igual. **El árbol de Allure cambió**: ahora el nodo
+raíz es el bloque (`Climbs - Bloque A: Tarifario`, `... Bloque B: Reservas`,
+`... Bloque C: Cobranzas`) en vez de un único `Climbs - Suite de pruebas
+automatizadas`.
 
-**3. Sacar los `waitForTimeout` fijos de `pages/serie.page.ts`** (hay 9). Son
-esperas a ciegas: alargan la corrida y son la fuente típica de intermitencia. Se
-cambian por espera sobre condición — que el calendario tenga celdas, que TomSelect
-esté montado, que el UpdatePanel haya terminado.
+**2. `conResaltado` dejó de estar duplicado.** Vivía copiado en los ocho archivos
+de test; ahora se exporta una sola vez desde `utils/pasos.ts`. Se aprovechó para
+sacar los imports que quedaron sin uso.
 
-**4. Partir `tests/bloque-b/reservas.spec.ts`** (2.226 líneas) por riel: clásico,
-circuitos y series. Sin tocar el `describe`, para no mover el árbol de Allure.
-`tests/bloque-c/cobranzas.spec.ts` va por el mismo camino (2.160).
+**3. `pages/serie.page.ts` no tiene más esperas fijas.** Tenía nueve
+`waitForTimeout`; ahora son **cero**. Cada una se reemplazó por la condición que
+realmente se estaba esperando:
 
-**5. Chequear las precondiciones de los datos AUTO-QA antes de correr.** Si alguien
-borra o renombra un candidato, hoy el test falla diez pasos adentro con un error de
-locator en vez de decir "falta el dato".
+| Antes | Ahora |
+|---|---|
+| 500 ms tras cada postback | que TomSelect vuelva a montar los `<select>` de la pantalla |
+| 2 s al abrir el circuito | que el calendario tenga celdas y se apague su esqueleto de carga |
+| 1,5 s al cambiar de categoría | lo mismo: el calendario redibujado |
+| 400 ms al pasar de mes | que cambie la etiqueta del mes |
+| 600 ms al elegir una salida | que la celda quede marcada como `selected` |
+| 1,5 s al confirmar el reinicio | que el resumen quede sin habitaciones |
+| 1 s entre reintentos del combo de edad | la propia espera del `isVisible` |
+
+Al agregar y quitar habitaciones se espera la cantidad de filas del resumen. En el
+caso de agregar, la espera es **tolerante** a propósito: cuando el servidor rechaza
+la habitación —sin cupo, o más de cuatro— no aparece ninguna fila nueva y abre un
+modal, y eso es justamente lo que verifica el test negativo.
+
+Medido: el test de multiidioma de series bajó de 40,7 s a 24,2 s.
+
+**4. `reservas.spec.ts` se partió por riel.** Tenía 2.226 líneas con los cinco
+flujos, sus dos armadores y el verificador del BackOffice adentro:
+
+| Archivo | Qué tiene |
+|---|---|
+| `reservas-comun.ts` | lo compartido: `verificarEnElBackOffice`, `completarCheckoutYEmitir`, `armarCircuitoYEmitir` y los parsers de importes |
+| `reservas-clasico.spec.ts` | servicio y hotel |
+| `reservas-circuitos.spec.ts` | oferta y multidestino |
+| `reservas-series.spec.ts` | los tres de serie |
+
+`reservas-comun.ts` **no termina en `.spec.ts`** a propósito: así Playwright no lo
+levanta como suite. Los tres archivos conservan el mismo `describe('Reservas')`,
+así que el árbol del reporte no se movió.
+
+`tests/bloque-c/cobranzas.spec.ts` sigue en 2.160 líneas y queda para el mismo
+tratamiento.
+
+**5. Las precondiciones se verifican antes de correr.**
+`tests/precondiciones.setup.ts` es un proyecto propio del que dependen los tres
+bloques: si falta un dato AUTO-QA, la corrida corta ahí **diciendo cuál**, en vez
+de fallar diez pasos adentro con un timeout de locator que no explica nada. Tarda
+unos 30 segundos.
+
+Verifica los siete candidatos del tarifario —leídos de `data/candidatos.json`, que
+ya es la fuente de verdad del Bloque A—, que la serie AUTO-QA siga en el listado
+con su circuito y sus cuatro categorías, y que las **dos salidas preparadas
+conserven su cupo de 3 y de 0**.
+
+Dos cosas que sólo se supieron escribiéndolo:
+
+- **Hay que preguntarle al buscador, no a la grilla.** El listado pagina con
+  scroll: un candidato puede estar perfectamente cargado y no aparecer entre las
+  cards renderizadas. Se tipea `AUTO-QA` en el buscador de cada pestaña y se mira
+  que el nombre exacto esté entre las opciones.
+- **No todos los candidatos viven en Buenos Aires.** El crucero sale de Ushuaia y
+  la oferta se lista ahí también: filtrando por Buenos Aires su pestaña ni se
+  renderiza, porque es un PlaceHolder condicional. Los candidatos se recorren
+  ordenados por ciudad para filtrar una sola vez por cada una.
 
 ### Lo que quedó afuera a propósito
 
@@ -1175,11 +1273,14 @@ extras; el nuestro no los tiene, así que muestra tres pasos.
     serieDetail.aspx?serie=N             circuitos de esa serie
     serieTour.aspx?serieID=N&tourID=M    el asistente
 
-**Al listado se entra por URL.** INICIO no tiene solapa de series y el menú del
-encabezado no lo enlaza: no hay una sola referencia a `serieall.aspx` fuera de las
-tres pantallas de series. Los otros cuatro flujos entran por INICIO porque ahí sí
-hay puerta; acá no la hay. No se anota como hallazgo: no hay historia que diga que
-tenga que estar enlazado.
+**Al listado se entra por URL** — y eso quedó desactualizado el mismo día. Cuando
+se escribió el riel, INICIO no tenía solapa de series y el menú no enlazaba
+`serieall.aspx` en ninguna parte. **El deploy de QA del 2026-09-05 agregó la entrada
+`Series` al menú**, apuntando a `/online/serieAll.aspx`.
+
+Queda pendiente **mover la entrada del test al menú**, que es como entra una persona
+y como entran los otros cuatro rieles. No se hizo en el momento porque el mismo
+deploy dejó media suite en rojo y no convenía mezclar los dos cambios.
 
 Archivos: `pages/serie.page.ts` y tres tests más en `tests/bloque-b/reservas.spec.ts`.
 

@@ -17,8 +17,19 @@ export default defineConfig({
   fullyParallel: false,
   workers: process.env.CI ? 1 : 2,
   forbidOnly: !!process.env.CI,
-  // Un reintento absorbe la flakiness residual del ambiente sin tapar fallos reales.
-  retries: process.env.CI ? 1 : 0,
+  /**
+   * **Cero reintentos por defecto.**
+   *
+   * Un reintento sirve para absorber la intermitencia del ambiente, pero solo se
+   * lo puede permitir un test que no escriba nada: los Bloques B y C **emiten**.
+   * Reintentar el flujo de una reserva emite una segunda reserva de verdad y
+   * consume dos cupos mas de la serie; reintentar un eslabon de cobranzas deja una
+   * factura o una orden duplicada en QA.
+   *
+   * El Bloque A solo lee, asi que ahi si se reintenta: se configura en su propio
+   * proyecto, mas abajo.
+   */
+  retries: 0,
   // El BO y el tarifario tienen PostBacks lentos: timeouts holgados.
   timeout: 180_000,
   expect: { timeout: 30_000 },
@@ -50,12 +61,50 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
   },
 
+  /**
+   * Un proyecto por bloque.
+   *
+   * Antes eran uno solo. Se partio para poder darle reintentos al Bloque A sin
+   * darselos a los que emiten: `retries` no se puede definir por archivo, solo por
+   * proyecto. De paso el arbol de Allure queda agrupado por bloque, que es como se
+   * mira el reporte.
+   *
+   * Cada uno declara su `testDir`, asi que `playwright test tests/bloque-a` sigue
+   * funcionando igual: el filtro por ruta deja fuera a los otros dos.
+   */
   projects: [
     { name: 'Login', testMatch: /auth\.setup\.ts/ },
     {
-      name: 'Climbs - Suite de pruebas automatizadas',
+      /**
+       * Verifica que esten los datos AUTO-QA antes de correr nada.
+       *
+       * Si falta un candidato, la corrida corta aca diciendo cual, en vez de
+       * fallar diez pasos adentro con un timeout de locator que no explica nada.
+       */
+      name: 'Precondiciones',
+      testMatch: /precondiciones\.setup\.ts/,
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
       dependencies: ['Login'],
+    },
+    {
+      name: 'Climbs - Bloque A: Tarifario',
+      testDir: './tests/bloque-a',
+      // Solo lee: un reintento no deja rastro en QA.
+      retries: process.env.CI ? 1 : 0,
+      use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
+      dependencies: ['Precondiciones'],
+    },
+    {
+      name: 'Climbs - Bloque B: Reservas',
+      testDir: './tests/bloque-b',
+      use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
+      dependencies: ['Precondiciones'],
+    },
+    {
+      name: 'Climbs - Bloque C: Cobranzas',
+      testDir: './tests/bloque-c',
+      use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
+      dependencies: ['Precondiciones'],
     },
   ],
 });

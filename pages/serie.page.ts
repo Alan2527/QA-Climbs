@@ -13,10 +13,15 @@ import { Pasajero } from './carrito.page';
  *   serieDetail.aspx?serie=N             circuitos de esa serie
  *   serieTour.aspx?serieID=N&tourID=M    el asistente
  *
- * **Al listado se entra por URL**: INICIO no tiene solapa de series y el menu del
- * encabezado no lo enlaza en ninguna parte (no hay una sola referencia a
- * `serieall.aspx` fuera de las tres pantallas de series). Los cuatro flujos
- * entran por INICIO porque ahi si hay puerta; aca no la hay.
+ * **Al listado se entra por URL.** Cuando esto se escribio, INICIO no tenia solapa
+ * de series y el menu del encabezado no lo enlazaba en ninguna parte: no habia una
+ * sola referencia a `serieall.aspx` fuera de las tres pantallas de series.
+ *
+ * **Eso cambio el 2026-09-05**: un deploy de QA agrego la entrada `Series` al menu,
+ * apuntando a `/online/serieAll.aspx`. Queda pendiente mover la entrada del test al
+ * menu, que es como entra una persona y como entran los otros cuatro rieles. No se
+ * hizo en el momento porque el mismo deploy dejo media suite en rojo y no convenia
+ * mezclar los dos cambios.
  *
  * Los cuatro pasos:
  *
@@ -114,10 +119,52 @@ export class SeriePage {
       return !!prm && prm.get_isInAsyncPostBack();
     }, undefined, { timeout: 5_000 }).catch(() => {});
     await esperarFinDeCarga(this.page);
+
     // El UpdatePanel reemplaza el DOM y serie-tour.js vuelve a enganchar los
-    // handlers en Sys.Application.add_load: sin esta pausa se opera sobre nodos
-    // que ya no estan enganchados y el click no hace nada.
-    await this.page.waitForTimeout(500);
+    // handlers y a montar los TomSelect en `Sys.Application.add_load`. Operar
+    // antes de eso deja clicks que no hacen nada.
+    //
+    // La senial de que ya corrio es que **los `<select>` de la pantalla vuelvan a
+    // estar montados**: TomSelect les pone la clase `tomselected` y crea su
+    // `.ts-control` al lado. Se espera eso en vez de un tiempo fijo. Los pasos que
+    // no tienen combos —pasajeros y resumen— no lo cumplen nunca, asi que la
+    // espera es tolerante: ahi el postback ya termino y no hay nada que montar.
+    await this.page.waitForFunction(() => {
+      const selects = document.querySelectorAll('select.seriebook-ts');
+      if (!selects.length) return true;
+      return document.querySelectorAll('select.seriebook-ts.tomselected').length === selects.length
+        && !!document.querySelector('.ts-control');
+    }, undefined, { timeout: 15_000 }).catch(() => {});
+  }
+
+  /**
+   * Espera a que el calendario quede dibujado.
+   *
+   * Lo arma `serie-tour.js` en el cliente, con las tarifas que el servidor inyecta
+   * despues del load: hasta que eso pasa, la grilla esta vacia y el esqueleto de
+   * carga visible. Leerla antes devuelve cero salidas y parece un circuito sin
+   * disponibilidad.
+   */
+  private async esperarCalendario() {
+    await this.page.waitForFunction(() => {
+      const grilla = document.querySelector('#scalGrid');
+      const cargando = document.querySelector('#scalLoading') as HTMLElement | null;
+      const visibleElCargando = !!cargando && getComputedStyle(cargando).display !== 'none';
+      return !!grilla && grilla.querySelectorAll('.scal-cell').length > 0 && !visibleElCargando;
+    }, undefined, { timeout: 60_000 });
+  }
+
+  /**
+   * Espera a que el resumen quede con una cantidad de habitaciones.
+   *
+   * Agregar y quitar habitaciones son postbacks que redibujan el resumen: la
+   * cantidad de filas es la senial exacta de que termino, y ademas es lo que se va
+   * a leer despues.
+   */
+  private async esperarHabitaciones(cantidad: number) {
+    await this.page.waitForFunction(
+      (esperada) => document.querySelectorAll('.rooms-detail-row').length === esperada,
+      cantidad, { timeout: 30_000 });
   }
 
   /** Abre el listado de series. Se entra por URL: el portal no lo enlaza. */
@@ -163,7 +210,10 @@ export class SeriePage {
     await esperarFinDeCarga(this.page);
     // El calendario se dibuja despues del load, con las tarifas que inyecta el
     // servidor. Sin esperarlo se lee un calendario vacio.
-    await this.page.waitForTimeout(2_000);
+    //
+    // Se tolera que no llegue a dibujarse: un circuito sin disponibilidad abre sin
+    // calendario, y ese es justamente uno de los estados que hay que poder mirar.
+    await this.esperarCalendario().catch(() => {});
   }
 
   /**
@@ -177,7 +227,7 @@ export class SeriePage {
   async reabrirAsistente() {
     await this.page.goto(this.page.url().split('#')[0]);
     await esperarFinDeCarga(this.page);
-    await this.page.waitForTimeout(2_000);
+    await this.esperarCalendario();
   }
 
   /** "Desde" que muestra la card de un circuito en el detalle de la serie. */
@@ -213,7 +263,8 @@ export class SeriePage {
       .toBeVisible({ timeout: 30_000 });
     await opcion.click();
     await this.esperarPostback();
-    await this.page.waitForTimeout(1_500);
+    // Cambiar de categoria reinyecta las tarifas y redibuja el calendario entero.
+    await this.esperarCalendario();
   }
 
   /** Categoria que quedo elegida, tal como la muestra el combo. */
@@ -262,8 +313,7 @@ export class SeriePage {
         const [anio, mm, dd] = primera.clave.split('-');
         return { clave: primera.clave, fecha: `${dd}/${mm}/${anio}`, tarifa: primera.tarifa, mes };
       }
-      await this.page.locator(this.mesSiguiente).first().click();
-      await this.page.waitForTimeout(400);
+      await this.pasarAlMesSiguiente(mes);
     }
     throw new Error(
       `El calendario no ofrecio ninguna salida reservable en ${mesesAMirar} meses. ` +
@@ -322,8 +372,7 @@ export class SeriePage {
 
     for (let intento = 0; intento < 3; intento++) {
       await this.page.locator(combo).first().click();
-      if (await opcion.isVisible().catch(() => false)) break;
-      await this.page.waitForTimeout(1_000);
+      if (await opcion.isVisible({ timeout: 3_000 }).catch(() => false)) break;
     }
 
     await expect(opcion, `El combo de edad tiene que ofrecer "${etiqueta}"`)
@@ -351,10 +400,19 @@ export class SeriePage {
     };
   }
 
-  /** Agrega la habitacion configurada. Hace postback. */
+  /**
+   * Agrega la habitacion configurada. Hace postback.
+   *
+   * Se espera a que el resumen tenga una fila mas, que es la senial de que el
+   * postback termino de redibujar. Cuando el servidor **rechaza** la habitacion
+   * —sin cupo, o mas de cuatro— no aparece ninguna fila nueva y abre un modal en
+   * su lugar: por eso la espera es tolerante y no rompe el caso negativo.
+   */
   async agregarHabitacion() {
+    const antes = await this.page.locator(this.filaDeHabitacion).count();
     await this.page.locator(this.botonAgregarHabitacion).first().click();
     await this.esperarPostback();
+    await this.esperarHabitaciones(antes + 1).catch(() => {});
   }
 
   /** Lineas de las habitaciones agregadas, tal como las muestra el resumen. */
@@ -534,8 +592,10 @@ export class SeriePage {
 
   /** Quita una habitacion del resumen con su "x". Hace postback. */
   async quitarLaHabitacion(indice: number) {
+    const antes = await this.page.locator(this.filaDeHabitacion).count();
     await this.page.locator(this.quitarHabitacion).nth(indice).click();
     await this.esperarPostback();
+    await this.esperarHabitaciones(antes - 1);
   }
 
   /**
@@ -549,13 +609,32 @@ export class SeriePage {
       const celda = this.page.locator(`.scal-cell[data-key='${clave}']`).first();
       if (await celda.count()) {
         await celda.click();
-        await this.page.waitForTimeout(600);
+        // Elegir una fecha no hace postback: lo unico que cambia es la pantalla,
+        // y la senial es que la celda quede marcada como seleccionada.
+        await expect(
+          this.page.locator(`.scal-cell[data-key='${clave}'].selected`).first(),
+          `La salida ${clave} tiene que quedar marcada como elegida`,
+        ).toBeVisible({ timeout: 15_000 });
         return;
       }
-      await this.page.locator(this.mesSiguiente).first().click();
-      await this.page.waitForTimeout(400);
+      await this.pasarAlMesSiguiente(await this.mesDelCalendario());
     }
     throw new Error(`El calendario no llego a mostrar la salida ${clave} en ${mesesAMirar} meses.`);
+  }
+
+  /**
+   * Pasa al mes siguiente del calendario.
+   *
+   * El redibujo es en el cliente y no dispara ninguna llamada, asi que la unica
+   * senial de que termino es que **cambie la etiqueta del mes**.
+   */
+  private async pasarAlMesSiguiente(mesActual: string) {
+    await this.page.locator(this.mesSiguiente).first().click();
+    await this.page.waitForFunction(
+      (anterior) => {
+        const el = document.querySelector('#spanCalLabel') as HTMLElement | null;
+        return !!el && el.innerText.replace(/\s+/g, ' ').trim() !== anterior;
+      }, mesActual, { timeout: 15_000 });
   }
 
   /**
@@ -596,7 +675,9 @@ export class SeriePage {
     await this.page.locator('#catResetConfirm').first().click();
     await expect(this.page.locator(this.modalDeCategoria)).toBeHidden({ timeout: 15_000 });
     await this.esperarPostback();
-    await this.page.waitForTimeout(1_500);
+    // Confirmar reinicia la seleccion: la senial de que el postback termino de
+    // redibujar es que no quede ninguna habitacion en el resumen.
+    await this.esperarHabitaciones(0);
   }
 
   /**

@@ -1,7 +1,7 @@
-import { test, expect, Page, Locator } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { TarifarioPage } from '../../pages/tarifario.page';
 import {
-  paso, adjuntarTexto, esperarFinDeCarga, resaltarYCapturar, reiniciarNumeracionDePasos,
+  paso, adjuntarTexto, esperarFinDeCarga, reiniciarNumeracionDePasos, conResaltado,
 } from '../../utils/pasos';
 
 /**
@@ -55,16 +55,6 @@ test.describe('Tarifario — multiidioma del encabezado', () => {
     await page.goto('/online/');
   });
 
-  async function conResaltado(
-    page: Page, locator: Locator, etiqueta: string, fn: () => void | Promise<void>,
-  ) {
-    try {
-      await fn();
-    } catch (error) {
-      await resaltarYCapturar(page, locator, `FALLA: ${etiqueta}`);
-      expect.soft(false, (error as Error).message).toBe(true);
-    }
-  }
 
   /** Codigo del idioma activo, tal como lo muestra el encabezado: ES, EN o PT. */
   async function idiomaActivo(page: Page): Promise<string> {

@@ -1,4 +1,4 @@
-import { test, Page, Locator, TestInfo } from '@playwright/test';
+import { test, expect, Page, Locator, TestInfo } from '@playwright/test';
 
 /**
  * Numero de paso dentro del test en curso.
@@ -204,4 +204,30 @@ export async function resaltarYCapturar(
   }
   await adjuntarCaptura(page, nombre, true);
   hayCapturaDeFalla = true;
+}
+
+/**
+ * Corre una comparacion y, si falla, marca en rojo la zona que la origino, la
+ * adjunta al reporte y la registra como **fallo blando**.
+ *
+ * Blando y no duro a proposito: una diferencia de contenido no impide seguir
+ * mirando el resto de la pantalla. Antes, el primer texto que no coincidia
+ * dejaba sin ejecutar todos los pasos siguientes y habia que corregir y volver a
+ * correr para ver el resto. El test igual termina en rojo: Playwright acumula
+ * los `expect.soft` y falla al cerrar.
+ *
+ * Vivio duplicado en los ocho archivos de test hasta el 2026-09-05. Se dejo asi
+ * mientras los bloques se iban terminando de a uno, para no tocar lo que ya
+ * estaba en verde; una vez cerrados los tres, no habia razon para mantener ocho
+ * copias de las mismas diez lineas.
+ */
+export async function conResaltado(
+  page: Page, locator: Locator, etiqueta: string, fn: () => void | Promise<void>,
+) {
+  try {
+    await fn();
+  } catch (error) {
+    await resaltarYCapturar(page, locator, `FALLA: ${etiqueta}`);
+    expect.soft(false, (error as Error).message).toBe(true);
+  }
 }

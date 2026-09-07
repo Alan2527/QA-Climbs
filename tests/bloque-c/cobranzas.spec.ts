@@ -10,7 +10,7 @@ import { OrdenDeCobroPage } from '../../pages/orden-de-cobro.page';
 import { CajaDiariaPage } from '../../pages/caja-diaria.page';
 import {
   paso, adjuntarTexto, esperarFinDeCarga, fechaDeBusqueda, formatearFecha,
-  importeANumero, resaltarYCapturar, reiniciarNumeracionDePasos,
+  importeANumero, reiniciarNumeracionDePasos, conResaltado,
 } from '../../utils/pasos';
 
 /**
@@ -41,20 +41,6 @@ test.describe('Cobranzas', () => {
     await new InicioPage(page).abrir();
   });
 
-  /**
-   * Corre una comparacion y, si falla, marca en rojo la zona que la origino y
-   * la registra como fallo blando, para que el test siga validando el resto.
-   */
-  async function conResaltado(
-    page: Page, locator: Locator, etiqueta: string, fn: () => void | Promise<void>,
-  ) {
-    try {
-      await fn();
-    } catch (error) {
-      await resaltarYCapturar(page, locator, `FALLA: ${etiqueta}`);
-      expect.soft(false, (error as Error).message).toBe(true);
-    }
-  }
 
   const SALTO = String.fromCharCode(10);
 
