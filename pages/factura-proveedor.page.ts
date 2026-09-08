@@ -215,6 +215,18 @@ export class FacturaProveedorPage {
    * Si el guardado falla, el BO no navega: muestra un noty y se queda en la
    * misma pantalla, y la espera de la URL es lo que lo detecta.
    */
+  /**
+   * Vuelve a abrir un comprobante ya guardado por su id.
+   *
+   * Hace falta cuando la cadena se va a mirar otra pantalla en el medio — la
+   * bandeja de no asignados, por ejemplo — y despues tiene que seguir donde
+   * estaba.
+   */
+  async abrirPorId(id: string) {
+    await this.page.goto(`${this.base}/administration/supplierinvoice/${id}`);
+    await esperarFinDeCarga(this.page);
+  }
+
   async guardar(): Promise<string> {
     await this.page.locator(this.btnGuardar).click();
     await this.page.waitForURL(/supplierinvoice\/\d+$/i, { timeout: 120_000 });

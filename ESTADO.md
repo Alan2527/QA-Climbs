@@ -69,7 +69,8 @@ Decisiones que lleva escritas:
 Ninguno de los cuatro deja una reserva viva en QA: la que emite cada uno es la que
 después cancela.
 
-**2. Bloque C: liquidación del file y bandejas de no asignados.** *(sin empezar)* `FileLiq.aspx`, y
+**2. Bloque C: liquidación del file y bandejas de no asignados.** *(relevado el
+2026-09-08, no cerrado — abajo qué se aprendió y qué falta)* `FileLiq.aspx`, y
 `UnassignedInvoices` / `UnassignedPayorders` como validación negativa. Vienen de
 la lista de "lo que el PM no pidió y conviene sumar", más abajo.
 
@@ -297,6 +298,56 @@ afectado**: emite bien, verificado a mano y por la suite.
 vuelva a verde tapando lo que la suite acaba de encontrar. El 2 y el 3 parecen
 cambios intencionales —si lo son, se regenera la línea base con `npm run lineabase`
 y listo—; el 1 y el 4 hay que preguntarlos.
+
+### El hueco 2, relevado el 2026-09-08
+
+Se dejó preparado el terreno y se aprendieron las dos reglas que hacen falta para
+escribirlo bien, pero **ninguno de los dos tests quedó en pie**. Lo que sí quedó:
+
+| Archivo | Estado |
+|---|---|
+| `tests/bloque-c/cobranzas-comun.ts` | **hecho** — la precondición y los formateadores salieron de `cobranzas.spec.ts`, que bajó de 2.147 a 1.947 líneas |
+| `pages/no-asignados.page.ts` | escrito, sin test que lo use todavía |
+| `pages/liquidacion.page.ts` | escrito, sin test que lo use todavía |
+
+#### La bandeja de no asignados no se puede mirar desde el eslabón 1
+
+La consulta (`FileItemSvc.cs:1632`) pide **tres** cosas, no una:
+
+    where FITSI.SupplierInvoiceID == null      // sin imputar
+          && SI.Published == true              // y publicada
+          && S.SupplierType == 10              // de un proveedor de Costos
+
+La idea original era verificarla dentro del eslabón 1: la factura tiene que
+figurar recién guardada y desaparecer al imputarla. **No se puede, y no es un
+defecto**: una factura recién guardada todavía no está publicada — se publica al
+aprobarla — y el eslabón 1 aprueba *después* de imputar. En esa secuencia la
+factura nunca entra a la bandeja: primero no está publicada, y cuando lo está ya
+está imputada.
+
+Descartado antes de llegar ahí, con la base: `Published = 1`, `Deleted = 0`,
+`SupplierType = 10` para el proveedor AUTO-QA 1047. Y descartadas las fechas: el
+rango por defecto es hoy − 30 días a hoy, y ampliarlo a mañana no cambia nada.
+
+**Cómo hay que escribirlo entonces**: con una factura propia que se **apruebe sin
+imputar**, verificar que figure, imputarla y verificar que salga. Es un test
+aparte, no un agregado al eslabón 1.
+
+#### La liquidación: el documento no carga
+
+`booking/files/liqfile/{id}` no es una pantalla de consulta sino **un documento
+editable**: el BO lo arma la primera vez desde el file y lo guarda en
+`BO_FileLiq`; a partir de ahí muestra lo guardado y **deja de mirar el file**
+(`Tmpl/FileLiq.aspx.cs:88`). Esa es la regla que vale la pena probar — si después
+se agrega un ítem, el documento sigue diciendo lo de antes hasta que alguien lo
+regenere.
+
+El test quedó escrito con esa idea —armar, marcar, guardar, releer, regenerar y
+los tres idiomas— pero **el editor viene vacío**: `.note-editable`, `#liq-data`,
+`#txtLiqData` y un `iframe` existen en la pantalla, y el texto es "". Pasa igual
+con un file recién generado y con uno viejo, así que no es el dato. El contenido
+entra por AJAX desde `Tmpl/FileLiq.aspx` y `file.js:5768` lo inyecta en SummerNote;
+falta averiguar por qué no llega. **Es lo primero a mirar al retomar.**
 
 ### Un hueco que queda en pausa, y por qué
 
