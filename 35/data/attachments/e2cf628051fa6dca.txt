@@ -1,2 +1,0 @@
-Pais: Argentina
-Ciudad: Buenos Aires

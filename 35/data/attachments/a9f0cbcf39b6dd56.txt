@@ -1,5 +1,0 @@
-ESPERADO (ServiceInfo.CancellationPolicy):
-Las cancelaciones con anterioridad de 24hs. no ocasionará ningún tipo de gastos, de lo contrario se cobrará el 100% del servicio
-
-EN PANTALLA:
-Las cancelaciones con anterioridad de 24hs. no ocasionará ningún tipo de gastos, de lo contrario se cobrará el 100% del servicio

@@ -1,0 +1,19 @@
+fuente: ServiceToServiceAmenity + ServiceAmenityDetail + ServiceAmenityObservation por ServiceID y LanguageID = 1
+
+INCLUYE esperado:
+  Almuerzo -- Texto de prueba.
+  Drop off en hotel
+  Guía de Turismo
+  Traslados -- Vehículo con aire acondicionado y chofer bilingüe
+INCLUYE pantalla:
+  Almuerzo -- Texto de prueba.
+  Drop off en hotel
+  Guía de Turismo
+  Traslados -- Vehículo con aire acondicionado y chofer bilingüe
+
+NO INCLUYE esperado:
+  Bebidas -- Texto de prueba 2.
+  Botella de agua -- La botella de agua no está incluida en el servicio
+NO INCLUYE pantalla:
+  Bebidas -- Texto de prueba 2.
+  Botella de agua -- La botella de agua no está incluida en el servicio

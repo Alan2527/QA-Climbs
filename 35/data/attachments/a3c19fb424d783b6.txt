@@ -1,2 +1,0 @@
-politica: {"freeMaxAge":0,"childMaxAge":10}
-salidas con tarifa de menor: 52, valores: 500
