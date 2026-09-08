@@ -15,8 +15,10 @@ Documento de traspaso. Última actualización: **2026-09-05**.
 > deshacer.
 >
 > **El Bloque B tiene un quinto riel**: el asistente de reserva de **series**, con
-> tres tests propios. La suite al 2026-09-05 da **27 en verde y 2 en rojo**, y los
-> dos rojos son esperados: Cruceros (hallazgos 1 y 2) y Servicio (hallazgo 7).
+> tres tests propios más su anulación. La suite al 2026-09-07, ya migrada al
+> rediseno del portal, da **29 en verde y 2 en rojo**, medidos bloque por bloque:
+> A 8/1, B 13/1, C 8/0. Los dos rojos son esperados: Cruceros (hallazgos 1 y 2) y
+> Servicio (hallazgo 7), los dos abiertos desde antes del deploy.
 >
 > **Las pantallas de los tres bloques quedaron sin huecos** (auditado el
 > 2026-09-05), pero **sí quedan huecos de alcance**, acordados y todavía sin
@@ -223,6 +225,56 @@ Ninguno de los dos es del sistema; los dos estaban latentes:
   **hoteles** cancelados (`LoadElementsCanceled` → `GetHotelsCanceled`) y sin
   ninguno no se dibuja. Exigirla en una reserva sin hotelería era pedir algo que no
   aplica: pasó a ser condicional.
+
+#### La línea base, recapturada el 2026-09-07
+
+El rediseno agregó a cada fila del tarifario de hoteles una etiqueta con **los días
+que cubre la tarifa**. La arma `TariffWeekDayHelper` (`1c42d225`, de la misma US):
+
+| Días que cubre | Etiqueta |
+|---|---|
+| los 7 | Todos los días |
+| 6 | Todos menos {día} |
+| 1 | el nombre del día |
+| seguidos, 2 | {a} y {b} |
+| seguidos, 3+ | {a} a {b} |
+| sueltos | lista con comas |
+
+**Y hace algo más que poner una etiqueta**: junta las filas que repiten el mismo
+precio sobre los mismos días. Un hotel que cobra distinto entre semana y fin de
+semana generaba una fila por bloque, y una temporada de seis meses se veía como
+decenas de filas casi idénticas. O sea que **la tabla puede tener menos filas que
+antes**. En el hotel AUTO-QA no se nota porque todas sus tarifas son "Todos los
+días" y no hay nada que juntar.
+
+Se recapturó con resguardo: regenerar y **revisar el diff antes de darlo por
+bueno**. Resultado: 91 líneas cambiadas, todas la etiqueta, más la fecha de
+captura. **Ni un importe ni una fila de diferencia.** Desde ahora la foto guarda
+también la periodicidad, así que el test detecta si una tarifa pasa de "Todos los
+días" a "Lunes a viernes".
+
+#### El capturador estaba roto, y lo rompí yo
+
+`npm run lineabase` corría **la suite entera** en vez de la captura. La causa es la
+mejora 1: `playwright.lineabase.config.ts` hacía `{ ...base, testDir: './tools' }`,
+y al partir la suite en un proyecto por bloque **cada proyecto pasó a declarar su
+propio `testDir`, que le gana al de arriba**. Quince minutos, ninguna captura, y de
+paso emitía reservas y movimientos de caja que nadie pidió. Ahora la config declara
+sus propios proyectos.
+
+Es la clase de efecto que un cambio de configuración produce lejos de donde se
+tocó: la mejora 1 se verificó corriendo los bloques, y el capturador no es un
+bloque.
+
+#### Dos expectativas que dejaron de significar algo
+
+`copiarSolapa` y `descargaPdf` se exigían **ausentes** en paquetes, hoteles,
+cruceros y ofertas. Eso era cierto cuando cada producto llevaba esos botones en su
+propio control de tarifa. Ahora viven en el armazón de la ficha "Ver Detalle", que
+se dibuja en la pantalla **sea cual sea la pestaña activa**, así que exigir que no
+estén sería una afirmación sobre dónde se dibuja el armazón y no sobre el producto.
+Se sacaron de `candidatos.json`. Donde sí aplican — las tres pestañas de servicios —
+se siguen exigiendo.
 
 #### El hallazgo que quedó abierto
 
