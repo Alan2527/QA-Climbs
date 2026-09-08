@@ -1,5 +1,0 @@
-fuente: ServiceObservation + ServiceObservationDetail (LanguageID = 1), ServiceDuration por RateTypeID y ServiceMonth
-
-meses esperados: 1, 2, 3, 5, 6, 7, 10, 11, 12
-meses en pantalla: 1, 2, 3, 5, 6, 7, 10, 11, 12
-modalidades: 
