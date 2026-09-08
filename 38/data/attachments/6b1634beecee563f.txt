@@ -1,0 +1,9 @@
+{
+ "adultos": 3,
+ "menores": 0,
+ "masAdultos": true,
+ "menosAdultos": false,
+ "masMenores": false,
+ "menosMenores": true,
+ "aviso": ""
+}

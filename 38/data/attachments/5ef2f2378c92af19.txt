@@ -1,0 +1,2 @@
+Factura de proveedor: 0001-08141723 (id 87931), sin imputar
+Orden de pago: id 37056, sin aprobar

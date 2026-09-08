@@ -1,0 +1,9 @@
+asistente (tarifa de la habitacion) USD 2500
+asistente (total)            USD 5500
+resumen final (total)        USD 5500
+historial (total)            USD 5500
+bandeja (columna V)          (sin moneda) 5500
+detalle (Venta del item)     (sin moneda) (no se pudo leer)
+detalle (V. Markup del item) (sin moneda) (no se pudo leer)
+file (Venta del item)        (sin moneda) 1833.33
+file (Venta en Totales)      (sin moneda) 5500

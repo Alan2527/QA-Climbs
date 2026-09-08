@@ -1,0 +1,2 @@
+PasajeroUno | RegresionBEAHFH | QA081407571 | Argentina | 01/03/1990 | -- | ADL
+PasajeroDos | RegresionBEAHFH | QA081407572 | Argentina | 02/03/1990 | -- | ADL

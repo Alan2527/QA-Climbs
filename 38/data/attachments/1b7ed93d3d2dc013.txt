@@ -1,0 +1,5 @@
+Reserva: BO00024030
+File: AM-0000029847-01 (id 32065)
+Factura de proveedor: 0001-08141232 (id 87928)
+Proveedor: GRUPO SUMMA SRL
+Total imputado: USD 6,00

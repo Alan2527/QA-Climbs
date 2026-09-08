@@ -1,0 +1,47 @@
+{
+  "fecha": "05/10/2026",
+  "fechaDeSalida": "07/10/2026",
+  "cantidadPax": 5,
+  "habitaciones": 2,
+  "edadDelMenor": 8,
+  "tarifaDeLaSalida": 2500,
+  "cupoAntes": 178,
+  "urlDelAsistente": "https://qa.amv.travel/online/serieTour.aspx?serieID=19&tourID=5061",
+  "pasajeros": [
+    {
+      "nombre": "PasajeroUno",
+      "apellido": "RegresionBEAJFH",
+      "pasaporte": "QA081409571",
+      "nacimiento": "01/03/1990",
+      "nacionalidad": "Argentina"
+    },
+    {
+      "nombre": "PasajeroDos",
+      "apellido": "RegresionBEAJFH",
+      "pasaporte": "QA081409572",
+      "nacimiento": "02/03/1990",
+      "nacionalidad": "Argentina"
+    },
+    {
+      "nombre": "PasajeroTres",
+      "apellido": "RegresionBEAJFH",
+      "pasaporte": "QA081409573",
+      "nacimiento": "03/03/1990",
+      "nacionalidad": "Argentina"
+    },
+    {
+      "nombre": "PasajeroCuatro",
+      "apellido": "RegresionBEAJFH",
+      "pasaporte": "QA081409574",
+      "nacimiento": "04/03/1990",
+      "nacionalidad": "Argentina"
+    },
+    {
+      "nombre": "PasajeroCinco",
+      "apellido": "RegresionBEAJFH",
+      "pasaporte": "QA081409575",
+      "nacimiento": "05/10/2018",
+      "nacionalidad": "Argentina"
+    }
+  ]
+}
