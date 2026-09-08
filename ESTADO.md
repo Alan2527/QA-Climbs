@@ -1041,16 +1041,70 @@ No es un problema de esos dos ítems: **el flag no se consulta en ningún lado**
 Que Paquetes, Ofertas, Cruceros y Hoteles no lo evidencien es sólo porque están
 en `Published = 1`. Es el mismo patrón del hallazgo 5.
 
-### 6. El tarifario muestra amenities con `Published = 0`
+### 6. El WebAdmin filtra las amenities por `Published` y el portal no
 
-Confirmado también sobre la tabla maestra: `ServiceAmenity` ID 140,
-**"Pick up y drop off en hotel", tiene `Published = 0`** y se sigue mostrando en la
-ficha de Cena Show. Las otras diez amenities de los ítems de prueba están en 1.
+**Reescrito el 2026-09-08 con evidencia medida.** Antes decía "el tarifario muestra
+amenities despublicadas", que se queda corto: el problema no es que el portal las
+muestre, es que **las dos aplicaciones no coinciden**.
 
-Detectado con "Pick up y drop off en hotel" en el Café de los Angelitos. Se
-publicaron las que quedaban para que el dato sea coherente, pero conviene consultarlo.
+```csharp
+// WebAdmin  — ServiceAmenityManager.cs:67
+.Where(o => !ids.Contains(o.ID) && o.Published)     // filtra
 
----
+// Portal    — ServiceSheetBuilder.cs:191
+.Where(a => amenityIds.Contains(a.ID))              // no mira Published
+```
+
+**Qué se ve.** En la ficha "Ver Detalle" del Café de los Angelitos, solapa
+**Incluye / No incluye**, aparece "Pick Up y Drop Off en hotel" (amenity 140,
+`Published = 0`). En la misma solapa del WebAdmin — `administration/services/detail`,
+servicio 163 — **esa fila no existe**: hay "Drop off en hotel", que es otra.
+
+Lo grave no es que se vea, es que **el dato queda fuera del alcance del usuario**:
+la relación existe, está marcada como incluida, el cliente la lee, y desde el
+admin no se puede destildar porque la fila no se lista. Sólo se corrige
+republicando la amenity, destildando y volviendo a despublicar — o por base.
+
+#### No es dato nuestro, y así se descartó
+
+La primera hipótesis fue que lo habíamos fabricado nosotros al armar el servicio
+por SQL: el admin **no ofrece** amenities despublicadas, así que por pantalla no se
+puede crear esa relación. Se midió en la base antes de sostener nada:
+
+| Amenity | `Published` | Relaciones vivas |
+|---|---|---|
+| 140 Pick Up y Drop Off en hotel | 0 | **61** |
+| 93 Snack | 0 | 17 |
+| 131 Tour a Pie | 0 | 8 |
+| 142 Chofer/Guía | 0 | 7 |
+| 89 Desayuno | 0 | 2 |
+| 141 Entrada al Parque Nacional | 0 | 1 |
+
+**96 relaciones** contra seis amenities despublicadas. De las 61 de la 140:
+**50 son de servicios publicados** — Circuito Chico, Perito Moreno, Quebrada de
+Humahuaca, Cerro Catedral, Full Day Colonia — y **49 la muestran bajo INCLUYE**.
+Nuestro AUTO-QA es una de sesenta y una.
+
+Eso ademas explica cómo se llega sin tocar la base: la amenity estuvo publicada,
+se usó en medio catálogo y se despublicó después — casi seguro reemplazada por
+"Drop off en hotel", que es la que el admin sí lista.
+
+#### Por qué va como consulta y no como bug
+
+Lo que no está definido es **qué tiene que pasar**: si despublicar una amenity
+tiene que sacarla de las fichas donde ya estaba cargada, o si se respeta lo que
+cada servicio tenía. Ninguna historia lo dice, así que la pregunta es de producto.
+Lo que sí está medido es el alcance, que es lo que hace falta para decidir.
+
+No lo trajo el rediseno: el filtro del admin y su ausencia en el portal son
+anteriores.
+
+#### La otra tabla, que sí es deliberada
+
+`ServiceToServiceAmenity` — la relación — también ignora `Published`, pero ahí el
+código lo explica: *"Published no se usa en esta tabla: el backoffice guarda las
+relaciones con Published = 0 y lo que vale es el flag Included / NotIncluded"*
+(`ServiceSheetBuilder.cs:180`). Esa mitad no es el hallazgo.
 
 ### 7. El servicio suelto llega al file oculto para SIX
 
