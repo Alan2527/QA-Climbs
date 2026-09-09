@@ -1,0 +1,4 @@
+salida: 2026-10-05
+antes de reservar: 173
+despues de reservar y cancelar: 172
+La cancelacion NO devolvio el cupo: quedan 1 unidades menos. Es dato para producto, no un resultado esperado.

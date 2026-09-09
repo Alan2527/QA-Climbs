@@ -1,0 +1,41 @@
+{
+  "paquete": "AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia (6 días / 5 noches)",
+  "paqueteId": "5059",
+  "ciudad": "Buenos Aires",
+  "modalidad": "DBL",
+  "fecha": "16/09/2026",
+  "fechaDeSalida": "19/09/2026",
+  "referencia": "AUTO-QA 20260909181154",
+  "observaciones": "Reserva de regresion automatica 20260909181154. No operar.",
+  "detalleDelItem": "Vuelo de llegada AR1234 20260909181154",
+  "cantidadPax": 2,
+  "dobles": 1,
+  "items": [
+    "Park Hyatt",
+    "Tigre y Delta",
+    "Angelitos",
+    "Arakur"
+  ],
+  "importePorItem": {
+    "Park Hyatt": "USD 1,290",
+    "Tigre y Delta": "USD 42",
+    "Angelitos": "USD 138",
+    "Arakur": "USD 627"
+  },
+  "pasajeros": [
+    {
+      "nombre": "PasajeroUno",
+      "apellido": "RegresionBIBBFE",
+      "pasaporte": "QA091811541",
+      "nacimiento": "01/03/1990",
+      "nacionalidad": "Argentina"
+    },
+    {
+      "nombre": "PasajeroDos",
+      "apellido": "RegresionBIBBFE",
+      "pasaporte": "QA091811542",
+      "nacimiento": "02/03/1990",
+      "nacionalidad": "Argentina"
+    }
+  ]
+}

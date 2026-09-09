@@ -1,5 +1,0 @@
-ESPERADO (ServiceInfo.CancellationPolicy):
-Cancelación sin cargo hasta 24 horas antes del inicio del servicio. Dentro de las 24 horas se aplica el 100% de penalidad.
-
-EN PANTALLA:
-Cancelación sin cargo hasta 24 horas antes del inicio del servicio. Dentro de las 24 horas se aplica el 100% de penalidad.

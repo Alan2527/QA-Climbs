@@ -1,0 +1,37 @@
+{
+  "cantidadPax": 2,
+  "dobles": 1,
+  "fecha": "16/09/2026",
+  "fechaDeSalida": "19/09/2026",
+  "referencia": "AUTO-QA 20260909181007",
+  "observaciones": "Anulacion de regresion automatica 20260909181007. No operar.",
+  "detalleDelItem": "Vuelo de llegada AR1234 20260909181007",
+  "items": [
+    "Park Hyatt",
+    "Tigre y Delta",
+    "Angelitos",
+    "Arakur"
+  ],
+  "importePorItem": {
+    "Park Hyatt": "USD 1,290",
+    "Tigre y Delta": "USD 42",
+    "Angelitos": "USD 138",
+    "Arakur": "USD 627"
+  },
+  "pasajeros": [
+    {
+      "nombre": "PasajeroUno",
+      "apellido": "RegresionBIBAAH",
+      "pasaporte": "QA091810071",
+      "nacimiento": "01/03/1990",
+      "nacionalidad": "Argentina"
+    },
+    {
+      "nombre": "PasajeroDos",
+      "apellido": "RegresionBIBAAH",
+      "pasaporte": "QA091810072",
+      "nacimiento": "02/03/1990",
+      "nacionalidad": "Argentina"
+    }
+  ]
+}
