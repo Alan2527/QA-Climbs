@@ -1,0 +1,4 @@
+observaciones destacadas: ["No aplica para cenas de Navidad y Año Nuevo","Consultar suplemento por hoteles en Palermo"]
+mas observaciones: null
+tooltips (5): ["Duración estimada del servicio","IdiomasEspañolEnglishPortuguese","Operatividad• Días: Todos los dias• Temporada: enero a marzo, mayo a julio, octubre a diciembre","AlmuerzoTexto de prueba.","BebidasCopa de bienvenida y bebidas libres durante la cena"]
+tag: null
