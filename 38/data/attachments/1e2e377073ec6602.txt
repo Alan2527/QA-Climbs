@@ -1,5 +1,0 @@
-File: AM-0000029848-01
-Factura de proveedor: 0001-08141321
-Orden de pago: OP0000037054 (id 37054)
-Caja: AUTO-QA NO TOCAR - CAJA USD
-Pagado: USD 6,00

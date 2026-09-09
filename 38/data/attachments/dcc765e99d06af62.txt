@@ -1,2 +1,0 @@
-PasajeroUno | RegresionBEAICG | QA081408261 | Argentina | 01/03/1990 | -- | ADL
-PasajeroDos | RegresionBEAICG | QA081408262 | Argentina | 02/03/1990 | -- | ADL

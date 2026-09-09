@@ -1,8 +1,0 @@
-itinerario (total)           USD 2582
-carrito (total del item)     USD 2582
-historial (total)            USD 2582
-bandeja (columna V)          (sin moneda) 2582
-detalle (Venta del item)     (sin moneda) 1290
-detalle (V. Markup del item) (sin moneda) (no se pudo leer)
-file (Venta del item)        (sin moneda) 1290
-file (Venta en Totales)      (sin moneda) 2582

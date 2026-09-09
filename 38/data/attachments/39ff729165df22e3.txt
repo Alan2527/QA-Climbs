@@ -1,5 +1,0 @@
-PasajeroUno | RegresionBEAJFH | QA081409571 | Argentina | 01/03/1990 | -- | ADL
-PasajeroDos | RegresionBEAJFH | QA081409572 | Argentina | 02/03/1990 | -- | ADL
-PasajeroTres | RegresionBEAJFH | QA081409573 | Argentina | 03/03/1990 | -- | ADL
-PasajeroCuatro | RegresionBEAJFH | QA081409574 | Argentina | 04/03/1990 | -- | ADL
-PasajeroCinco | RegresionBEAJFH | QA081409575 | Argentina | 05/10/2018 | -- | CHD
