@@ -39,8 +39,20 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      # `--with-deps` corre un `apt-get update`, y la imagen de ubuntu-latest trae
+      # configurado el repositorio de Google Chrome. Cuando ese indice esta a mitad
+      # de publicacion apt corta con "Hash Sum mismatch" y el paso muere con codigo
+      # 100 sin instalar nada, aunque la suite corre con el chromium de Playwright y
+      # no usa Google Chrome para nada. Se saca esa lista antes de instalar: el
+      # runner es efimero y no la necesita.
+      #
+      # El segundo intento es el cinturon: si apt falla igual por otro motivo, el
+      # navegador se instala sin las dependencias del sistema, que en el runner de
+      # GitHub ya vienen puestas.
       - name: Instalar navegador
-        run: npx playwright install --with-deps chromium
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          npx playwright install --with-deps chromium || npx playwright install chromium
 
       # En push a main no hay inputs: corre bloque-a, que es el comportamiento
       # que ya tenia el pipeline. La eleccion es para la corrida manual.
