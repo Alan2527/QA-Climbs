@@ -385,8 +385,9 @@ Dos cosas que sólo se supieron corriéndolo, y que eran del test:
 - **La bandeja de facturas filtra por fecha de creación contra el "Hasta" a las
   00:00** (`txtDateTo.Text.ToDate()`, `FileItemSvc.cs:1646`): con los filtros por
   defecto, una factura creada hoy no aparece hasta mover el "Hasta" a mañana. El test
-  lo mueve. Queda como observación, no como defecto: ninguna historia define el
-  rango de la bandeja.
+  lo mueve. **Confirmado a mano por Alan el 14/09** (con Hasta en hoy no aparece una
+  factura creada ese día; con Hasta en mañana sí) y **planteado al PM como consulta**
+  el mismo día: ninguna historia define el rango de la bandeja.
 
 **La tercera bandeja, órdenes de pago sin imputar, sigue pendiente**: una orden
 aprobada restringe la imputación (`PayOrders/Detail.aspx.cs:350`) y hay que medir si
