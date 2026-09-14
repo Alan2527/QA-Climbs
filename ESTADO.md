@@ -1,6 +1,6 @@
 # Estado de la suite E2E — AMV Travel (QA)
 
-Documento de traspaso. Última actualización: **2026-09-05**.
+Documento de traspaso. Última actualización: **2026-09-14**.
 
 > **Para retomar en otra conversación:** leer este archivo entero y el `CLAUDE.md`
 > de la carpeta padre. El **Bloque A está terminado**. Del **Bloque B — Reservas**
@@ -15,10 +15,26 @@ Documento de traspaso. Última actualización: **2026-09-05**.
 > deshacer.
 >
 > **El Bloque B tiene un quinto riel**: el asistente de reserva de **series**, con
-> tres tests propios más su anulación. La suite al 2026-09-07, ya migrada al
-> rediseno del portal, da **29 en verde y 2 en rojo**, medidos bloque por bloque:
-> A 8/1, B 13/1, C 8/0. Los dos rojos son esperados: Cruceros (hallazgos 1 y 2) y
-> Servicio (hallazgo 7), los dos abiertos desde antes del deploy.
+> tres tests propios más su anulación.
+>
+> **Corrida completa del 2026-09-14: 26 en verde y 8 en rojo** (32 tests más los
+> dos setups, 24 minutos). Por bloque: **A 9/3, B 11/3, C 4/2.** Los ocho rojos:
+>
+> - **Esperados, por hallazgos abiertos**: Cruceros (1 y 2), Servicio (7),
+>   carrito y checkout del riel clásico en inglés y portugués (8), y el multidestino
+>   en inglés y portugués, que exige la sección Idiomas de la US 4613.
+> - **Nuevos, por el deploy del 09/09 al 11/09, a confirmar antes de tocar nada**:
+>   - *Paquetes*: la card ya no tiene el botón "Ver Tarifario" (`.tariff-view-table`).
+>     Lo sacó `fc57d1f7` "4613 Mejoras diseño Tarifario", que llegó a QA con el
+>     merge del 09/09 y lo reemplaza por un explorador en modal. La US 4613 no lista
+>     el tarifario entre sus pantallas: va como consulta y el selector no se toca.
+>   - *Cena Show*: Incluye ya no muestra "Pick up y drop off en hotel", la amenity
+>     140 con `Published = 0`. `239d4281` (US 4501, 10/09) sumó `&& a.Published` en
+>     `ServiceSheetBuilder.cs:192`, así que el portal ahora coincide con el WebAdmin:
+>     **el hallazgo 6 quedaría resuelto** y el candidato a actualizar, si la US 4501
+>     lo define así.
+> - **Bloque C**: la factura de proveedor y las validaciones del BO, por la pantalla
+>   de la US 4722. Fuera del alcance de esta actualización.
 >
 > **Las pantallas de los tres bloques quedaron sin huecos** (auditado el
 > 2026-09-05), pero **sí quedan huecos de alcance**, acordados y todavía sin
