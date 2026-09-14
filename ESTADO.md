@@ -1271,6 +1271,23 @@ inclusive"), que pidió corregirlo en una US aparte; Alan la carga. Lo marca en 
 `tests/bloque-c/no-asignados.spec.ts`: la factura aprobada sin imputar no figura en la
 bandeja con los filtros por defecto. El test dejó de correr el "Hasta" a mañana.
 
+
+### 10. La ficha de servicio muestra un total distinto del que cobra el carrito
+
+Desde el deploy del 2026-09-14 (merge de la US 4739 a QA), con 2 pax de la modalidad
+Regular a USD 10 del servicio AUTO-QA Tigre y Delta, **la ficha muestra TOTAL USD 20**
+y **el carrito y la reserva quedan en USD 19**. Hasta el 09/09 las dos pantallas decían
+USD 19: el redondeo hacia arriba se aplicaba sobre el total. Confirmado a mano por Alan
+con capturas de la ficha y del carrito.
+
+El total de la ficha ahora sale de `service/getratebyservice` con el idioma del
+servicio (`PaxQuantityControl.ascx.cs`, cambiado por la US 4739), y el alta al carrito
+de `booking/getbookservice`: ya no redondean igual.
+
+Va como consulta y no como bug: la US 4739 habla del recargo por idioma, y acá el
+idioma es español, sin recargo. Lo marca en rojo el test de Servicio del Bloque B en
+tres comparaciones (ficha contra carrito y contra el detalle del BO).
+
 ## Lo que queda por hacer
 
 ### Auditoría de cobertura de la pantalla (2026-09-01)
