@@ -16,7 +16,7 @@ const T = candidatos.tarifario as Record<string, any>;
 const CIUDAD: Record<string, string> = { 'a-cruises': 'Ushuaia', 'a-opportunities': 'Ushuaia' };
 
 async function leerTablas(page: Page, container: string) {
-  const filas = await page.locator(`#${container}, [id^="detailcnt-"], [id^="detailoptcnt-"]`)
+  const filas = await page.locator(`#${container}, [id^="detailcnt-"], [id^="detailoptcnt-"], #tariffExplorerDetail`)
     .locator('table:visible tr')
     .evaluateAll((trs) =>
       trs.map((tr) =>

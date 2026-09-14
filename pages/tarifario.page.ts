@@ -68,7 +68,7 @@ export class TarifarioPage {
    */
   ambitoTarifas(container: string): Locator {
     return this.page.locator(
-      `#${container}, [id^="detailcnt-"], [id^="detailoptcnt-"], [id^="detailtscnt-"]`,
+      `#${container}, [id^="detailcnt-"], [id^="detailoptcnt-"], [id^="detailtscnt-"], #tariffExplorerDetail`,
     );
   }
 
@@ -178,14 +178,44 @@ export class TarifarioPage {
    */
   async textosBotonesTarifario(container: string): Promise<string[]> {
     return this.contenedor(container)
-      .locator("a[onclick*='load'], a.accordeon-header, a.tariff-view-table")
+      .locator("a[onclick*='load'], a.accordeon-header, a.tariff-view-table, a[onclick*='openTariffExplorer']")
       .evaluateAll((els) =>
         els.map((e) => (e as HTMLElement).innerText.replace(/\s+/g, ' ').trim())
            .filter(Boolean),
       );
   }
 
+  /**
+   * Paquetes: desde el rediseno que llego a QA el 2026-09-09 (`fc57d1f7`, "4613
+   * Mejoras diseno Tarifario") el boton "Ver Tarifario" ya no despliega la tabla
+   * en la card: abre un explorador modal (`openTariffExplorer`) con las
+   * categorias a la izquierda, las solapas de idioma y la tabla con scroll propio.
+   */
+  readonly botonExplorador = "[onclick*='openTariffExplorer']";
+
+  /** Cierra el explorador de paquetes si esta abierto: tapa el resto de la pantalla. */
+  async cerrarExplorador() {
+    const modal = this.page.locator('#tariffExplorerModal');
+    if (await modal.isVisible()) {
+      await modal.locator('.tariff-explorer-close').click();
+      await expect(modal, 'El explorador de tarifas tiene que cerrarse').toBeHidden({ timeout: 15_000 });
+    }
+  }
+
   async verTarifario(container: string) {
+    // Paquetes: el tarifario se abre en el explorador modal, fuera de la card.
+    const explorador = this.contenedor(container).locator(this.botonExplorador).first();
+    if (await explorador.count()) {
+      await explorador.click();
+      await expect(this.page.locator('#tariffExplorerModal'), 'El explorador de tarifas tiene que abrirse')
+        .toBeVisible({ timeout: 30_000 });
+      await this.verificarSeguimosEnElTarifario('abrir el explorador de tarifas');
+      await expect
+        .poll(async () => this.page.locator('#tariffExplorerDetail table:visible').count(), { timeout: 60_000 })
+        .toBeGreaterThan(0);
+      return;
+    }
+
     // Servicios, hoteles, paquetes y ofertas piden el detalle por AJAX con un
     // onclick load*(). Cruceros no: su tabla ya viene renderizada pero oculta,
     // y el boton es un acordeon por clase (a.accordeon-header).
@@ -763,7 +793,7 @@ export class TarifarioPage {
     return {
       imagen:           await visible('.tariff-image-view img, .tariff-image-view'),
       texto:            await visible('.tariff-detail'),
-      botonTarifario:   await visible('.tariff-view-table'),
+      botonTarifario:   await visible(".tariff-view-table, [onclick*='openTariffExplorer']"),
       cotizarYReservar: await hay('.tariff-quote-reserve-btn'),
       proveedores:      await hay("[onclick*='openSuppliersModal']"),
       descargaWord:     await hay("[onclick*='downloadWord']"),
@@ -880,15 +910,32 @@ export class TarifarioPage {
     const solapas = this.page.locator(`${TarifarioPage.SOLAPAS_IDIOMA} > *`);
     const cantidad = await solapas.count();
 
-    if (cantidad > 0) {
-      for (let i = 0; i < cantidad; i++) {
-        const nombre = (await solapas.nth(i).innerText()).trim() || `solapa-${i}`;
-        await solapas.nth(i).click().catch(() => {});
+    // El explorador de paquetes muestra una categoria por vez
+    // (`selectTariffExplorerHotel` oculta las demas), asi que con mas de una hay
+    // que elegirlas de a una. Con una sola las claves quedan como antes y la linea
+    // base no cambia de forma. El scroll del modal no afecta: las filas estan en el
+    // DOM y visibles aunque queden fuera de la vista, y Playwright scrollea solo
+    // antes de cada clic.
+    const categorias = this.page.locator('#tariffExplorerModal:visible .tariff-explorer-hotel');
+    const totalCategorias = await categorias.count();
+
+    for (let c = 0; c < Math.max(totalCategorias, 1); c++) {
+      let prefijo = '';
+      if (totalCategorias > 1) {
+        await categorias.nth(c).click();
         await esperarFinDeCarga(this.page);
-        porIdioma[nombre] = await this.leerTablaTarifas(container);
+        prefijo = `${(await categorias.nth(c).innerText()).replace(/\s+/g, ' ').trim()} · `;
       }
-    } else {
-      porIdioma['sin-solapas'] = await this.leerTablaTarifas(container);
+      if (cantidad > 0) {
+        for (let i = 0; i < cantidad; i++) {
+          const nombre = (await solapas.nth(i).innerText()).trim() || `solapa-${i}`;
+          await solapas.nth(i).click().catch(() => {});
+          await esperarFinDeCarga(this.page);
+          porIdioma[prefijo + nombre] = await this.leerTablaTarifas(container);
+        }
+      } else {
+        porIdioma[prefijo + 'sin-solapas'] = await this.leerTablaTarifas(container);
+      }
     }
 
     return {
@@ -905,7 +952,7 @@ export class TarifarioPage {
     const mapa: Record<string, string> = {
       imagen:           '.tariff-image-view',
       texto:            '.tariff-detail',
-      botonTarifario:   '.tariff-view-table',
+      botonTarifario:   ".tariff-view-table, [onclick*='openTariffExplorer']",
       cotizarYReservar: '.tariff-quote-reserve-btn',
       proveedores:      "[onclick*='openSuppliersModal']",
       descargaWord:     "[onclick*='downloadWord']",

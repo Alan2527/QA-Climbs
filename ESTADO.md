@@ -24,10 +24,15 @@ Documento de traspaso. Última actualización: **2026-09-14**.
 >   carrito y checkout del riel clásico en inglés y portugués (8), y el multidestino
 >   en inglés y portugués, que exige la sección Idiomas de la US 4613.
 > - **Nuevos, por el deploy del 09/09 al 11/09, a confirmar antes de tocar nada**:
->   - *Paquetes*: la card ya no tiene el botón "Ver Tarifario" (`.tariff-view-table`).
->     Lo sacó `fc57d1f7` "4613 Mejoras diseño Tarifario", que llegó a QA con el
->     merge del 09/09 y lo reemplaza por un explorador en modal. La US 4613 no lista
->     el tarifario entre sus pantallas: va como consulta y el selector no se toca.
+>   - *Paquetes* — **adaptado el mismo 14/09, en verde.** `fc57d1f7` "4613 Mejoras
+>     diseño Tarifario" (llegó a QA el 09/09) cambió el "Ver Tarifario" de la card
+>     por un botón que abre un explorador en modal, con las categorías a la
+>     izquierda, las solapas de idioma y la tabla con scroll propio. Alan confirmó
+>     que es el diseño nuevo. El test abre el explorador, exige que muestre el
+>     paquete de la card, recorre las tres solapas —y las categorías, si hay más de
+>     una— y **sigue comparando los importes contra la línea base**. La línea base
+>     se recapturó y se revisó el diff: **ni un importe cambió**, sólo el encabezado
+>     de la tabla, que pasó de dos filas a una.
 >   - *Cena Show*: Incluye ya no muestra "Pick up y drop off en hotel", la amenity
 >     140 con `Published = 0`. `239d4281` (US 4501, 10/09) sumó `&& a.Published` en
 >     `ServiceSheetBuilder.cs:192`, así que el portal ahora coincide con el WebAdmin:

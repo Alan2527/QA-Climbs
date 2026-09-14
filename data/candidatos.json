@@ -50,7 +50,8 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Cerrar Tarifario"
+        "abreModal": true,
+        "_nota": "Desde el rediseno del 09/09 (fc57d1f7) el boton abre el explorador de tarifas en un modal: ya no alterna a Cerrar Tarifario."
       },
       "elementos": {
         "imagen": true,

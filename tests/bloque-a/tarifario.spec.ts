@@ -28,7 +28,7 @@ test.describe('Tarifario', () => {
     tab: string; container: string; nombre: string; id: number;
     cityIdBusqueda: number; terminoBusqueda: string;
     botonTarifario: {
-      textoInicial: string; textoDesplegado: string; _hallazgoConocido?: string;
+      textoInicial: string; textoDesplegado?: string; abreModal?: boolean; _nota?: string; _hallazgoConocido?: string;
     };
   };
 
@@ -817,9 +817,27 @@ test.describe('Tarifario', () => {
     // Cruceros se invertia la validacion y se daba por bueno que el boton
     // siguiera diciendo "Ver Tarifario": el paso salia en verde con el defecto
     // a la vista en la captura. Lo que la aplicacion hace no define lo esperado.
+    // Paquetes: desde el rediseno del 09/09 el boton no alterna su texto, abre el
+    // explorador modal. Se exige que abra y que lo haga con el paquete de la card.
+    if ((cfg as any).botonTarifario?.abreModal) {
+      await paso(page, 'El boton "Ver Tarifario" abre el explorador de tarifas', async () => {
+        const soloLetras = (x: string) => x.replace(/[^\p{L} ]/gu, '').trim();
+        expect(botonesAntes.map(soloLetras),
+          `Antes de abrir, la card tiene que ofrecer "${cfg.botonTarifario.textoInicial}"`,
+        ).toContain(cfg.botonTarifario.textoInicial);
+        await expect(page.locator('#tariffExplorerModal'), 'El explorador de tarifas tiene que estar abierto')
+          .toBeVisible();
+        const titulo = (await page.locator('#tariffExplorerTitle').innerText()).replace(/\s+/g, ' ').trim();
+        await adjuntarTexto('Titulo del explorador', titulo);
+        expect(titulo, 'El explorador tiene que abrirse con el nombre del paquete de la card')
+          .toContain(cfg.nombre);
+      });
+      return tarifario;
+    }
+
     await paso(page, 'El boton pasa de "Ver Tarifario" a "Cerrar Tarifario"', async () => {
       const btn = cfg.botonTarifario;
-      const hayCerrar = botonesDespues.some((t) => t.includes(btn.textoDesplegado));
+      const hayCerrar = botonesDespues.some((t) => t.includes(btn.textoDesplegado ?? ''));
 
       await adjuntarTexto('Transicion del boton',
         'antes de desplegar:   ' + botonesAntes.join(' | ') + SALTO +
@@ -854,6 +872,8 @@ test.describe('Tarifario', () => {
   test('Paquetes: trae tarifas y muestra el paquete esperado', async ({ page }) => {
     const t = await validarItem(page, T.paquetes as Config, 'Paquetes');
     await validarImportes(page, t, 'paquetes', T.paquetes);
+    // El explorador tapa la card: se cierra antes de seguir con Ver detalle y Word.
+    await t.cerrarExplorador();
     await validarModalDetalle(page, t, T.paquetes);
     await validarDescargaWord(page, t, T.paquetes);
     await paso(page, 'El paquete muestra sus dos ciudades', async () => {
