@@ -74,17 +74,41 @@ export default defineConfig({
    */
   projects: [
     { name: 'Login', testMatch: /auth\.setup\.ts/ },
+    /**
+     * Precondiciones: una por bloque, sobre el mismo archivo.
+     *
+     * Verifican que esten los datos AUTO-QA antes de correr nada: si falta un
+     * candidato, la corrida corta diciendo cual, en vez de fallar diez pasos adentro
+     * con un timeout de locator que no explica nada.
+     *
+     * Hasta el 2026-09-14 era una sola para los tres bloques, y un tropiezo al
+     * verificar el crucero frenaba tambien al Bloque C, que no lo usa. Ahora cada una
+     * mira solo lo que su bloque usa, y la `metadata` le dice que.
+     */
     {
-      /**
-       * Verifica que esten los datos AUTO-QA antes de correr nada.
-       *
-       * Si falta un candidato, la corrida corta aca diciendo cual, en vez de
-       * fallar diez pasos adentro con un timeout de locator que no explica nada.
-       */
-      name: 'Precondiciones',
+      name: 'Precondiciones - Bloque A',
       testMatch: /precondiciones\.setup\.ts/,
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
       dependencies: ['Login'],
+      metadata: {
+        tarifario: ['paquetes', 'excursiones', 'hoteles', 'traslados', 'cenaShow', 'cruceros', 'ofertas'],
+      },
+    },
+    {
+      name: 'Precondiciones - Bloque B',
+      testMatch: /precondiciones\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
+      dependencies: ['Login'],
+      // Lo que reserva: el servicio, el hotel, el paquete, la oferta y la serie.
+      metadata: { tarifario: ['excursiones', 'hoteles', 'paquetes', 'ofertas'], series: true },
+    },
+    {
+      name: 'Precondiciones - Bloque C',
+      testMatch: /precondiciones\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
+      dependencies: ['Login'],
+      // Lo unico que usa del portal: el servicio que reserva para armar el file.
+      metadata: { tarifario: ['excursiones'] },
     },
     {
       name: 'Climbs - Bloque A: Tarifario',
@@ -92,19 +116,19 @@ export default defineConfig({
       // Solo lee: un reintento no deja rastro en QA.
       retries: process.env.CI ? 1 : 0,
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
-      dependencies: ['Precondiciones'],
+      dependencies: ['Precondiciones - Bloque A'],
     },
     {
       name: 'Climbs - Bloque B: Reservas',
       testDir: './tests/bloque-b',
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
-      dependencies: ['Precondiciones'],
+      dependencies: ['Precondiciones - Bloque B'],
     },
     {
       name: 'Climbs - Bloque C: Cobranzas',
       testDir: './tests/bloque-c',
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
-      dependencies: ['Precondiciones'],
+      dependencies: ['Precondiciones - Bloque C'],
     },
   ],
 });

@@ -81,6 +81,23 @@ setup('Precondiciones: los datos AUTO-QA estan en QA', async ({ page }) => {
   setup.setTimeout(300_000);
   const faltantes: string[] = [];
 
+  /**
+   * Alcance de esta corrida. Cada bloque tiene su propia precondicion
+   * (`playwright.config.ts`) y verifica solo los datos que usa: el 2026-09-14 un
+   * tropiezo al verificar el crucero, que es del Bloque A, freno dos veces al
+   * Bloque C entero, que no usa cruceros. Sin metadata se verifica todo, como antes.
+   */
+  const alcance = setup.info().project.metadata as { tarifario?: string[]; series?: boolean };
+  const todos = !alcance?.tarifario;
+  const itemsDelBloque = todos
+    ? DEL_TARIFARIO
+    : DEL_TARIFARIO.filter((i) => alcance.tarifario!.includes(i.clave));
+  const conSeries = todos || !!alcance.series;
+  await adjuntarTexto('Alcance de la precondicion',
+    `proyecto: ${setup.info().project.name}${String.fromCharCode(10)}` +
+    `tarifario: ${itemsDelBloque.map((i) => i.clave).join(', ') || '(nada)'}${String.fromCharCode(10)}` +
+    `series: ${conSeries ? 'si' : 'no'}`);
+
   const tarifario = new TarifarioPage(page);
   await page.goto('/online/');
   await tarifario.irDesdeElMenu();
@@ -99,7 +116,7 @@ setup('Precondiciones: los datos AUTO-QA estan en QA', async ({ page }) => {
    * Se tipea "AUTO-QA", que es el prefijo comun de todos los datos de prueba, y se
    * mira que el nombre exacto este entre las opciones ofrecidas.
    */
-  for (const item of DEL_TARIFARIO) {
+  for (const item of itemsDelBloque) {
     try {
       if (item.ciudad !== ciudadFiltrada) {
         await tarifario.seleccionarCiudad(item.ciudad);
@@ -133,54 +150,56 @@ setup('Precondiciones: los datos AUTO-QA estan en QA', async ({ page }) => {
   }
 
   // --- Series ---
-  const serie = new SeriePage(page);
-  await serie.abrirListado();
-  const series = await serie.seriesDelListado();
-  if (!series.join(' | ').includes(SERIE.nombre)) {
-    faltantes.push(`series: falta la serie "${SERIE.nombre}" en serieall.aspx`);
-  } else {
-    await serie.abrirSerie(SERIE.nombre);
-    const circuitos = await serie.circuitosDeLaSerie();
-    if (!circuitos.join(' | ').includes(SERIE.circuito)) {
-      faltantes.push(`series: falta el circuito "${SERIE.circuito}"`);
+  if (conSeries) {
+    const serie = new SeriePage(page);
+    await serie.abrirListado();
+    const series = await serie.seriesDelListado();
+    if (!series.join(' | ').includes(SERIE.nombre)) {
+      faltantes.push(`series: falta la serie "${SERIE.nombre}" en serieall.aspx`);
     } else {
-      await serie.abrirCircuito(SERIE.circuito);
-      await esperarFinDeCarga(page);
+      await serie.abrirSerie(SERIE.nombre);
+      const circuitos = await serie.circuitosDeLaSerie();
+      if (!circuitos.join(' | ').includes(SERIE.circuito)) {
+        faltantes.push(`series: falta el circuito "${SERIE.circuito}"`);
+      } else {
+        await serie.abrirCircuito(SERIE.circuito);
+        await esperarFinDeCarga(page);
 
-      const categorias = await serie.categorias();
-      if (categorias.length !== SERIE.categorias) {
-        faltantes.push(
-          `series: el circuito tiene ${categorias.length} categorias y tendria que tener ` +
-          `${SERIE.categorias}. Sin ReceptiveTourTariffCutDetail el portal lo muestra sin ` +
-          'disponibilidad aunque tenga salidas, tarifas y cupo.');
-      }
-
-      const { cupos } = await serie.datosDelCalendario();
-      for (const [fecha, esperado] of Object.entries(SERIE.cupos)) {
-        if (cupos[fecha] !== esperado) {
+        const categorias = await serie.categorias();
+        if (categorias.length !== SERIE.categorias) {
           faltantes.push(
-            `series: la salida ${fecha} tiene cupo ${cupos[fecha]} y tendria que tener ` +
-            `${esperado}. Es la precondicion de un caso del test negativo: no hay que ` +
-            'volverla a 200.');
+            `series: el circuito tiene ${categorias.length} categorias y tendria que tener ` +
+            `${SERIE.categorias}. Sin ReceptiveTourTariffCutDetail el portal lo muestra sin ` +
+            'disponibilidad aunque tenga salidas, tarifas y cupo.');
         }
-      }
-      const { tarifasDeMenor, politicaDeMenores } = await serie.datosDelCalendario();
-      const conTarifa = Object.values(tarifasDeMenor);
-      if (!conTarifa.length || conTarifa.some((r) => r !== SERIE.tarifaDeMenor)) {
-        faltantes.push(
-          `series: la tarifa de menor tendria que ser ${SERIE.tarifaDeMenor} en todas las ` +
-          `salidas y hay ${conTarifa.length} cargadas` +
-          `${conTarifa.length ? ` (valores: ${[...new Set(conTarifa)].join(', ')})` : ''}. ` +
-          'Sin ella el recargo del menor da cero y el test que emite deja de comparar nada.');
-      }
-      await adjuntarTexto('Tarifa de menor de la serie',
-        `politica: ${JSON.stringify(politicaDeMenores)}${String.fromCharCode(10)}` +
-        `salidas con tarifa de menor: ${conTarifa.length}, valores: ` +
-        `${[...new Set(conTarifa)].join(', ') || '(ninguna)'}`);
 
-      await adjuntarTexto('Cupo de las salidas preparadas',
-        Object.entries(SERIE.cupos)
-          .map(([f, e]) => `${f}: esperado ${e}, en QA ${cupos[f]}`).join(String.fromCharCode(10)));
+        const { cupos } = await serie.datosDelCalendario();
+        for (const [fecha, esperado] of Object.entries(SERIE.cupos)) {
+          if (cupos[fecha] !== esperado) {
+            faltantes.push(
+              `series: la salida ${fecha} tiene cupo ${cupos[fecha]} y tendria que tener ` +
+              `${esperado}. Es la precondicion de un caso del test negativo: no hay que ` +
+              'volverla a 200.');
+          }
+        }
+        const { tarifasDeMenor, politicaDeMenores } = await serie.datosDelCalendario();
+        const conTarifa = Object.values(tarifasDeMenor);
+        if (!conTarifa.length || conTarifa.some((r) => r !== SERIE.tarifaDeMenor)) {
+          faltantes.push(
+            `series: la tarifa de menor tendria que ser ${SERIE.tarifaDeMenor} en todas las ` +
+            `salidas y hay ${conTarifa.length} cargadas` +
+            `${conTarifa.length ? ` (valores: ${[...new Set(conTarifa)].join(', ')})` : ''}. ` +
+            'Sin ella el recargo del menor da cero y el test que emite deja de comparar nada.');
+        }
+        await adjuntarTexto('Tarifa de menor de la serie',
+          `politica: ${JSON.stringify(politicaDeMenores)}${String.fromCharCode(10)}` +
+          `salidas con tarifa de menor: ${conTarifa.length}, valores: ` +
+          `${[...new Set(conTarifa)].join(', ') || '(ninguna)'}`);
+
+        await adjuntarTexto('Cupo de las salidas preparadas',
+          Object.entries(SERIE.cupos)
+            .map(([f, e]) => `${f}: esperado ${e}, en QA ${cupos[f]}`).join(String.fromCharCode(10)));
+      }
     }
   }
 

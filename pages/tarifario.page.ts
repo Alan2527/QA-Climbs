@@ -107,6 +107,18 @@ export class TarifarioPage {
 
   /** Abre la pestania y espera a que el contenedor traiga resultados. */
   async abrirPestania(tab: string, container: string) {
+    // La pestania carga su contenido con un handler jQuery que mainws.js engancha
+    // cuando termina de cargar la pagina (`$("#a-cruises").on("click", ...)`,
+    // mainws.js:159). Despues de Buscar, que recarga el tarifario, el clic podia
+    // llegar antes que el handler: no hacia nada y el contenedor no aparecia nunca.
+    // Paso dos veces el 2026-09-14 en la precondicion, con Cruceros en Ushuaia.
+    // Se espera a que el handler exista, que es lo que tiene la persona cuando
+    // la pagina ya respondio.
+    await this.page.waitForFunction((id) => {
+      const w = window as unknown as { jQuery?: { _data: (el: Element, key: string) => any } };
+      const el = document.getElementById(id);
+      return !!(w.jQuery && el && w.jQuery._data(el, 'events')?.click);
+    }, tab, { timeout: 30_000 });
     await this.pestania(tab).click();
     await esperarFinDeCarga(this.page);
     await this.esperarResultados(container);
