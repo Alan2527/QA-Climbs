@@ -74,8 +74,13 @@ export class TarifarioPage {
 
   /** Algunas pestanias son condicionales (Travel Sale viene oculta). */
   async pestaniaEstaDisponible(tab: string): Promise<boolean> {
-    const loc = this.pestania(tab);
-    return (await loc.count()) > 0 && (await loc.isVisible());
+    // Espera a que la pestania se dibuje. Recien cargado el tarifario, un chequeo
+    // instantaneo puede llegar antes que el encabezado de pestanias y dar un falso
+    // rojo: le paso a Cena Show el 2026-09-14, con la pestania a la vista en la
+    // captura del fallo. Las dos llamadas son sobre pestanias que tienen que
+    // estar, asi que esperar no demora nada cuando todo esta bien.
+    return this.pestania(tab).waitFor({ state: 'visible', timeout: 30_000 })
+      .then(() => true).catch(() => false);
   }
 
   async seleccionarPais(pais: string) {

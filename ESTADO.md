@@ -36,8 +36,8 @@ Documento de traspaso. Última actualización: **2026-09-14**.
 >   - *Cena Show*: Incluye ya no muestra "Pick up y drop off en hotel", la amenity
 >     140 con `Published = 0`. `239d4281` (US 4501, 10/09) sumó `&& a.Published` en
 >     `ServiceSheetBuilder.cs:192`, así que el portal ahora coincide con el WebAdmin:
->     **el hallazgo 6 quedaría resuelto** y el candidato a actualizar, si la US 4501
->     lo define así.
+>     **el hallazgo 6 quedó resuelto**: Alan confirmó el 14/09 que las amenities
+>     despublicadas no se tienen que mostrar, y se sacó del candidato.
 > - **Bloque C**: la factura de proveedor y las validaciones del BO, por la pantalla
 >   de la US 4722. Fuera del alcance de esta actualización.
 >
@@ -1074,6 +1074,12 @@ Que Paquetes, Ofertas, Cruceros y Hoteles no lo evidencien es sólo porque está
 en `Published = 1`. Es el mismo patrón del hallazgo 5.
 
 ### 6. El WebAdmin filtra las amenities por `Published` y el portal no
+
+> **Resuelto el 2026-09-14.** `239d4281` (US 4501, 10/09) sumó `&& a.Published` en
+> `ServiceSheetBuilder.cs:192`: el portal ya no muestra amenities despublicadas y
+> coincide con el WebAdmin. Alan confirmó que ese es el comportamiento correcto, así
+> que "Pick up y drop off en hotel" salió de lo esperado para Cena Show. Lo de abajo
+> queda como antecedente.
 
 **Reescrito el 2026-09-08 con evidencia medida.** Antes decía "el tarifario muestra
 amenities despublicadas", que se queda corto: el problema no es que el portal las
