@@ -1,0 +1,4 @@
+observaciones destacadas: ["Sujeto a modificaciones según condiciones del río","Traer ropa cómoda y calzado antideslizante"]
+mas observaciones: null
+tooltips (5): ["Duración estimada del servicio","IdiomasEspañolEnglishPortuguese","Operatividad• Días: Todos los dias• Temporada: enero a mayo, agosto a diciembre","AlmuerzoEl almuerzo no está incluido, hay parada en restaurante","BebidasBebidas a cargo del pasajero durante la navegación"]
+tag: null
