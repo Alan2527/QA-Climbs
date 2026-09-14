@@ -2,6 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 import { InicioPage } from '../../pages/inicio.page';
 import { ServicioPage } from '../../pages/servicio.page';
 import { CarritoPage } from '../../pages/carrito.page';
+import { CustomToursPage } from '../../pages/customtours.page';
 import {
   paso, adjuntarTexto, reiniciarNumeracionDePasos, fechaDeBusqueda,
   formatearFecha, esperarFinDeCarga, conResaltado,
@@ -183,6 +184,129 @@ test.describe('Reservas — multiidioma', () => {
       await carrito.vaciar();
       expect(await carrito.paxEnElCarrito(), 'El test no puede dejar items en el carrito').toBe(0);
     });
+  });
+
+  /**
+   * Multidestino: Armado, Detalle y Carrito en los tres idiomas.
+   *
+   * A diferencia del test de arriba, aca **los textos de la pantalla si se
+   * exigen**, porque hay historia que lo define. La US 4613, seccion Idiomas:
+   * "Los textos de las pantallas de multidestino tienen que traducirse a espanol,
+   * ingles y portugues, incluidos los que se dibujan dentro de los paneles que se
+   * refrescan sin recargar la pagina."
+   *
+   * Lo que se exige no inventa ninguna traduccion:
+   *
+   * - **El nombre del paquete** en el idioma elegido, tomado de
+   *   `ReceptiveTourDetail` del 5059 en QA. La pantalla lo corta en el primer
+   *   parentesis (`Main.aspx.cs:77`), asi que se compara esa parte.
+   * - **Que no quede en espanol ningun texto de la lista** que se vio en espanol
+   *   en esa misma pantalla. No se exige que sea tal palabra en ingles: se exige
+   *   que no sea la espaniola. Todos salen de recursos con texto por defecto en
+   *   espanol, y la lista no incluye datos, como "SERV. VARIOS", que es el nombre
+   *   de un tipo de servicio.
+   *
+   * No emite. Deja la cotizacion que crea cualquier armado de multidestino, igual
+   * que los tests de reserva de este riel.
+   */
+  test('Multidestino: armado, detalle y carrito se muestran en el idioma elegido', async ({ page }) => {
+    test.setTimeout(900_000);
+
+    const inicio = new InicioPage(page);
+    const ct = new CustomToursPage(page);
+    const fecha = fechaDeBusqueda();
+
+    const PAQUETE = {
+      id: '5059',
+      nombre: {
+        ES: 'AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia',
+        EN: 'AUTO-QA NO TOCAR - Buenos Aires and Ushuaia Package',
+        PT: 'AUTO-QA NO TOCAR - Pacote Buenos Aires e Ushuaia',
+      } as Record<string, string>,
+    };
+
+    const TEXTOS_EN_ESPANIOL = [
+      'faltan habitaciones', 'Todavía no armaste las habitaciones', 'Opciones de visualizacion',
+      'Itinerario', 'Cambiar', 'Sin hotel', 'No hay hoteles seleccionados',
+      'No hay servicios seleccionados',
+    ];
+    const normalizar = (s: string) => s.replace(/\s+/g, ' ').toLowerCase();
+
+    /**
+     * Recorre una pantalla en los tres idiomas sin salir de ella.
+     *
+     * Cambiar el idioma recarga la pagina actual, asi que el armado no se pierde.
+     * En espanol se anota que textos de la lista estan a la vista, y en ingles y
+     * portugues se exige que ninguno de esos siga ahi.
+     */
+    const revisarPantalla = async (pantalla: string, conTitulo: boolean) => {
+      let visiblesEnEspaniol: string[] = [];
+      for (const idioma of IDIOMAS) {
+        await paso(page, `${pantalla} en ${idioma.nombre}`, async () => {
+          await cambiarIdioma(page, idioma);
+          await expect(page, `${pantalla} tiene que seguir abierta despues de cambiar el idioma`)
+            .toHaveURL(/customtours/i);
+          expect(await idiomaActivo(page), `El encabezado tiene que quedar en ${idioma.codigo}`)
+            .toBe(idioma.codigo);
+
+          const texto = normalizar(await page.locator('body').innerText());
+          const presentes = TEXTOS_EN_ESPANIOL.filter((t) => texto.includes(normalizar(t)));
+
+          if (idioma.codigo === ESPANIOL.codigo) {
+            visiblesEnEspaniol = presentes;
+            await adjuntarTexto(`${pantalla}: textos de la lista a la vista en espanol`,
+              presentes.join(SALTO) || '(ninguno)');
+          } else {
+            await adjuntarTexto(`${pantalla}: textos en espanol que siguen en ${idioma.nombre}`,
+              presentes.join(SALTO) || '(ninguno)');
+            await conResaltado(page, page.locator('body'), `${pantalla} sin textos en espanol`, () => {
+              expect(presentes.filter((t) => visiblesEnEspaniol.includes(t)),
+                `En ${idioma.nombre} ${pantalla} no puede mostrar textos en espanol (US 4613, Idiomas)`)
+                .toEqual([]);
+            });
+          }
+
+          if (conTitulo) {
+            const titulo = page.locator('.ct-page__title').first();
+            const nombre = (await titulo.innerText()).replace(/\s+/g, ' ').trim();
+            await conResaltado(page, titulo, `Nombre del paquete en ${idioma.nombre}`, () => {
+              expect(nombre,
+                `En ${idioma.nombre} ${pantalla} tiene que mostrar el nombre del paquete de ese ` +
+                'idioma, el que tiene cargado ReceptiveTourDetail')
+                .toContain(PAQUETE.nombre[idioma.codigo]);
+            });
+          }
+        });
+      }
+      await cambiarIdioma(page, ESPANIOL);
+    };
+
+    const ESPANIOL = IDIOMAS[0];
+
+    await paso(page, 'Dejar el sitio en espanol y abrir el armado del paquete', async () => {
+      await cambiarIdioma(page, ESPANIOL);
+      const panel = await inicio.abrirSolapa('multidestino');
+      await ct.buscarViaje(panel, {
+        pais: 'Argentina', ciudad: 'Buenos Aires', id: PAQUETE.id, combo: 'ddSelectedTour',
+      });
+      await expect(page).toHaveURL(new RegExp(`tour=${PAQUETE.id}`));
+    });
+
+    // El armado se revisa antes de cargar habitaciones: los avisos de
+    // "faltan habitaciones" solo se ven en ese estado.
+    await revisarPantalla('El armado', true);
+
+    await paso(page, 'Cargar fecha, pax y habitaciones y pasar al detalle', async () => {
+      await ct.configurarViaje(fecha, 2, 1);
+      await ct.irAlItinerario();
+    });
+    await revisarPantalla('El detalle', true);
+
+    await paso(page, 'Pasar al carrito del multidestino', async () => {
+      await ct.continuarAlCarrito();
+    });
+    // El titulo del carrito es un recurso ("Reserva"), no el nombre del paquete.
+    await revisarPantalla('El carrito', false);
   });
 
 });
