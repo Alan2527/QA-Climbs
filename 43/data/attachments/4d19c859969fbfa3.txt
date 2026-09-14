@@ -1,8 +1,0 @@
-ficha (total)                USD 860
-carrito (total del item)     USD 860
-historial (total)            USD 430
-bandeja (columna V)          USD 430
-detalle (Venta del item)     USD 430
-detalle (V. Markup del item) USD 860
-file (Venta del item)        (sin moneda) 430
-file (Venta en Totales)      (sin moneda) 430

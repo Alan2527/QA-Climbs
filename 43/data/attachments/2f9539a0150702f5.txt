@@ -1,1 +1,0 @@
-Costo | Venta | Over | Utilidad => 0 | 5.500 | 0 | 5.500

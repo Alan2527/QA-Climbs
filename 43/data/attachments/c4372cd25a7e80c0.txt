@@ -1,9 +1,0 @@
-ficha (precio unitario)      USD 10
-ficha (total)                USD 19
-carrito (total del item)     USD 19
-historial (total)            USD 10
-bandeja (columna V)          USD 10
-detalle (Venta del item)     USD 10
-detalle (V. Markup del item) USD 19
-file (Venta del item)        (sin moneda) 10
-file (Venta en Totales)      (sin moneda) 10
