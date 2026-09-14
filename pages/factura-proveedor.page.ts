@@ -53,6 +53,19 @@ export class FacturaProveedorPage {
   readonly campoPercepcion = '#txtTaxPerception';
   readonly campoComentario = '#txtComment';
   readonly btnGuardar = '#btnSave';
+  readonly btnGuardarYVolver = '#btnSaveAndBack';
+
+  /**
+   * Formulario progresivo del alta (US 4722, task 4725). Mientras falte la
+   * sucursal o el proveedor solo se ven esos dos campos y este aviso; los campos
+   * de la lista aparecen recien con los dos elegidos.
+   */
+  readonly avisoSeleccion = '.bo-selection-hint';
+  static readonly TEXTO_AVISO =
+    'Seleccione una sucursal y un proveedor para continuar con la carga del comprobante';
+  readonly camposDelFormulario = [
+    '#txtDocNumber', '#ddPaymentMethod', '#txtInvoiceDate', '#ddCurrencyID', '#txtTotalRate',
+  ];
   readonly btnAprobar = '#btnApprove';
 
   // --- Imputacion ---

@@ -38,8 +38,11 @@ Documento de traspaso. Última actualización: **2026-09-14**.
 >     `ServiceSheetBuilder.cs:192`, así que el portal ahora coincide con el WebAdmin:
 >     **el hallazgo 6 quedó resuelto**: Alan confirmó el 14/09 que las amenities
 >     despublicadas no se tienen que mostrar, y se sacó del candidato.
-> - **Bloque C**: la factura de proveedor y las validaciones del BO, por la pantalla
->   de la US 4722. Fuera del alcance de esta actualización.
+>- **Bloque C** — **adaptado el mismo 14/09, en verde.** La factura de proveedor y
+>   las validaciones del BO fallaban por el formulario progresivo de la US 4722
+>   (task 4725). Los dos tests exigen ahora lo que define la task: aviso y formulario
+>   oculto hasta elegir sucursal y proveedor, botones de guardar deshabilitados, y el
+>   formulario completo al elegir los dos.
 >
 > **Las pantallas de los tres bloques quedaron sin huecos** (auditado el
 > 2026-09-05), pero **sí quedan huecos de alcance**, acordados y todavía sin
@@ -2048,17 +2051,18 @@ PRECONDICION
  2. Confirmar la reserva y generar su file en el BackOffice
 
 FACTURA DE PROVEEDOR
- 3. Entrar a la bandeja de facturas de proveedor y abrir una nueva
- 4. Verificar los valores con los que nace el comprobante
- 5. Elegir el proveedor y verificar lo que completa solo
- 6. Cargar el tipo, el numero, la moneda y el total del comprobante
- 7. Guardar el comprobante y verificar que quedo con los datos cargados
- 8. Verificar el pendiente de asignacion contra el total cargado
- 9. Buscar el file entre los items pendientes y comparar la fila
-10. Abrir la asignacion y comparar los cuatro importes del modal
-11. Imputar el comprobante al item y verificar que el pendiente baje a cero
-12. Verificar que el item paso a la grilla de asignados
-13. Aprobar el comprobante y verificar que quede aprobado
+ 3. Entrar a la bandeja de facturas de proveedor y abrir una nueva: formulario bloqueado
+ 4. Elegir la sucursal: sin proveedor el formulario sigue bloqueado
+ 5. Elegir el proveedor: aparece el formulario con sus valores iniciales
+ 6. Verificar lo que completa solo el proveedor
+ 7. Cargar el tipo, el numero, la moneda y el total del comprobante
+ 8. Guardar el comprobante y verificar que quedo con los datos cargados
+ 9. Verificar el pendiente de asignacion contra el total cargado
+10. Buscar el file entre los items pendientes y comparar la fila
+11. Abrir la asignacion y comparar los cuatro importes del modal
+12. Imputar el comprobante al item y verificar que el pendiente baje a cero
+13. Verificar que el item paso a la grilla de asignados
+14. Aprobar el comprobante y verificar que quede aprobado
 ```
 
 #### Lo que el código impone y condiciona el test
@@ -2097,9 +2101,18 @@ percepción` (`Detail.aspx.cs:1044`), y no sobre el total
 (`SupplierInvoiceAllocControl.ascx.cs:213`). Sin retenciones tienen que coincidir,
 y eso es lo que el test verifica.
 
-**La sucursal no se elige**: el usuario tiene una sola asignada, así que el combo
-viene resuelto. Se verifica igual, porque un file y una factura en sucursales
-distintas romperían la cadena más adelante.
+**El alta es un formulario progresivo** desde la US 4722 (task 4725, en QA desde el
+08/09). Al abrir sólo se ven Sucursal, Proveedor y el aviso *"Seleccione una sucursal
+y un proveedor para continuar con la carga del comprobante"*; el resto de los campos
+aparece recién con los dos elegidos, y hasta entonces **Guardar** y **Guardar y
+Volver** están deshabilitados. El test lo exige en los tres momentos: al abrir, con
+sólo la sucursal y con los dos. El usuario del BO ve más de una sucursal, así que se
+elige; tiene que ser la del file o la factura no listaría su ítem entre los
+pendientes. Con sucursal Argentina la moneda sigue proponiendo ARS (task 4726).
+
+Por lo mismo cambió el primer rechazo del test de validaciones: antes clickeaba
+Guardar sin proveedor y esperaba *"Debe seleccionar un Proveedor"*; ahora ese clic no
+es posible, y lo que se exige es que con sucursal y sin proveedor no se pueda guardar.
 
 **El proveedor se elige por un modal**, no escribiendo: el botón `#btnSupplier`
 abre `#modalCnt` con la grilla `#dataSuppliers`.

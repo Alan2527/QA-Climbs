@@ -47,6 +47,49 @@ test.describe('Cobranzas', () => {
 
 
 
+  /**
+   * Formulario bloqueado mientras falta la sucursal o el proveedor.
+   *
+   * US 4722, task 4725: "Mientras falte elegir la sucursal o el proveedor, ningún
+   * otro campo del formulario tiene que estar visible, y los botones de guardar
+   * tienen que estar deshabilitados. En su lugar tiene que verse un aviso con el
+   * texto «Seleccione una sucursal y un proveedor para continuar con la carga del
+   * comprobante»".
+   */
+  async function verificarFormularioBloqueado(page: Page, factura: FacturaProveedorPage, momento: string) {
+    const aviso = page.locator(factura.avisoSeleccion);
+    await conResaltado(page, aviso, `Aviso de seleccion ${momento}`, async () => {
+      await expect(aviso, `${momento}, tiene que verse el aviso de la US 4722`).toBeVisible({ timeout: 30_000 });
+      expect((await aviso.innerText()).replace(/\s+/g, ' ').trim(), 'El aviso tiene que decir el texto de la task 4725')
+        .toContain(FacturaProveedorPage.TEXTO_AVISO);
+    });
+    for (const campo of factura.camposDelFormulario) {
+      await expect(page.locator(campo), `${momento}, ${campo} no tiene que estar visible`).toBeHidden();
+    }
+    for (const boton of [factura.btnGuardar, factura.btnGuardarYVolver]) {
+      await expect(page.locator(boton), `${momento}, ${boton} tiene que estar deshabilitado`).toBeDisabled();
+    }
+  }
+
+  /**
+   * Formulario completo con sucursal y proveedor elegidos. Task 4725: "Elegir
+   * sucursal y después proveedor → el aviso desaparece, aparecen Documento, Medio
+   * de Pago, fechas, moneda e importes, y los botones de guardar quedan habilitados."
+   */
+  async function verificarFormularioHabilitado(page: Page, factura: FacturaProveedorPage) {
+    await conResaltado(page, page.locator('body'), 'Formulario completo', async () => {
+      await expect(page.locator(factura.avisoSeleccion),
+        'Elegidas sucursal y proveedor, el aviso tiene que desaparecer').toBeHidden({ timeout: 30_000 });
+      for (const campo of factura.camposDelFormulario) {
+        await expect(page.locator(campo), `Elegidas sucursal y proveedor, tiene que verse ${campo}`).toBeVisible();
+      }
+      for (const boton of [factura.btnGuardar, factura.btnGuardarYVolver]) {
+        await expect(page.locator(boton), `Elegidas sucursal y proveedor, ${boton} tiene que quedar habilitado`)
+          .toBeEnabled();
+      }
+    });
+  }
+
   test('Factura de proveedor: se carga sobre el file y se imputa al item', async ({ page }) => {
     // El recorrido cruza las dos aplicaciones, arma su propia precondicion y
     // sigue con la factura: el timeout de la suite no alcanza ni de cerca.
@@ -103,10 +146,10 @@ test.describe('Cobranzas', () => {
     await paso(page, 'Entrar a la bandeja de facturas de proveedor y abrir una nueva', async () => {
       await factura.irABandejaDeFacturas();
       await factura.nuevaFactura();
-      await expect(page.locator(factura.campoTotal)).toBeVisible();
+      await verificarFormularioBloqueado(page, factura, 'Al abrir el alta');
     });
 
-    await paso(page, 'Elegir la sucursal y verificar los valores con los que nace el comprobante', async () => {
+    await paso(page, 'Elegir la sucursal: sin proveedor el formulario sigue bloqueado', async () => {
       // La sucursal hay que elegirla: el combo trae "Seleccione..." porque el
       // usuario del BO ve mas de una. Tiene que ser la misma que la del file, o
       // la factura no listaria su item entre los pendientes.
@@ -115,8 +158,19 @@ test.describe('Cobranzas', () => {
         expect(sucursal, 'El comprobante tiene que quedar en la misma sucursal que el file')
           .toContain(comprobante.sucursal);
       });
+      // Task 4725: "Elegir sólo la sucursal, sin proveedor → el aviso sigue
+      // visible y el formulario sigue oculto."
+      await verificarFormularioBloqueado(page, factura, 'Con la sucursal elegida y sin proveedor');
+    });
 
-      // La moneda arranca siempre en ARS (Detail.aspx.cs:452). Se verifica para
+    await paso(page, 'Elegir el proveedor: aparece el formulario con sus valores iniciales', async () => {
+      await factura.elegirProveedor(comprobante.proveedor, comprobante.razonSocial);
+      await verificarFormularioHabilitado(page, factura);
+
+
+      // Con sucursal Argentina la moneda sigue proponiendo ARS. US 4722, task 4726:
+      // "Con sucursal de Argentina nada tiene que cambiar: la moneda tiene que
+      // seguir siendo pesos". Se verifica para
       // dejar constancia de que el paso siguiente la cambia a proposito: la
       // grilla de pendientes convierte los importes a la moneda del comprobante.
       const moneda = await factura.opcionElegida(factura.comboMoneda);
@@ -133,8 +187,7 @@ test.describe('Cobranzas', () => {
       });
     });
 
-    await paso(page, 'Elegir el proveedor y verificar lo que completa solo', async () => {
-      await factura.elegirProveedor(comprobante.proveedor, comprobante.razonSocial);
+    await paso(page, 'Verificar lo que completa solo el proveedor', async () => {
       const datos = await factura.datosDelProveedor();
       await adjuntarTexto('Datos que precarga el proveedor', JSON.stringify(datos, null, 2));
 
@@ -1834,13 +1887,17 @@ test.describe('Cobranzas', () => {
       await bo.ingresar(process.env.BO_USER!, process.env.BO_PASS!);
       await factura.irABandejaDeFacturas();
       await factura.nuevaFactura();
-      await expect(page.locator(factura.campoExento)).toBeVisible();
+      await verificarFormularioBloqueado(page, factura, 'Al abrir el alta');
     });
 
-    await paso(page, 'Intentar guardar la factura sin proveedor', async () => {
-      // supplier.js:361 corta antes de mandar nada al servidor.
-      await page.locator(factura.btnGuardar).click();
-      await esperarAviso('Debe seleccionar un Proveedor', 'Factura sin proveedor');
+    // Hasta la US 4722 este paso clickeaba Guardar sin proveedor y esperaba el
+    // aviso "Debe seleccionar un Proveedor" (supplier.js:361). Con el formulario
+    // progresivo el rechazo llega antes: sin proveedor los botones de guardar estan
+    // deshabilitados. Task 4725: "Elegir sólo la sucursal, sin proveedor → el aviso
+    // sigue visible y el formulario sigue oculto."
+    await paso(page, 'Sin proveedor no se puede guardar la factura', async () => {
+      await factura.elegirSucursal(datos.sucursal);
+      await verificarFormularioBloqueado(page, factura, 'Con la sucursal elegida y sin proveedor');
       await expect(page, 'La pantalla no tiene que navegar si falta el proveedor')
         .toHaveURL(/supplierinvoice\/0/i);
     });
