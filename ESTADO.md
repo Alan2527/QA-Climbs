@@ -43,6 +43,11 @@ Documento de traspaso. Última actualización: **2026-09-14**.
 >   (task 4725). Los dos tests exigen ahora lo que define la task: aviso y formulario
 >   oculto hasta elegir sucursal y proveedor, botones de guardar deshabilitados, y el
 >   formulario completo al elegir los dos.
+> - **Además, el mismo 14/09**: la liquidación del file y las bandejas de no
+>   asignados en verde, `cobranzas.spec.ts` partido en un spec por eslabón, y **una
+>   precondición por bloque** (`playwright.config.ts`): cada bloque verifica sólo los
+>   datos que usa, para que un tropiezo ajeno —como el del crucero, que frenó dos
+>   veces al Bloque C— no lo detenga.
 >
 > **Las pantallas de los tres bloques quedaron sin huecos** (auditado el
 > 2026-09-05), pero **sí quedan huecos de alcance**, acordados y todavía sin
@@ -146,7 +151,7 @@ salidas y con ese valor.
 | Hueco 4 — tarifas de menor de la serie | dato cargado y verificado; el test que lo usa no se pudo correr |
 | Entrada de series por el menú | **hecha, en verde**: se ubica el link por su `href`, que no se traduce |
 | Puntos de fidelidad | en pausa, esperando que el PM haga que en QA se acrediten al momento |
-| Partir `cobranzas.spec.ts` | sin empezar (2.160 líneas) |
+| Partir `cobranzas.spec.ts` | **hecho el 2026-09-14**: un spec por eslabón y `cobranzas-armado.ts` con lo compartido |
 | Multiidioma de las pantallas de reserva | **escrito y corrido el 2026-09-14**: en rojo por el hallazgo 8 |
 
 **El hueco 2 se paró mientras se creía que no se podía reservar.** El eslabón 1 del
@@ -342,7 +347,7 @@ escribirlo bien, pero **ninguno de los dos tests quedó en pie**. Lo que sí que
 | Archivo | Estado |
 |---|---|
 | `tests/bloque-c/cobranzas-comun.ts` | **hecho** — la precondición y los formateadores salieron de `cobranzas.spec.ts`, que bajó de 2.147 a 1.947 líneas |
-| `pages/no-asignados.page.ts` | escrito, sin test que lo use todavía |
+| `pages/no-asignados.page.ts` + `tests/bloque-c/no-asignados.spec.ts` | **hecho el 2026-09-14, en verde** (ítems y facturas; órdenes de pago pendiente) |
 | `pages/liquidacion.page.ts` + `tests/bloque-c/liquidacion.spec.ts` | **hecho el 2026-09-14, en verde** |
 
 #### La bandeja de no asignados no se puede mirar desde el eslabón 1
@@ -367,6 +372,25 @@ rango por defecto es hoy − 30 días a hoy, y ampliarlo a mañana no cambia nad
 **Cómo hay que escribirlo entonces**: con una factura propia que se **apruebe sin
 imputar**, verificar que figure, imputarla y verificar que salga. Es un test
 aparte, no un agregado al eslabón 1.
+
+**Hecho el 2026-09-14, en verde**, en `tests/bloque-c/no-asignados.spec.ts`. Sobre un
+file recién generado exige que su ítem figure en la bandeja de ítems, que la factura
+aprobada sin imputar figure en la de facturas, y que al imputarla salgan las dos.
+Dos cosas que sólo se supieron corriéndolo, y que eran del test:
+
+- **La bandeja de ítems muestra el número del file pelado**: `29898` para
+  `AM-0000029898-01` (`UnassignedItems/Default.aspx:195`). Buscando el código
+  completo contesta "Sin resultados". Además filtra por la fecha del **servicio** y el
+  "Hasta" arranca en hoy, así que un servicio a futuro no se lista sin moverlo.
+- **La bandeja de facturas filtra por fecha de creación contra el "Hasta" a las
+  00:00** (`txtDateTo.Text.ToDate()`, `FileItemSvc.cs:1646`): con los filtros por
+  defecto, una factura creada hoy no aparece hasta mover el "Hasta" a mañana. El test
+  lo mueve. Queda como observación, no como defecto: ninguna historia define el
+  rango de la bandeja.
+
+**La tercera bandeja, órdenes de pago sin imputar, sigue pendiente**: una orden
+aprobada restringe la imputación (`PayOrders/Detail.aspx.cs:350`) y hay que medir si
+se puede sacar de la bandeja sin pasar por la caja diaria.
 
 #### La liquidación: resuelto el 2026-09-14, en verde
 

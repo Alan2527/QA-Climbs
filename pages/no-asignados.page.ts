@@ -28,6 +28,50 @@ export class NoAsignadosPage {
 
   readonly tablaDeFacturas = '#tblUnassignedInvoices';
   readonly tablaDeOrdenes = '#tblUnassignedPayorders';
+  readonly tablaDeItems = '#tblFileItems';
+
+  /**
+   * Abre la bandeja de items de file sin factura de proveedor
+   * (`UnassignedItems/Default.aspx`, vista "No Asignados").
+   *
+   * Filtra por la fecha del SERVICIO (`FI.InDate`, `FileItemSvc.cs:1372`) y el
+   * rango por defecto termina hoy: un servicio reservado a futuro no se lista
+   * hasta correr el "Hasta". Por eso se recibe la fecha y se vuelve a filtrar.
+   */
+  async abrirItems(hasta: string) {
+    await this.abrir('administration/unassigned-items', this.tablaDeItems);
+    await this.filtrarHasta(hasta, this.tablaDeItems);
+  }
+
+  /**
+   * Corre el filtro "Hasta" de la bandeja abierta y vuelve a filtrar.
+   *
+   * Las tres bandejas lo traen en hoy, pero no filtran lo mismo: la de items mira
+   * la fecha del SERVICIO, y la de facturas la de CREACION de la factura
+   * (`FileItemSvc.cs:1646`) comparada contra el "Hasta" a las 00:00
+   * (`txtDateTo.Text.ToDate()`), asi que una factura creada hoy no aparece hasta
+   * mover el filtro a manana.
+   *
+   * Es un bootstrap-datepicker (`data-provide="datepicker"`): el valor se tipea
+   * como lo haria una persona y se confirma con Enter, que cierra el calendario sin
+   * volver a la fecha anterior. Se verifica antes de filtrar, porque un "Hasta" que
+   * no tomo la fecha lista igual y lo buscado falta por otro motivo.
+   */
+  async filtrarHasta(hasta: string, tabla: string) {
+    const campoHasta = this.page.locator('#txtDateTo');
+    await campoHasta.click();
+    await campoHasta.press('Control+A');
+    await campoHasta.pressSequentially(hasta, { delay: 20 });
+    await campoHasta.press('Enter');
+    await expect(campoHasta, 'El filtro Hasta tiene que quedar con la fecha pedida').toHaveValue(hasta);
+    // El boton es un LinkButton sin ClientIDMode Static: su id termina en btnFilter.
+    await this.page.locator("[id$='btnFilter']").first().click();
+    await esperarFinDeCarga(this.page);
+    await expect(
+      this.page.locator(tabla),
+      'La bandeja tiene que volver a mostrar su grilla despues de filtrar',
+    ).toBeVisible({ timeout: 60_000 });
+  }
 
   /** Abre la bandeja de facturas de proveedor sin imputar. */
   async abrirFacturas() {
