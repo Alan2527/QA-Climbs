@@ -1,3 +1,0 @@
-antes: 0
-despues: 1
-clase: 
