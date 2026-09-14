@@ -29,6 +29,42 @@ export class ServicioPage {
   readonly btnReservar      = "[id$='lnkBookService']";
 
   /**
+   * Total que arma la ficha despues de elegir la cantidad de pax.
+   *
+   * Desde el deploy del 2026-09-14 (US 4739) el combo de pax recalcula en segundo
+   * plano: mientras tanto la ficha esconde el total y el boton "Agregar al carrito"
+   * (`showLoader` / `hideLoader` + `toggleServiceBookState`, ServiceDetail.aspx).
+   * Leer o clickear apenas termina la carga podia llegar antes de que el servidor
+   * tomara la cantidad: se reservaba con 0 pax, no entraba nada al carrito y los
+   * combos volvian a 0. Paso dos veces seguidas; a mano, esperando lo que espera una
+   * persona, el servicio entra bien.
+   */
+  async esperarTotal(): Promise<string> {
+    const total = this.page.locator('#totals .sd-total-amount');
+    await expect.poll(async () => ((await total.textContent()) ?? '').trim(), {
+      timeout: 30_000,
+      message: 'La ficha tiene que calcular el total despues de elegir la cantidad de pax',
+    }).not.toBe('');
+    return ((await total.textContent()) ?? '').trim();
+  }
+
+  /**
+   * Agrega al carrito lo elegido en la ficha, como una persona: espera el total,
+   * espera que aparezca el boton, lo clickea y exige el cartel de "agregado"
+   * (`#sdAddedHint`), que el servidor prende solo cuando el alta entro de verdad.
+   */
+  async agregarAlCarrito() {
+    await this.esperarTotal();
+    const boton = this.page.locator(this.btnReservar).first();
+    await expect(boton, 'Con el total calculado, la ficha tiene que mostrar "Agregar al carrito"')
+      .toBeVisible({ timeout: 30_000 });
+    await boton.click();
+    await esperarFinDeCarga(this.page);
+    await expect(this.page.locator('#sdAddedHint'),
+      'La ficha tiene que confirmar que el servicio entro al carrito').toBeVisible({ timeout: 30_000 });
+  }
+
+  /**
    * Bloque de una modalidad en la ficha ("Regular", "Privado").
    *
    * **Hasta el 2026-09-05 cada modalidad era una fila de tabla**, y los tests la

@@ -130,8 +130,7 @@ export async function reservarServicioYGenerarFile(page: Page, sello: string): P
     datos.cantidadPax = Number(texto.match(/M[ií]nimo\s+(\d+)/i)?.[1] ?? 1);
     await fila.locator(servicio.comboPax).selectOption(String(datos.cantidadPax));
     await esperarFinDeCarga(page);
-    await page.locator("[id$='lnkBookService']").first().click();
-    await esperarFinDeCarga(page);
+    await servicio.agregarAlCarrito();
     // El contador del encabezado cuenta **items** del carrito, no pasajeros: lo
     // confirmo el PM tras el rediseno del 2026-09-05. Aca se agrega una sola
     // excursion, asi que tiene que mostrar 1 aunque lleve dos pasajeros.

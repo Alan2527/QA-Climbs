@@ -385,9 +385,8 @@ Dos cosas que sólo se supieron corriéndolo, y que eran del test:
 - **La bandeja de facturas filtra por fecha de creación contra el "Hasta" a las
   00:00** (`txtDateTo.Text.ToDate()`, `FileItemSvc.cs:1646`): con los filtros por
   defecto, una factura creada hoy no aparece hasta mover el "Hasta" a mañana. El test
-  lo mueve. **Confirmado a mano por Alan el 14/09** (con Hasta en hoy no aparece una
-  factura creada ese día; con Hasta en mañana sí) y **planteado al PM como consulta**
-  el mismo día: ninguna historia define el rango de la bandeja.
+  ~~lo mueve.~~ **Ya no lo mueve**: el PM confirmó que es un defecto y quedó como
+  hallazgo 9, con el test en rojo hasta que se corrija.
 
 **La tercera bandeja, órdenes de pago sin imputar, sigue pendiente**: una orden
 aprobada restringe la imputación (`PayOrders/Detail.aspx.cs:350`) y hay que medir si
@@ -1247,6 +1246,30 @@ como corresponde.
 habitaciones"*, `SerieBookControl.ascx:285`— está en español e inglés pero no en
 portugués en `Online/js/i18n.js` (224 claves contra 225), así que en PT cae al
 español. El test de series lo adjunta sin exigirlo, como el resto de las etiquetas.
+
+
+### 9. El filtro "Hasta" deja afuera el día elegido en tres pantallas del BO
+
+Con el "Hasta" en hoy, que es como abren, no aparece nada de lo creado hoy: hay que
+poner mañana y filtrar. Las tres comparan una fecha **con hora** contra el "Hasta"
+tomado como ese día a las 00:00 (`txtDateTo.Text.ToDate()`).
+
+| Pantalla | Columna | Con hora en QA |
+|---|---|---|
+| Facturas sin asignar | `BO_SupplierInvoice.CreationDate` | 86.959 de 86.959 |
+| Órdenes de pago sin asignar | `BO_PayOrder.CreationDate` | 37.066 de 37.066 |
+| Inscripciones SIX | `BO_UserApp.RegistrationDate` | 2.045 de 2.045 |
+
+**Relevado el 2026-09-14** sobre las 51 pantallas del BO con filtro "Hasta", cruzando
+el código desplegado con los datos. En el resto no pasa: o ya comparan sólo el día
+(Inbox de Files, Auditoría) o filtran fechas sin hora (fecha de factura, de servicio,
+de vencimiento, de la orden de cobro; medido en la base). La bandeja de facturas lo
+confirmó Alan a mano.
+
+**Confirmado como defecto por el PM** el mismo día ("tiene que filtrar el hasta
+inclusive"), que pidió corregirlo en una US aparte; Alan la carga. Lo marca en rojo
+`tests/bloque-c/no-asignados.spec.ts`: la factura aprobada sin imputar no figura en la
+bandeja con los filtros por defecto. El test dejó de correr el "Hasta" a mañana.
 
 ## Lo que queda por hacer
 

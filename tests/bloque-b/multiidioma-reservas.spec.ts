@@ -110,8 +110,7 @@ test.describe('Reservas — multiidioma', () => {
       const cantidad = Number(texto.match(/M[ií]nimo\s+(\d+)/i)?.[1] ?? 1);
       await bloque.locator(servicio.comboPax).selectOption(String(cantidad));
       await esperarFinDeCarga(page);
-      await page.locator("[id$='lnkBookService']").first().click();
-      await esperarFinDeCarga(page);
+      await servicio.agregarAlCarrito();
 
       await expect.poll(() => carrito.paxEnElCarrito(), { timeout: 30_000 }).toBe(1);
     });

@@ -95,8 +95,7 @@ test.describe('Reservas — validaciones', () => {
 
       await fila.locator(servicio.comboPax).selectOption(String(datos.cantidadPax));
       await esperarFinDeCarga(page);
-      await page.locator("[id$='lnkBookService']").first().click();
-      await esperarFinDeCarga(page);
+      await servicio.agregarAlCarrito();
 
       await carrito.irAlCarrito();
       await carrito.crearReserva(datos.referencia, datos.observaciones);

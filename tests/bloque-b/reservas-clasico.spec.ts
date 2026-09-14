@@ -141,10 +141,9 @@ test.describe('Reservas', () => {
 
       // Total que arma la ficha al elegir la cantidad: es el primer importe de
       // la cadena y el que despues tiene que reaparecer en el BO.
-      capturarDelPortal('ficha (total)', await page.locator('.sd-total-amount').first().innerText());
+      capturarDelPortal('ficha (total)', await servicio.esperarTotal());
 
-      await page.locator("[id$='lnkBookService']").first().click();
-      await esperarFinDeCarga(page);
+      await servicio.agregarAlCarrito();
 
       /**
        * El contador del encabezado, que **cuenta items del carrito**.

@@ -47,10 +47,10 @@ export class NoAsignadosPage {
    * Corre el filtro "Hasta" de la bandeja abierta y vuelve a filtrar.
    *
    * Las tres bandejas lo traen en hoy, pero no filtran lo mismo: la de items mira
-   * la fecha del SERVICIO, y la de facturas la de CREACION de la factura
-   * (`FileItemSvc.cs:1646`) comparada contra el "Hasta" a las 00:00
-   * (`txtDateTo.Text.ToDate()`), asi que una factura creada hoy no aparece hasta
-   * mover el filtro a manana.
+   * la fecha del SERVICIO, y un servicio reservado a futuro no se lista sin correrlo.
+   * La de facturas y la de ordenes de pago miran la de CREACION contra el "Hasta" a
+   * las 00:00 y dejan afuera lo creado hoy: es el hallazgo 9, confirmado como defecto
+   * por el PM, y el test no lo esquiva.
    *
    * Es un bootstrap-datepicker (`data-provide="datepicker"`): el valor se tipea
    * como lo haria una persona y se confirma con Enter, que cierra el calendario sin

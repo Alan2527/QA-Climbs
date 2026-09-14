@@ -3,7 +3,7 @@ import { InicioPage } from '../../pages/inicio.page';
 import { FacturaProveedorPage } from '../../pages/factura-proveedor.page';
 import { NoAsignadosPage } from '../../pages/no-asignados.page';
 import {
-  paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado, formatearFecha,
+  paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado,
 } from '../../utils/pasos';
 import { SALTO, aFormatoBO, reservarServicioYGenerarFile } from './cobranzas-comun';
 
@@ -56,11 +56,6 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
     // buscando el codigo completo, la grilla contesta "Sin resultados".
     const numeroDeFile = String(Number(pre.fileCode.match(/\d{6,}/)?.[0] ?? '0'));
     let idDeLaFactura = '';
-    // La bandeja de facturas filtra por fecha de creacion hasta hoy a las 00:00:
-    // la factura de este test, creada hoy, sale recien con el "Hasta" en manana.
-    const manana = new Date(ahora);
-    manana.setDate(manana.getDate() + 1);
-    const hastaFacturas = formatearFecha(manana);
 
     await paso(page, 'El item del file recien generado figura en la bandeja de items no asignados', async () => {
       await bandejas.abrirItems(pre.fechaDelServicio);
@@ -97,9 +92,13 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
       ].join(SALTO));
     });
 
+    // Se mira la bandeja con los filtros con los que abre, como una persona. Hasta el
+    // 2026-09-14 el test corria el "Hasta" a manana, porque la bandeja compara la
+    // fecha de creacion contra el Hasta a las 00:00 y deja afuera lo creado hoy. El PM
+    // confirmo ese dia que es un defecto ("tiene que filtrar el hasta inclusive") y el
+    // test dejo de esquivarlo: queda en rojo hasta que se corrija. Hallazgo 9.
     await paso(page, 'La factura aprobada y sin imputar figura en la bandeja de facturas no asignadas', async () => {
       await bandejas.abrirFacturas();
-      await bandejas.filtrarHasta(hastaFacturas, bandejas.tablaDeFacturas);
       const figura = await bandejas.figura(bandejas.tablaDeFacturas, numero);
       await adjuntarTexto('Fila de la factura en la bandeja', await bandejas.textoDeLaFila(bandejas.tablaDeFacturas, numero));
       await conResaltado(page, page.locator(bandejas.tablaDeFacturas), 'Factura pendiente', () => {
@@ -118,9 +117,10 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
       await factura.imputar(aFormatoBO(total), `AUTO-QA ${sello.slice(-8)}`);
     });
 
+    // Mientras siga el hallazgo 9 este paso pasa sin probar nada: la factura nunca
+    // entro a la bandeja. Recobra sentido cuando se corrija el Hasta.
     await paso(page, 'Imputada, la factura sale de la bandeja de facturas no asignadas', async () => {
       await bandejas.abrirFacturas();
-      await bandejas.filtrarHasta(hastaFacturas, bandejas.tablaDeFacturas);
       const figura = await bandejas.figura(bandejas.tablaDeFacturas, numero);
       await conResaltado(page, page.locator(bandejas.tablaDeFacturas), 'Factura imputada', () => {
         expect(figura, `Imputada, la factura ${numero} no puede seguir figurando como no asignada`).toBe(false);
