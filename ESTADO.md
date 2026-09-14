@@ -343,7 +343,7 @@ escribirlo bien, pero **ninguno de los dos tests quedó en pie**. Lo que sí que
 |---|---|
 | `tests/bloque-c/cobranzas-comun.ts` | **hecho** — la precondición y los formateadores salieron de `cobranzas.spec.ts`, que bajó de 2.147 a 1.947 líneas |
 | `pages/no-asignados.page.ts` | escrito, sin test que lo use todavía |
-| `pages/liquidacion.page.ts` | escrito, sin test que lo use todavía |
+| `pages/liquidacion.page.ts` + `tests/bloque-c/liquidacion.spec.ts` | **hecho el 2026-09-14, en verde** |
 
 #### La bandeja de no asignados no se puede mirar desde el eslabón 1
 
@@ -368,21 +368,32 @@ rango por defecto es hoy − 30 días a hoy, y ampliarlo a mañana no cambia nad
 imputar**, verificar que figure, imputarla y verificar que salga. Es un test
 aparte, no un agregado al eslabón 1.
 
-#### La liquidación: el documento no carga
+#### La liquidación: resuelto el 2026-09-14, en verde
 
 `booking/files/liqfile/{id}` no es una pantalla de consulta sino **un documento
-editable**: el BO lo arma la primera vez desde el file y lo guarda en
-`BO_FileLiq`; a partir de ahí muestra lo guardado y **deja de mirar el file**
-(`Tmpl/FileLiq.aspx.cs:88`). Esa es la regla que vale la pena probar — si después
-se agrega un ítem, el documento sigue diciendo lo de antes hasta que alguien lo
-regenere.
+editable**: el BO lo arma la primera vez desde el file y lo guarda en `BO_FileLiq`;
+a partir de ahí muestra lo guardado y **deja de mirar el file**
+(`Tmpl/FileLiq.aspx.cs:88`).
 
-El test quedó escrito con esa idea —armar, marcar, guardar, releer, regenerar y
-los tres idiomas— pero **el editor viene vacío**: `.note-editable`, `#liq-data`,
-`#txtLiqData` y un `iframe` existen en la pantalla, y el texto es "". Pasa igual
-con un file recién generado y con uno viejo, así que no es el dato. El contenido
-entra por AJAX desde `Tmpl/FileLiq.aspx` y `file.js:5768` lo inyecta en SummerNote;
-falta averiguar por qué no llega. **Es lo primero a mirar al retomar.**
+**El editor venía vacío porque el test entraba por URL**, y no era ni el sistema ni
+un dato. El botón "Liquidación" del file primero guarda en la sesión los ítems
+tildados (`setparameterliq`, o -2 si no hay ninguno) y recién después abre la
+pantalla en una pestaña nueva (`ManageFile.aspx`, `redirectLiquidacion`). La pantalla
+lee ese valor al armar el documento (`Tmpl/FileLiq.aspx.cs:87`): por URL no existe,
+la carga falla y el editor queda en blanco. La sospecha fue de Alan, y la confirmó a
+mano entrando por el botón.
+
+`tests/bloque-c/liquidacion.spec.ts` entra por el botón, como un usuario, sobre un
+file recién generado, y exige:
+
+1. Que el documento se arme con el file: código, pasajero, servicio y el total neto
+   igual a la venta del ítem.
+2. Que guardado con una marca, al reabrirlo desde el file muestre lo guardado.
+3. Que **Regenerar** lo vuelva a armar desde el file y pierda la marca.
+4. Que en cada idioma del combo se siga armando desde el file. Las traducciones se
+   adjuntan y no se exigen: ninguna historia las define.
+
+No deja rastro: el Regenerar borra lo guardado y cambiar el idioma no guarda nada.
 
 ### Un hueco que queda en pausa, y por qué
 
