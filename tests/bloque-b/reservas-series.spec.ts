@@ -975,9 +975,16 @@ test.describe('Reservas', () => {
             .map((e) => (e as HTMLElement).innerText.trim()),
           mes: document.querySelector('#spanCalLabel')
             ? (document.querySelector('#spanCalLabel') as HTMLElement).innerText.trim() : '',
+          // `serietour.selectdate` no tiene entrada en portugues en `i18n.js`
+          // (224 claves contra 225), asi que en PT cae al espaniol. Se adjunta
+          // para que se vea en el reporte, sin exigirlo, por el mismo motivo que
+          // el resto de las etiquetas.
+          aviso: document.querySelector('#roomsPlaceholder p')
+            ? (document.querySelector('#roomsPlaceholder p') as HTMLElement).innerText.trim() : '',
         }));
         await adjuntarTexto(`Etiquetas del asistente en ${idioma.nombre}`,
-          `pasos: ${etiquetas.pasos.join(' | ')}${SALTO}mes del calendario: ${etiquetas.mes}`);
+          `pasos: ${etiquetas.pasos.join(' | ')}${SALTO}mes del calendario: ${etiquetas.mes}` +
+          `${SALTO}aviso de habitaciones: ${etiquetas.aviso}`);
       });
     }
   });

@@ -21,6 +21,7 @@ export class CarritoCustomToursPage {
   constructor(private readonly page: Page) {}
 
   readonly btnAgregarPasajero = "[id$='ctrlTourPassanger_lnkAdd']";
+  readonly btnQuitarPasajero = "[id*='lvPassengersData'][id$='_lnkRemove']";
   readonly campoReferencia = "[id$='cphMain_txtReference']";
   readonly campoObservaciones = "[id$='cphMain_txtComment']";
   readonly checkTerminos = "[id$='cbxTermsAndConditions']";
@@ -62,14 +63,29 @@ export class CarritoCustomToursPage {
   }
 
   /**
-   * Deja tantos bloques de pasajero como pax se reservaron.
-   * Igual que en el otro riel, arranca con uno solo.
+   * Deja exactamente tantos bloques de pasajero como pax se reservaron: agrega
+   * los que falten y quita los que sobren, igual que en el otro riel y por el
+   * mismo motivo (ver `CarritoPage.asegurarPasajeros`).
+   *
+   * La unica diferencia es como se apaga el boton del primer bloque: aca el
+   * control usa `Enabled='<%#Eval("ShowDelete")%>'`
+   * (`TourPassangerControl.ascx:78`) en vez de `Visible`, asi que se dibuja
+   * igual, deshabilitado. No molesta: el que se clickea es siempre el ultimo, y
+   * el bucle no llega a el porque nunca se baja de un pasajero.
    */
   async asegurarPasajeros(cantidad: number) {
     for (let intento = 0; await this.pasajerosCargables() < cantidad; intento++) {
       expect(intento, `"Anadir Pasajero" tiene que llegar a ${cantidad} bloques de pasajero`)
         .toBeLessThan(cantidad + 2);
       await this.page.locator(this.btnAgregarPasajero).first().click();
+      await esperarFinDeCarga(this.page);
+    }
+
+    const sobrantes = (await this.pasajerosCargables()) - cantidad;
+    for (let intento = 0; await this.pasajerosCargables() > cantidad; intento++) {
+      expect(intento, `Quitar tiene que dejar ${cantidad} bloques de pasajero`)
+        .toBeLessThan(sobrantes + 2);
+      await this.page.locator(this.btnQuitarPasajero).last().click();
       await esperarFinDeCarga(this.page);
     }
   }

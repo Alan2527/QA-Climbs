@@ -10,7 +10,7 @@ import { OrdenDeCobroPage } from '../../pages/orden-de-cobro.page';
 import { CajaDiariaPage } from '../../pages/caja-diaria.page';
 import {
   paso, adjuntarTexto, esperarFinDeCarga, formatearFecha,
-  reiniciarNumeracionDePasos, conResaltado,
+  reiniciarNumeracionDePasos, conResaltado, importeANumero,
 } from '../../utils/pasos';
 import {
   SALTO, CAJA_DE_REGRESION, importe, aFormatoBO, nombreDelMes, masDias, celdasDe,

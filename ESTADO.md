@@ -123,7 +123,7 @@ salidas y con ese valor.
 | Entrada de series por el menú | **hecha, en verde**: se ubica el link por su `href`, que no se traduce |
 | Puntos de fidelidad | en pausa, esperando que el PM haga que en QA se acrediten al momento |
 | Partir `cobranzas.spec.ts` | sin empezar (2.160 líneas) |
-| Multiidioma de las pantallas de reserva | sin empezar |
+| Multiidioma de las pantallas de reserva | **escrito y corrido el 2026-09-14**: en rojo por el hallazgo 8 |
 
 **El hueco 2 se paró mientras se creía que no se podía reservar.** El eslabón 1 del
 Bloque C fallaba en el mismo lugar que el Bloque B, porque
@@ -147,8 +147,12 @@ con el código anterior: falla igual. Lo que el deploy cambió, medido:
    quedado mientras no hubo criterio. El mismo número alimenta el aviso de
    "agregado al carrito", así que ese aviso también habla de items.
 
-1. **Desapareció el componente "copiar" de las cards** — excursiones, cena show y
-   traslados.
+1. ~~**Desapareció el componente "copiar" de las cards** — excursiones, cena show y
+   traslados.~~ **Falso, corregido el 2026-09-09.** El copiar no desapareció: vive
+   en el armazón de la ficha "Ver Detalle" —ver "Dos expectativas que dejaron de
+   significar algo", más abajo, que ya lo explicaba— y `candidatos.json` lo exige
+   **presente** en las tres pestañas de servicios, que están en verde. No hay nada
+   que preguntarle al PM por esto.
 2. **Las filas del tarifario traen la periodicidad**: `01/04/2026 - 30/09/2026
    Todos los días | USD 860 | ...` donde la línea base tiene `01/04/2026 -
    30/09/2026 | USD 860 | ...`.
@@ -202,10 +206,17 @@ encontraba 5 pasajeros donde esperaba 1: fallaba lejos de donde estaba el proble
 como el comportamiento correcto.
 
 **El checkout de CustomTours rechaza nombres y apellidos con dígitos.**
-`TourPassangerControl.ascx.cs:199` valida `!valor.Any(char.IsDigit)` y la única
-señal es que el campo se pinta con `border-danger`: **no hay ningún mensaje**, la
-reserva no se guarda, el postback devuelve 200 y no queda nada en el log. La suite
-mandaba `Pasajero1` y `Regresion002745`, así que dejó de emitir sin decir por qué.
+`TourPassangerControl.ascx.cs:199` valida `!valor.Any(char.IsDigit)`, pinta el campo
+con `border-danger` y la reserva no se guarda. La suite mandaba `Pasajero1` y
+`Regresion002745`, así que dejó de emitir.
+
+> **Corregido el 2026-09-09.** Esta sección decía que **no hay ningún mensaje**, y
+> es falso: la pantalla muestra un aviso rojo, *"Revisá los datos de los pasajeros:
+> hay campos incompletos o con errores, marcados en rojo"*
+> (`ShoppingCartCustomTour.aspx.cs:1332`). Lo agregó **la misma US 4613**
+> (`f70394eb`, 31/08), o sea que ya estaba cuando se escribió esto. La afirmación
+> salió de que la suite no lo veía, no de haber mirado la pantalla, y Alan la
+> desmintió con una captura. **No es un hallazgo**: la validación avisa.
 
 Se resolvió con `selloEnLetras()` en `utils/pasos.ts`: los nombres pasan a
 `PasajeroUno`, `PasajeroDos`… y el apellido conserva su marcador único mapeando
@@ -1134,6 +1145,42 @@ servicio (`FileItemType == 10`).
 Lo marca en rojo el test de Servicio del Bloque B, nombrando el ítem. El paso
 queda escrito como corresponde —el ojito tiene que venir habilitado— y se acepta
 el rojo hasta que se corrija.
+
+
+### 8. Carrito y checkout muestran el servicio en español con el sitio en inglés o portugués
+
+Con el encabezado en EN o PT, la fila del carrito (`ShoppingCartPage.aspx`) y la
+del checkout (`CheckOut.aspx`) muestran **"AUTO-QA NO TOCAR - Tigre y Delta"**. El
+encabezado sí queda en el idioma elegido —el test lo verifica y pasa— y el ítem no
+se pierde al cambiar de idioma.
+
+**No es el dato.** Medido en la base el 2026-09-14:
+
+| LanguageID | `ServiceDetail.Name` del servicio 5 |
+|---|---|
+| 1 | AUTO-QA NO TOCAR - Tigre y Delta |
+| 2 | AUTO-QA NO TOCAR - Tigre and Delta |
+| 3 | AUTO-QA NO TOCAR - TIGRE E DELTA |
+| 4 | AUTO-QA NO TOCAR - TIGRE E IL DELTA |
+
+**Por el código debería verse traducido, y por eso la causa queda sin
+determinar.** El carrito pide el ítem a la API con `WorkingLanguage.ID`
+(`ShoppingCartPage.aspx.cs:60`) y la API toma el nombre de `ServiceDetail`
+filtrando por ese idioma (`ServiceManager.cs:91`, `WholesalerBookingService.cs:819`).
+El único camino al español es un `Name` vacío, y no lo está. Queda por ver si el
+idioma no llega a esa llamada o si lo desplegado en QA difiere del repo.
+
+Va sin redactar: ninguna historia define en qué idioma se muestra el carrito. Lo
+marca en rojo `tests/bloque-b/multiidioma-reservas.spec.ts` en cuatro
+comparaciones —carrito y checkout, en inglés y en portugués—, con el paso escrito
+como corresponde.
+
+#### Aparte: una etiqueta del asistente de series no tiene portugués
+
+`serietour.selectdate` —*"Seleccioná una fecha de salida para configurar tus
+habitaciones"*, `SerieBookControl.ascx:285`— está en español e inglés pero no en
+portugués en `Online/js/i18n.js` (224 claves contra 225), así que en PT cae al
+español. El test de series lo adjunta sin exigirlo, como el resto de las etiquetas.
 
 ## Lo que queda por hacer
 

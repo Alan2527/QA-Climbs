@@ -58,6 +58,9 @@ export class CarritoPage {
 
   // --- Checkout ---
   readonly btnAgregarPasajero = "[id$='cphMain_lnkAdd']";
+  // Por id y no por clase: `lnkCopy` y `lnkRemove` comparten `ct-row__remove`
+  // (CheckOut.aspx:216 y :219), asi que la clase resuelve al de copiar.
+  readonly btnQuitarPasajero = "[id*='lvPassengersData'][id$='_lnkRemove']";
   readonly campoCantidadPax = "[id$='cphMain_txtPaxQuantity']";
   readonly campoReferenciaCheckout = "[id$='cphMain_txtReference']";
   readonly campoObservacionesCheckout = "[id$='cphMain_txtComment']";
@@ -156,10 +159,21 @@ export class CarritoPage {
   }
 
   /**
-   * Deja tantos bloques de pasajero como pax se reservaron.
+   * Deja exactamente tantos bloques de pasajero como pax se reservaron: agrega
+   * los que falten y quita los que sobren.
    *
-   * El checkout arranca con uno solo aunque la reserva sea de dos o mas: una
-   * persona presiona "Anadir Pasajero" hasta completar los que declaro.
+   * Quitar no es simetria por prolijidad. El checkout rechaza la reserva si la
+   * cantidad de pax declarada es menor que la de bloques dibujados
+   * (`CheckOut.aspx.cs:890`), asi que un solo bloque de mas -- aunque este
+   * vacio -- alcanza para que no se emita, con el aviso "La cantidad de
+   * pasajeros ingresada es menor a los pasajeros cargados". Este metodo daba por
+   * hecho que la pantalla arranca con un bloque y solo agregaba; el 2026-09-09
+   * la corrida del CI la encontro con tres, y se cayeron las precondiciones de
+   * tres tests del Bloque C sin llegar nunca al BackOffice.
+   *
+   * El primer bloque no trae boton de quitar -- nace con `ShowDelete = false`
+   * (`CheckOut.aspx.cs:150`) --, que es justo lo que hace falta: nunca se puede
+   * bajar de un pasajero.
    */
   async asegurarPasajeros(cantidad: number) {
     // Tope de intentos: si el boton dejara de agregar, el error tiene que ser
@@ -168,6 +182,16 @@ export class CarritoPage {
       expect(intento, `"Anadir Pasajero" tiene que llegar a ${cantidad} bloques de pasajero`)
         .toBeLessThan(cantidad + 2);
       await this.page.locator(this.btnAgregarPasajero).first().click();
+      await esperarFinDeCarga(this.page);
+    }
+
+    // El tope se calcula sobre lo que sobra al entrar, no sobre la cantidad
+    // pedida: los bloques de mas pueden ser muchos mas que los que se reservan.
+    const sobrantes = (await this.pasajerosCargables()) - cantidad;
+    for (let intento = 0; await this.pasajerosCargables() > cantidad; intento++) {
+      expect(intento, `Quitar tiene que dejar ${cantidad} bloques de pasajero`)
+        .toBeLessThan(sobrantes + 2);
+      await this.page.locator(this.btnQuitarPasajero).last().click();
       await esperarFinDeCarga(this.page);
     }
   }
