@@ -660,19 +660,19 @@ CityID 5000, CurrencyID 1 (USD), markup del header **M 0.50**.
 
 7 tests, uno por pestaña. **Terminado.**
 
-Con los datos de QA en su estado original, el resultado esperado es **3 en verde y
-4 en rojo**, y los cuatro rojos son defectos reales de la aplicación (ver
-Hallazgos): Cruceros arrastra dos, y las tres pestañas de servicios fallan en la
-descarga del PDF de la ficha.
+Con los datos de QA en su estado original, el resultado esperado es **6 en verde y
+1 en rojo**: Cruceros, que arrastra los hallazgos 1 y 2 (ver Hallazgos). Las tres
+pestañas de servicios estuvieron en rojo por la descarga del PDF de la ficha
+(hallazgo 3) hasta que se corrigió: en verde en la corrida 49 del 2026-09-15.
 
 | Pestaña | Estado esperado | Motivo |
 |---|---|---|
 | Paquetes | verde | |
 | Hoteles | verde | |
 | Ofertas | verde | |
-| Excursiones | rojo | hallazgo 3 (PDF) |
-| Traslados | rojo | hallazgo 3 (PDF) |
-| Cena Show | rojo | hallazgo 3 (PDF) |
+| Excursiones | verde | hallazgo 3 (PDF) resuelto |
+| Traslados | verde | hallazgo 3 (PDF) resuelto |
+| Cena Show | verde | hallazgo 3 (PDF) resuelto |
 | Cruceros | rojo | hallazgos 1 y 2 |
 
 > **Un fallo no corta el test.** Las comparaciones se registran con `expect.soft`,
@@ -1118,6 +1118,13 @@ que el test sigue y valida los importes y el modal en la misma corrida. Con un a
 duro cortaba en el paso 7 y tapaba el hallazgo 1.
 
 ### 3. La ficha de servicios nunca descarga el PDF
+
+> **Resuelto, confirmado en el código el 2026-09-15.** `ee5184d6` (Elias Gonzalez,
+> 04/09, US 4712, "...se fixeo el boton de generacion de PDF") reemplazó el `$.ajax`
+> por un XHR nativo con `responseType = 'blob'` (`Online/js/service-sheet.js:150`), que
+> es justo lo que jQuery 1.12.4 no soportaba. Excursiones, Traslados y Cena Show
+> pasaron en la corrida 49 del 2026-09-15, con la descarga del PDF incluida. Lo de
+> abajo queda como antecedente.
 
 Clic en **Descargar PDF** en la ficha de cualquier servicio: el archivo no baja
 nunca y el botón queda clavado en **"Generando..." y deshabilitado**. Hay que
