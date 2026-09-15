@@ -1,6 +1,6 @@
 # Estado de la suite E2E — AMV Travel (QA)
 
-Documento de traspaso. Última actualización: **2026-09-14**.
+Documento de traspaso. Última actualización: **2026-09-15**.
 
 > **Para retomar en otra conversación:** leer este archivo entero y el `CLAUDE.md`
 > de la carpeta padre. El **Bloque A está terminado**. Del **Bloque B — Reservas**
@@ -17,13 +17,26 @@ Documento de traspaso. Última actualización: **2026-09-14**.
 > **El Bloque B tiene un quinto riel**: el asistente de reserva de **series**, con
 > tres tests propios más su anulación.
 >
-> **Corrida completa del 2026-09-14: 26 en verde y 8 en rojo** (32 tests más los
-> dos setups, 24 minutos). Por bloque: **A 9/3, B 11/3, C 4/2.** Los ocho rojos:
+> **Corrida completa del 2026-09-15 (GitHub Actions, corrida 49, commit `3c5cf11`):
+> 33 en verde y 5 en rojo** (34 tests más los cuatro setups, 22 minutos). Por
+> bloque: **A 11/1, B 11/3, C 7/1**, y los cuatro setups en verde. **Los cinco
+> rojos son todos por hallazgos abiertos, ninguno nuevo:**
 >
-> - **Esperados, por hallazgos abiertos**: Cruceros (1 y 2), Servicio (7),
->   carrito y checkout del riel clásico en inglés y portugués (8), y el multidestino
->   en inglés y portugués, que exige la sección Idiomas de la US 4613.
-> - **Nuevos, por el deploy del 09/09 al 11/09, a confirmar antes de tocar nada**:
+> - *Cruceros* — hallazgos 1 y 2.
+> - *Servicio* — hallazgo 10: la ficha dice 20 y el carrito y el V. Markup del BO 19.
+>   El chequeo del hallazgo 7 (habilitado para SIX) **pasó**.
+> - *Carrito y checkout en idioma* — hallazgo 8.
+> - *Multidestino en idioma* — textos en español en el armado (US 4613, Idiomas).
+> - *No asignados* — hallazgo 9.
+>
+> **Por primera vez corrieron y quedaron en verde** las cuatro anulaciones (servicio,
+> hotel, multidestino y serie) y el test de serie que emite, ya exigiendo la tarifa
+> de menor.
+>
+> La corrida anterior, del 2026-09-14, había dado 26 en verde y 8 en rojo (A 9/3,
+> B 11/3, C 4/2). Lo que la separa de esta:
+>
+> - **Resueltos el 14/09, por el deploy del 09/09 al 11/09**:
 >   - *Paquetes* — **adaptado el mismo 14/09, en verde.** `fc57d1f7` "4613 Mejoras
 >     diseño Tarifario" (llegó a QA el 09/09) cambió el "Ver Tarifario" de la card
 >     por un botón que abre un explorador en modal, con las categorías a la
@@ -57,20 +70,19 @@ Documento de traspaso. Última actualización: **2026-09-14**.
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
 > toda en verde.
 
-## ⚠️ Para retomar — estado al cerrar la sesión del 2026-09-14
+## ⚠️ Para retomar — estado al cerrar la sesión del 2026-09-15
 
 **Lo último que se hizo** (todo commiteado; mirar `git status -sb` por si queda algo sin pushear):
 
-- **Agregar un servicio al carrito espera el total.** Desde el deploy de la US 4739 la ficha recalcula el total en segundo plano y recién después muestra "Agregar al carrito"; los tests clickeaban antes y reservaban con 0 pax. `ServicioPage.agregarAlCarrito()` lo resuelve y lo usan los cinco tests que reservan un servicio. Verificado: bandejas y Servicio reservan bien.
-- **Hallazgo 9** (el "Hasta" deja afuera el día elegido en tres pantallas del BO): confirmado por el PM como defecto. Alan carga la task de corrección. El test de bandejas dejó de esquivarlo y queda en rojo.
-- **Hallazgo 10** (la ficha muestra USD 20 y el carrito cobra USD 19): confirmado a mano. Consulta redactada, **todavía sin mandar**.
+- **Suite completa corrida en GitHub Actions** (corrida 49): 33 en verde y 5 en rojo, los cinco por hallazgos abiertos. Detalle en el encabezado. El reporte se lee sin navegador desde `https://alan2527.github.io/QA-Climbs/49/data/suites.json` y `.../data/test-cases/{uid}.json`.
+- **Hallazgo 10: la fecha no es la causa.** En `WholesalerBookItem` los 26 ítems del Tigre y Delta creados el 14/09 tienen `TotalRate` 19, y los dos de la prueba a mano de Alan (18:17 y 18:20, `LanguageId = 1`) están al 21/09, la misma fecha que la ficha. Ningún ítem quedó al 14/09. Alan decidió no seguir con la fecha de la captura.
+- De paso quedó relevado que la ficha y el carrito toman la fecha de lugares distintos: el TOTAL de la ficha usa siempre la fecha de la sesión (`PaxQuantityControl.ascx.cs:291`) y el alta al carrito, el calendario de la ficha (`ServiceDetail.aspx.cs:358`). Hoy no explica nada, porque en los dos flujos las fechas coinciden.
 
 **Pendiente, en este orden:**
 
-1. **Hallazgo 10**: antes de mandar la consulta, aclarar una diferencia de fecha que se vio en las capturas de Alan: la ficha con check-in 21/09/2026 y el ítem del carrito con fecha 14/09/2026. Si es el mismo ítem, puede ser otra diferencia.
-2. **Hallazgo 7** (servicio suelto oculto para SIX): en la última corrida del test de Servicio ese chequeo **pasó**. Confirmar si se corrigió antes de darlo por resuelto.
+1. **Hallazgo 10**: mandar la consulta, que ya está redactada.
+2. **Hallazgo 7** (servicio suelto oculto para SIX): el chequeo pasó en dos corridas seguidas, la última el 15/09. Confirmar en el código si `CreateServices(BO_File, List<FileInboxItemObj>)` ya asigna `Show` antes de darlo por resuelto.
 3. **Bloque C**: falta la bandeja de órdenes de pago sin imputar. Primero medir si una orden aprobada se puede imputar fuera de la caja diaria (`PayOrders/Detail.aspx.cs:350`).
-4. **Correr la suite completa** y actualizar el encabezado con el número real: la última medición completa (26/8) es anterior a todos los cambios del 14/09.
 
 ## ⚠️ Plan acordado el 2026-09-05
 
@@ -81,7 +93,9 @@ huecos de alcance siguen abiertos**: son el próximo trabajo.
 
 ### Huecos de alcance a cerrar
 
-**1. La anulación de los otros rieles — escrita, SIN VERIFICAR.**
+**1. La anulación de los otros rieles — escrita, y en verde desde la corrida del
+2026-09-15** (la 49: los cuatro pasaron la primera vez que se pudieron correr). Lo
+de abajo queda como antecedente.
 `tests/bloque-b/anulacion.spec.ts` pasó de un test a cuatro: servicio, hotel,
 multidestino y serie. La parte que cancela es una sola función
 (`cancelarYVerificar`) porque es identica en los cinco rieles: cambia cómo se llegó
@@ -142,7 +156,9 @@ Queda afuera el multiidioma de las **pantallas de reserva** — el buscador de
 hoteles y el armado de CustomTours —: no se pudo ni intentar con el ambiente en el
 estado en que quedó tras el deploy.
 
-**4. Tarifas de menor de la serie — dato cargado el 2026-09-05, test sin correr.**
+**4. Tarifas de menor de la serie — dato cargado el 2026-09-05, en verde desde la
+corrida del 2026-09-15**: el test que emite exigió la diferencia de la tarifa de
+menor entre las dos habitaciones y pasó.
 Se cargaron **208 filas** en `ReceptiveTourDepartureRate` — las 52 salidas del tour
 5061 × las 4 categorías — con `RateTypeID = 20` y `Rate = 500`. Verificado desde el
 portal: `liveChildRates` ahora trae las 52 fechas en 500, y `serieKidsPolicy` sigue
@@ -160,10 +176,10 @@ salidas y con ese valor.
 | | Estado |
 |---|---|
 | Mejoras 1 a 5 | **hechas** |
-| Hueco 1 — anulación de los otros rieles | **escrito, sin correr ni una vez** |
+| Hueco 1 — anulación de los otros rieles | **en verde el 2026-09-15** (corrida 49) |
 | Hueco 2 — Bloque C: liquidación del file y bandejas de no asignados | **sin empezar, y bloqueado**: los cinco eslabones arrancan reservando para armarse un file |
 | Hueco 3 — multiidioma de hoteles, paquetes y ofertas | **hecho, en verde** |
-| Hueco 4 — tarifas de menor de la serie | dato cargado y verificado; el test que lo usa no se pudo correr |
+| Hueco 4 — tarifas de menor de la serie | dato cargado y verificado; **el test que lo usa, en verde el 2026-09-15** |
 | Entrada de series por el menú | **hecha, en verde**: se ubica el link por su `href`, que no se traduce |
 | Puntos de fidelidad | en pausa, esperando que el PM haga que en QA se acrediten al momento |
 | Partir `cobranzas.spec.ts` | **hecho el 2026-09-14**: un spec por eslabón y `cobranzas-armado.ts` con lo compartido |
@@ -1198,6 +1214,10 @@ relaciones con Published = 0 y lo que vale es el flag Included / NotIncluded"*
 (`ServiceSheetBuilder.cs:180`). Esa mitad no es el hallazgo.
 
 ### 7. El servicio suelto llega al file oculto para SIX
+
+> **A confirmar si se corrigió.** En las corridas del 14/09 y del 15/09 el test de
+> Servicio encontró el ítem **habilitado** para SIX. No se da por resuelto hasta ver
+> en el código que la rama de servicios y hoteles asigna `Show`.
 
 En la grilla **Destinos & Servicios** del file, cada ítem de servicio muestra un
 ojito que indica si se ve en SIX (`ManageFile.aspx:697`):
