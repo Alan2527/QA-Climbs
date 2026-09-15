@@ -1,0 +1,4 @@
+Orden: OP0000038070 (id 38070)
+Total: USD 6,00
+Factura a imputar despues: 0001-15140607
+File: AM-0000029930-01

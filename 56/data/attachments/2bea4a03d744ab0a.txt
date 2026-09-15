@@ -1,0 +1,2 @@
+Factura de proveedor: 0001-15140925 (id 88959), sin imputar
+Orden de pago: id 38072, sin aprobar

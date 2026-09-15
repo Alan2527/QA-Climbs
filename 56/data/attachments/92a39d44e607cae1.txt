@@ -1,0 +1,6 @@
+categoria: Primera
+fecha: 5/10/2026
+habitaciones: 2
+pasajeros: 4 adultos · 1 menor
+total: 5.500
+moneda: USD

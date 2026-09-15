@@ -1,0 +1,5 @@
+File: AM-0000029932-01
+Factura de proveedor: 0001-15140816
+Orden de pago: OP0000038071 (id 38071)
+Caja: AUTO-QA NO TOCAR - CAJA USD
+Pagado: USD 6,00
