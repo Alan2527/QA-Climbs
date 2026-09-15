@@ -1,1 +1,0 @@
-× La cantidad de pasajeros ingresada es menor a los pasajeros cargados, por favor corregir.

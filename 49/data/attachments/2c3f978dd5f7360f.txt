@@ -1,5 +1,0 @@
-item: AUTO-QA NO TOCAR - Tigre y Delta
-
-cart.page.title: Resumen de la compra
-cart.saveQuote: Guardar cotización
-cart.continue: Continuar

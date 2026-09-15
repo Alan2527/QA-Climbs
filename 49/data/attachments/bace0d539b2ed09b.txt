@@ -1,5 +1,0 @@
-PasajeroUno | RegresionBBFAEF | QA151150451 | Argentina | 01/03/1990 | -- | ADL
-PasajeroDos | RegresionBBFAEF | QA151150452 | Argentina | 02/03/1990 | -- | ADL
-PasajeroTres | RegresionBBFAEF | QA151150453 | Argentina | 03/03/1990 | -- | ADL
-PasajeroCuatro | RegresionBBFAEF | QA151150454 | Argentina | 04/03/1990 | -- | ADL
-PasajeroCinco | RegresionBBFAEF | QA151150455 | Argentina | 05/10/2018 | -- | CHD

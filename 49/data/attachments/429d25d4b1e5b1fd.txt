@@ -1,2 +1,0 @@
-Factura de proveedor: 0001-15120004 (id 88950), sin imputar
-Orden de pago: id 38066, sin aprobar
