@@ -797,8 +797,9 @@ test.describe('Tarifario', () => {
     let botonesDespues: string[] = [];
 
     await paso(page, 'Desplegar el tarifario del item', async () => {
-      // El boton tiene que alternar "Ver Tarifario" -> "Cerrar Tarifario".
-      // Se guarda el texto antes y despues para validarlo en el paso siguiente.
+      // Se guarda el texto del boton antes y despues para validarlo en el paso
+      // siguiente: en todas las pestanias tiene que alternar "Ver Tarifario" ->
+      // "Cerrar Tarifario", salvo en Paquetes, donde abre el explorador modal.
       botonesAntes = await tarifario.textosBotonesTarifario(cfg.container);
       await tarifario.verTarifario(cfg.container);
       botonesDespues = await tarifario.textosBotonesTarifario(cfg.container);
