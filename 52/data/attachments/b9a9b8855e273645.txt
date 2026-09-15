@@ -1,0 +1,4 @@
+antes de desplegar:   Ver Tarifario
+despues de desplegar: Ver Tarifario | Cerrar Tarifario
+esperado antes:       Ver Tarifario
+esperado despues:     Cerrar Tarifario
