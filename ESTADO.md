@@ -353,7 +353,13 @@ estén sería una afirmación sobre dónde se dibuja el armazón y no sobre el p
 Se sacaron de `candidatos.json`. Donde sí aplican — las tres pestañas de servicios —
 se siguen exigiendo.
 
-#### El hallazgo que quedó abierto
+#### El hallazgo que quedó abierto — resuelto
+
+> **Resuelto: verificado en la corrida 49 del 2026-09-15.** Pasaron "Serie: la reserva
+> emitida conserva los datos en el BackOffice", que emite una reserva de serie y la
+> verifica en el BO, y la anulación de serie, que emite para después cancelar. No se
+> relevó qué lo corrigió: si se crearon en QA los objetos de base que faltaban o si
+> cambió el código. Lo de abajo queda como antecedente.
 
 **Ninguna reserva de serie se puede emitir.** Al confirmar, el postback vuelve
 `28|error|500|One or more errors occurred.` y **la pantalla no muestra nada**.
