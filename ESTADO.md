@@ -5,7 +5,7 @@ Documento de traspaso. Última actualización: **2026-09-15**.
 > **Para retomar en otra conversación:** leer este archivo entero y el `CLAUDE.md`
 > de la carpeta padre. El **Bloque A está terminado**. Del **Bloque B — Reservas**
 > están terminados **los cuatro flujos**; el de Servicio queda en rojo por el
-> hallazgo 7. Del **Bloque C — Cobranzas** está hecha la auditoría del ambiente y
+> hallazgo 10. Del **Bloque C — Cobranzas** está hecha la auditoría del ambiente y
 > el mapa de las cinco pantallas, y ya están creadas las **cajas propias** (187
 > USD y 188 ARS, categoría 18) para no tocar los saldos reales de QA. El
 > **Bloque C está terminado**: los cinco eslabones en verde, de la factura de
@@ -24,7 +24,8 @@ Documento de traspaso. Última actualización: **2026-09-15**.
 >
 > - *Cruceros* — hallazgos 1 y 2.
 > - *Servicio* — hallazgo 10: la ficha dice 20 y el carrito y el V. Markup del BO 19.
->   El chequeo del hallazgo 7 (habilitado para SIX) **pasó**.
+>   El chequeo del hallazgo 7 (habilitado para SIX) **pasó**: está corregido, ver el
+>   hallazgo 7.
 > - *Carrito y checkout en idioma* — hallazgo 8.
 > - *Multidestino en idioma* — textos en español en el armado (US 4613, Idiomas).
 > - *No asignados* — hallazgo 9.
@@ -81,8 +82,7 @@ Documento de traspaso. Última actualización: **2026-09-15**.
 **Pendiente, en este orden:**
 
 1. **Hallazgo 10**: mandar la consulta, que ya está redactada.
-2. **Hallazgo 7** (servicio suelto oculto para SIX): el chequeo pasó en dos corridas seguidas, la última el 15/09. Confirmar en el código si `CreateServices(BO_File, List<FileInboxItemObj>)` ya asigna `Show` antes de darlo por resuelto.
-3. **Bloque C**: falta la bandeja de órdenes de pago sin imputar. Primero medir si una orden aprobada se puede imputar fuera de la caja diaria (`PayOrders/Detail.aspx.cs:350`).
+2. **Bloque C**: falta la bandeja de órdenes de pago sin imputar. Primero medir si una orden aprobada se puede imputar fuera de la caja diaria (`PayOrders/Detail.aspx.cs:350`).
 
 ## ⚠️ Plan acordado el 2026-09-05
 
@@ -1215,9 +1215,22 @@ relaciones con Published = 0 y lo que vale es el flag Included / NotIncluded"*
 
 ### 7. El servicio suelto llega al file oculto para SIX
 
-> **A confirmar si se corrigió.** En las corridas del 14/09 y del 15/09 el test de
-> Servicio encontró el ítem **habilitado** para SIX. No se da por resuelto hasta ver
-> en el código que la rama de servicios y hoteles asigna `Show`.
+> **Resuelto, confirmado en el código el 2026-09-15.** `15cb62e7` (Nicolás Angulo,
+> 03/09, "Hotfix creacion de items tiene que venir true en mostrar en SIX") agrega
+> `Show = true` en la rama que no lo asignaba: servicio en `InboxDetail.aspx.cs:3320`
+> y hotel en `:3509`. También en los servicios individuales (`:2021`) y en el alta a
+> mano desde el file (`ManageFileDestination.aspx.cs:230`): no queda ninguna
+> creación de ítem sin `Show`.
+>
+> **Llegó a `qa` recién el 14/09**, dentro del merge del PR 6500 (US 4713), y por eso
+> la corrida del 07/09 todavía falló. Las del 14/09 a la noche y del 15/09 pasaron.
+>
+> El mismo commit cambia el ícono de `ManageFile.aspx`, pero sólo para agencias
+> **sin** SIX. El test mira la variante con SIX, así que el verde sale del dato y no
+> del ícono. Los files generados antes del 14/09 siguen con el ítem oculto: el fix
+> no corrige hacia atrás.
+>
+> Lo de abajo queda como antecedente.
 
 En la grilla **Destinos & Servicios** del file, cada ítem de servicio muestra un
 ojito que indica si se ve en SIX (`ManageFile.aspx:697`):
@@ -1522,12 +1535,13 @@ Más dos tests negativos: el del checkout clásico y el del asistente de series.
 **Terminado: los cinco flujos.**
 
 Con los datos de QA en su estado actual, el resultado esperado es **4 en verde y
-1 en rojo**: el de Servicio marca el hallazgo 7, que su ítem llega al file oculto
-para SIX. No es una regresión de la suite.
+1 en rojo**: el de Servicio marca el hallazgo 10, que la ficha muestra un total
+distinto del que cobra el carrito. No es una regresión de la suite. Hasta el 14/09
+marcaba además el hallazgo 7, ya resuelto.
 
 | Flujo | Riel | Entrada | Estado esperado |
 |---|---|---|---|
-| Servicio | clásico | solapa SERVICIOS | rojo — hallazgo 7 |
+| Servicio | clásico | solapa SERVICIOS | rojo — hallazgo 10 |
 | Hotel | clásico | solapa HOTELES | verde |
 | Oferta | CustomTours | solapa OFERTAS, Ushuaia | verde |
 | Multidestino | CustomTours | solapa MULTIDESTINO, Buenos Aires | verde |
