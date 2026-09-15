@@ -28,7 +28,9 @@ Documento de traspaso. Última actualización: **2026-09-15**.
 >   hallazgo 7.
 > - *Carrito y checkout en idioma* — hallazgo 8.
 > - *Multidestino en idioma* — textos en español en el armado (US 4613, Idiomas).
-> - *No asignados* — hallazgo 9.
+> - *No asignados* — hallazgo 9. **Desde el 2026-09-15 se esquiva** a pedido de Alan
+>   (el "Hasta" se corre a mañana, ver hallazgo 9) y los dos tests de la bandeja
+>   pasaron en verde en local: la próxima corrida completa no debería marcarlo.
 >
 > **Por primera vez corrieron y quedaron en verde** las cuatro anulaciones (servicio,
 > hotel, multidestino y serie) y el test de serie que emite, ya exigiendo la tarifa
@@ -79,10 +81,13 @@ Documento de traspaso. Última actualización: **2026-09-15**.
 - **Hallazgo 10: la fecha no es la causa.** En `WholesalerBookItem` los 26 ítems del Tigre y Delta creados el 14/09 tienen `TotalRate` 19, y los dos de la prueba a mano de Alan (18:17 y 18:20, `LanguageId = 1`) están al 21/09, la misma fecha que la ficha. Ningún ítem quedó al 14/09. Alan decidió no seguir con la fecha de la captura.
 - De paso quedó relevado que la ficha y el carrito toman la fecha de lugares distintos: el TOTAL de la ficha usa siempre la fecha de la sesión (`PaxQuantityControl.ascx.cs:291`) y el alta al carrito, el calendario de la ficha (`ServiceDetail.aspx.cs:358`). Hoy no explica nada, porque en los dos flujos las fechas coinciden.
 
+- **Bandeja de órdenes de pago sin imputar: hecha, en verde.** Test nuevo en `tests/bloque-c/no-asignados.spec.ts`: aprueba la orden sin imputar, exige que figure, la imputa ya aprobada y exige que salga. Quedó medido en QA que una orden aprobada **se puede imputar**: `Detail.aspx.cs:350` restringe las formas de pago, no la imputación. Detalle en "El hueco 2, relevado el 2026-09-08".
+- **Hallazgo 9 esquivado a pedido de Alan** hasta que se corrija: las bandejas de facturas y de órdenes de pago abren con el "Hasta" en mañana (`ESQUIVAR_HALLAZGO_9` en `pages/no-asignados.page.ts`). Verificado corriendo los dos tests de no asignados: 4 en verde, con login y precondiciones.
+
 **Pendiente, en este orden:**
 
 1. **Hallazgo 10**: mandar la consulta, que ya está redactada.
-2. **Bloque C**: falta la bandeja de órdenes de pago sin imputar. Primero medir si una orden aprobada se puede imputar fuera de la caja diaria (`PayOrders/Detail.aspx.cs:350`).
+2. **Hallazgo 9**: cuando se corrija, pasar `ESQUIVAR_HALLAZGO_9` a `false` y volver a correr `tests/bloque-c/no-asignados.spec.ts`.
 
 ## ⚠️ Plan acordado el 2026-09-05
 
@@ -177,7 +182,7 @@ salidas y con ese valor.
 |---|---|
 | Mejoras 1 a 5 | **hechas** |
 | Hueco 1 — anulación de los otros rieles | **en verde el 2026-09-15** (corrida 49) |
-| Hueco 2 — Bloque C: liquidación del file y bandejas de no asignados | **sin empezar, y bloqueado**: los cinco eslabones arrancan reservando para armarse un file |
+| Hueco 2 — Bloque C: liquidación del file y bandejas de no asignados | **hecho**: liquidación el 2026-09-14; las tres bandejas, la de órdenes de pago el 2026-09-15 |
 | Hueco 3 — multiidioma de hoteles, paquetes y ofertas | **hecho, en verde** |
 | Hueco 4 — tarifas de menor de la serie | dato cargado y verificado; **el test que lo usa, en verde el 2026-09-15** |
 | Entrada de series por el menú | **hecha, en verde**: se ubica el link por su `href`, que no se traduce |
@@ -378,7 +383,7 @@ escribirlo bien, pero **ninguno de los dos tests quedó en pie**. Lo que sí que
 | Archivo | Estado |
 |---|---|
 | `tests/bloque-c/cobranzas-comun.ts` | **hecho** — la precondición y los formateadores salieron de `cobranzas.spec.ts`, que bajó de 2.147 a 1.947 líneas |
-| `pages/no-asignados.page.ts` + `tests/bloque-c/no-asignados.spec.ts` | **hecho el 2026-09-14, en verde** (ítems y facturas; órdenes de pago pendiente) |
+| `pages/no-asignados.page.ts` + `tests/bloque-c/no-asignados.spec.ts` | **hecho, en verde**: ítems y facturas el 2026-09-14, órdenes de pago el 2026-09-15 |
 | `pages/liquidacion.page.ts` + `tests/bloque-c/liquidacion.spec.ts` | **hecho el 2026-09-14, en verde** |
 
 #### La bandeja de no asignados no se puede mirar desde el eslabón 1
@@ -416,12 +421,44 @@ Dos cosas que sólo se supieron corriéndolo, y que eran del test:
 - **La bandeja de facturas filtra por fecha de creación contra el "Hasta" a las
   00:00** (`txtDateTo.Text.ToDate()`, `FileItemSvc.cs:1646`): con los filtros por
   defecto, una factura creada hoy no aparece hasta mover el "Hasta" a mañana. El test
-  ~~lo mueve.~~ **Ya no lo mueve**: el PM confirmó que es un defecto y quedó como
-  hallazgo 9, con el test en rojo hasta que se corrija.
+  ~~lo mueve.~~ ~~Ya no lo mueve~~: el PM confirmó que es un defecto y quedó como
+  hallazgo 9. **Desde el 2026-09-15 lo vuelve a mover**, a pedido de Alan, hasta que
+  se corrija (`ESQUIVAR_HALLAZGO_9`).
 
-**La tercera bandeja, órdenes de pago sin imputar, sigue pendiente**: una orden
-aprobada restringe la imputación (`PayOrders/Detail.aspx.cs:350`) y hay que medir si
-se puede sacar de la bandeja sin pasar por la caja diaria.
+**La tercera bandeja, órdenes de pago sin imputar: hecha el 2026-09-15, en verde.**
+Es un segundo test en el mismo spec.
+
+La consulta (`FileItemSvc.cs:1621`) lista la orden si está en **estado Pago (30)**,
+sin ninguna fila en `BO_PayOrderToSupplierInvoice`, publicada, no borrada, con monto
+mayor a cero y de un proveedor de Costos. O sea que **hay que aprobarla sin imputar**
+e imputarla después, sobre la orden ya aprobada.
+
+Se temía que eso no se pudiera, por `PayOrders/Detail.aspx.cs:350`. **No era así**:
+
+- esa línea deshabilita las **formas de pago** de una orden aprobada fuera de la caja
+  diaria, no la imputación;
+- aprobar no exige nada imputado (`btnApprove_Click` sólo valida el recibo);
+- aprobada, la orden sigue mostrando el control de imputación, que sólo se oculta en el
+  alta (`Detail.aspx.cs:446`), y su grilla de pendientes, que sólo se oculta si está
+  anulada (`PayOrderAllocationControl.ascx.cs:219`);
+- confirmar la imputación valida importes, nunca el estado (`ConfirmAllocate`).
+
+**Medido en QA el 2026-09-15**: la OP0000038067 se aprobó sin imputar y después se
+imputó a su factura con el pendiente bajando a cero. En esa primera corrida no figuró
+en la bandeja, y se descartó en la base que fuera otra cosa que el hallazgo 9: estado
+30, publicada, no borrada, monto 6, proveedor 1047 de tipo 10, creada ese día a las
+09:45. Con el "Hasta" en mañana, los dos tests del spec pasaron.
+
+El test exige, sobre un file y una factura aprobada recién armados:
+
+1. Que la orden aprobada sin imputar quede en Pago con todo el importe pendiente.
+2. Que figure en la bandeja.
+3. Que se pueda imputar ya aprobada y el pendiente quede en cero.
+4. Que imputada salga de la bandeja.
+
+Para volver a la orden después de mirar la bandeja se sumó `OrdenDePagoPage.abrirPorId`.
+Cada corrida deja una orden de pago aprobada e imputada, con su movimiento en la caja
+187.
 
 #### La liquidación: resuelto el 2026-09-14, en verde
 
@@ -1315,9 +1352,15 @@ de vencimiento, de la orden de cobro; medido en la base). La bandeja de facturas
 confirmó Alan a mano.
 
 **Confirmado como defecto por el PM** el mismo día ("tiene que filtrar el hasta
-inclusive"), que pidió corregirlo en una US aparte; Alan la carga. Lo marca en rojo
-`tests/bloque-c/no-asignados.spec.ts`: la factura aprobada sin imputar no figura en la
-bandeja con los filtros por defecto. El test dejó de correr el "Hasta" a mañana.
+inclusive"), que pidió corregirlo en una US aparte; Alan la carga.
+
+**Esquivado desde el 2026-09-15, a pedido de Alan, hasta que se corrija.** Entre el 14/09
+y el 15/09 el test no lo esquivaba y quedaba en rojo. Ahora las bandejas de facturas y
+de órdenes de pago abren y corren el "Hasta" a mañana, desde un solo lugar:
+`ESQUIVAR_HALLAZGO_9` en `pages/no-asignados.page.ts`. **Cuando se corrija, pasarlo a
+`false`** y volver a correr `tests/bloque-c/no-asignados.spec.ts`: tiene que seguir en
+verde con los filtros por defecto. Mientras esté en `true`, la suite no detecta el
+defecto.
 
 
 ### 10. La ficha de servicio muestra un total distinto del que cobra el carrito

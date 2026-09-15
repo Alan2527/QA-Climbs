@@ -121,6 +121,18 @@ export class OrdenDePagoPage {
     await esperarFinDeCarga(this.page);
   }
 
+  /**
+   * Vuelve a abrir una orden ya guardada por su id.
+   *
+   * Hace falta cuando la cadena sale a mirar otra pantalla en el medio — la
+   * bandeja de no asignados — y despues tiene que seguir sobre la misma orden.
+   */
+  async abrirPorId(id: string) {
+    await this.page.goto(`${process.env.AMV_BO_URL}/administration/payorder/${id}`);
+    await this.page.waitForLoadState('domcontentloaded');
+    await esperarFinDeCarga(this.page);
+  }
+
   /** Texto de la opcion elegida en un combo. */
   async opcionElegida(selector: string): Promise<string> {
     return this.page.locator(selector).evaluate((el) => {

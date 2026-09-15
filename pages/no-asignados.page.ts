@@ -1,5 +1,17 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { esperarFinDeCarga } from '../utils/pasos';
+import { esperarFinDeCarga, formatearFecha } from '../utils/pasos';
+
+/**
+ * PROVISORIO, hasta que se corrija el hallazgo 9.
+ *
+ * Las bandejas de facturas y de ordenes de pago comparan la fecha de CREACION contra
+ * el "Hasta" a las 00:00, asi que lo creado hoy no figura con los filtros con los que
+ * abren. El PM confirmo que es un defecto ("tiene que filtrar el hasta inclusive").
+ * Mientras tanto, por pedido de Alan (2026-09-15), las dos bandejas se abren con el
+ * "Hasta" en manana. Cuando se corrija, pasar esto a `false`: las bandejas vuelven a
+ * mirarse con sus filtros por defecto, que es lo que hace una persona.
+ */
+const ESQUIVAR_HALLAZGO_9 = true;
 
 /**
  * Las dos bandejas de no asignados del BackOffice.
@@ -50,7 +62,7 @@ export class NoAsignadosPage {
    * la fecha del SERVICIO, y un servicio reservado a futuro no se lista sin correrlo.
    * La de facturas y la de ordenes de pago miran la de CREACION contra el "Hasta" a
    * las 00:00 y dejan afuera lo creado hoy: es el hallazgo 9, confirmado como defecto
-   * por el PM, y el test no lo esquiva.
+   * por el PM, y mientras no se corrija se esquiva (ver `ESQUIVAR_HALLAZGO_9`).
    *
    * Es un bootstrap-datepicker (`data-provide="datepicker"`): el valor se tipea
    * como lo haria una persona y se confirma con Enter, que cierra el calendario sin
@@ -76,11 +88,21 @@ export class NoAsignadosPage {
   /** Abre la bandeja de facturas de proveedor sin imputar. */
   async abrirFacturas() {
     await this.abrir('administration/unassigned-invoices', this.tablaDeFacturas);
+    await this.esquivarHallazgo9(this.tablaDeFacturas);
   }
 
   /** Abre la bandeja de ordenes de pago sin imputar. */
   async abrirOrdenes() {
     await this.abrir('administration/unassigned-payorders', this.tablaDeOrdenes);
+    await this.esquivarHallazgo9(this.tablaDeOrdenes);
+  }
+
+  /** Corre el "Hasta" a manana mientras siga el hallazgo 9. */
+  private async esquivarHallazgo9(tabla: string) {
+    if (!ESQUIVAR_HALLAZGO_9) return;
+    const manana = new Date();
+    manana.setDate(manana.getDate() + 1);
+    await this.filtrarHasta(formatearFecha(manana), tabla);
   }
 
   private async abrir(ruta: string, tabla: string) {
