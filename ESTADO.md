@@ -57,6 +57,21 @@ Documento de traspaso. Última actualización: **2026-09-14**.
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
 > toda en verde.
 
+## ⚠️ Para retomar — estado al cerrar la sesión del 2026-09-14
+
+**Lo último que se hizo** (todo commiteado; mirar `git status -sb` por si queda algo sin pushear):
+
+- **Agregar un servicio al carrito espera el total.** Desde el deploy de la US 4739 la ficha recalcula el total en segundo plano y recién después muestra "Agregar al carrito"; los tests clickeaban antes y reservaban con 0 pax. `ServicioPage.agregarAlCarrito()` lo resuelve y lo usan los cinco tests que reservan un servicio. Verificado: bandejas y Servicio reservan bien.
+- **Hallazgo 9** (el "Hasta" deja afuera el día elegido en tres pantallas del BO): confirmado por el PM como defecto. Alan carga la task de corrección. El test de bandejas dejó de esquivarlo y queda en rojo.
+- **Hallazgo 10** (la ficha muestra USD 20 y el carrito cobra USD 19): confirmado a mano. Consulta redactada, **todavía sin mandar**.
+
+**Pendiente, en este orden:**
+
+1. **Hallazgo 10**: antes de mandar la consulta, aclarar una diferencia de fecha que se vio en las capturas de Alan: la ficha con check-in 21/09/2026 y el ítem del carrito con fecha 14/09/2026. Si es el mismo ítem, puede ser otra diferencia.
+2. **Hallazgo 7** (servicio suelto oculto para SIX): en la última corrida del test de Servicio ese chequeo **pasó**. Confirmar si se corrigió antes de darlo por resuelto.
+3. **Bloque C**: falta la bandeja de órdenes de pago sin imputar. Primero medir si una orden aprobada se puede imputar fuera de la caja diaria (`PayOrders/Detail.aspx.cs:350`).
+4. **Correr la suite completa** y actualizar el encabezado con el número real: la última medición completa (26/8) es anterior a todos los cambios del 14/09.
+
 ## ⚠️ Plan acordado el 2026-09-05
 
 Salió de un análisis de la suite entera pedido por Alan, y quedó acordado con él.
