@@ -88,6 +88,9 @@ Documento de traspaso. Última actualización: **2026-09-15**.
 
 1. **Hallazgo 10**: mandar la consulta. La causa ya está leída en el código (la ficha redondea por pasajero y el carrito el total, desde la US 4739; ver el hallazgo 10). Verificado en la base: la tarifa es de ARS 47.300 por pasajero y el redondeo al pasar a dólares da 20 en la ficha y 19 en el carrito.
 2. **Hallazgo 9**: cuando se corrija, pasar `ESQUIVAR_HALLAZGO_9` a `false` y volver a correr `tests/bloque-c/no-asignados.spec.ts`.
+3. **Tablero de pruebas**: maqueta hecha y aprobada por Alan el 2026-09-16. Falta decidir cómo funcionan los botones de correr. Ver "Temas abiertos fuera del código".
+4. **Monitoreo de servidores con aviso de caídas**: sin empezar. Antes, confirmar con el PM si ya existe, si se autoriza vigilar producción y a quién le llega el aviso. Ver "Temas abiertos fuera del código".
+5. **Tests del WebAdmin**: sin empezar. Ver "Temas abiertos fuera del código".
 
 ## ⚠️ Plan acordado el 2026-09-05
 
@@ -2885,6 +2888,63 @@ ORDER BY f.ID DESC;
 
 
 ## Temas abiertos fuera del código
+
+- **Monitoreo de servidores con aviso de caídas.** Pedido por Alan el 2026-09-16, y es
+  lo más urgente de esta lista: **si el servidor se cae, los clientes se enteran antes
+  que el equipo**. No es un test de regresión: tiene que avisar enseguida, así que lo
+  que se vigila es **producción**.
+
+  Qué vigilar, cada 5 minutos: que el portal responda con su formulario de ingreso, que
+  el WebAdmin y el BackOffice respondan, y que la API conteste una consulta liviana.
+  Avisar recién con **2 fallas seguidas**, sólo cuando cambia el estado ("se cayó" /
+  "volvió, estuvo caído N minutos"), y repetir cada 30 minutos mientras siga caído.
+
+  **No usar la programación de GitHub Actions**: las corridas programadas se demoran 15
+  minutos o más, a veces se saltean, y en un repo público se desactivan solas tras 60
+  días sin actividad.
+
+  Dos alternativas evaluadas, las dos gratis:
+
+  | Opción | Cuándo |
+  |---|---|
+  | **Better Stack**, plan gratuito (unos 10 monitores cada 3 minutos; confirmar límites) | Si lo urgente es enterarse ya. Sin código ni mantenimiento. UptimeRobot es la alternativa, revisando si su plan gratuito permite uso comercial |
+  | **Desarrollo propio en Cloudflare Workers** con tareas programadas | Si se construye el tablero: es la misma pieza que hace falta para sus botones, y deja servidores, pruebas y botones en un solo lugar. Hay que resolver quién vigila al vigilante (aviso diario de "sigo funcionando", o Healthchecks.io) |
+
+  Datadog Synthetic Monitoring es lo que se usó en otros proyectos y es muy completo,
+  pero **no tiene plan gratuito**: sólo si AMV o Climbs ya tienen cuenta.
+
+  **Antes de armarlo, confirmar con el PM**: si ya existe monitoreo (si los servidores
+  están en Azure, puede haber alertas que nadie mira), que se autorice vigilar
+  producción —hoy no se trabaja sobre producción—, y a quién le llega el aviso (Teams,
+  Slack o mail). La cuenta del servicio, con un mail del equipo y no personal.
+
+- **Tablero de pruebas.** Maqueta hecha el 2026-09-16, y a Alan le gustó: resumen arriba
+  en lenguaje simple ("Sin fallas nuevas"), las pruebas agrupadas en Tarifario, Reservas
+  y Cobranzas con nombres de negocio y un botón para correr cada una o el área entera,
+  los rojos por defectos ya reportados marcados como "defecto conocido" con el motivo, y
+  las últimas 6 corridas. La maqueta es un artifact privado de Claude:
+  https://claude.ai/artifact/CMd8EfSuj5irsM7kB6bJAB
+
+  Iría como una página más en GitHub Pages. Mostrar resultados no necesita permisos
+  (el repo es público); **correr tests sí necesita un token de GitHub**, que no puede
+  quedar en la página. Falta elegir:
+
+  1. **Un intermediario que guarda el token** (recomendado), por ejemplo un Cloudflare
+     Worker, con una clave simple en el tablero. Es el mismo que serviría para el
+     monitoreo propio.
+  2. **Que el botón abra la pantalla "Run workflow" de GitHub** con la opción elegida.
+  3. **Un token por usuario** cargado en la página. Demasiado técnico para el público.
+
+  Cambios en la suite cuando se construya: publicar un resumen JSON por corrida, y un
+  archivo con el nombre de negocio de cada prueba y sus defectos conocidos. Correr una
+  prueba sola ya se puede con el filtro del workflow. Si el repo se mueve pronto a Azure
+  Repos (tema de abajo), conviene decidirlo antes de construirlo.
+
+- **Tests del WebAdmin.** Pedido por Alan, sin empezar. Serían una cuarta área del
+  tablero. Dos cosas a respetar: el WebAdmin tiene **modo oscuro y no tiene selector de
+  idioma** (nunca pasos de multiidioma), y lo más valioso es probar de punta a punta
+  —editar un dato de un ítem AUTO-QA en el admin y verificar que el portal lo muestre—,
+  dejando el dato como estaba al terminar.
 
 - **Mover el repo a Azure Repos.** Lo pidió el PM para que lo use todo el equipo.
   La organización ya existe (`AmvTravel`, se ve en el `azure-pipelines.yml` del
