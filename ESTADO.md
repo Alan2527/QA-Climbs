@@ -86,7 +86,7 @@ Documento de traspaso. Última actualización: **2026-09-15**.
 
 **Pendiente, en este orden:**
 
-1. **Hallazgo 10**: mandar la consulta. La causa ya está leída en el código (la ficha redondea por pasajero y el carrito el total, desde la US 4739; ver el hallazgo 10). Falta confirmar en la base la moneda y la tarifa del servicio 5, cuando Alan recupere el acceso.
+1. **Hallazgo 10**: mandar la consulta. La causa ya está leída en el código (la ficha redondea por pasajero y el carrito el total, desde la US 4739; ver el hallazgo 10). Verificado en la base: la tarifa es de ARS 47.300 por pasajero y el redondeo al pasar a dólares da 20 en la ficha y 19 en el carrito.
 2. **Hallazgo 9**: cuando se corrija, pasar `ESQUIVAR_HALLAZGO_9` a `false` y volver a correr `tests/bloque-c/no-asignados.spec.ts`.
 
 ## ⚠️ Plan acordado el 2026-09-05
@@ -1409,21 +1409,23 @@ Con 9,40 por pasajero, por ejemplo: la ficha da 10 × 2 = **20** y el carrito
 RoundUp(18,80) = **19**. La diferencia aparece siempre que el precio por pasajero,
 después de markups y conversión, tenga decimales.
 
-**La moneda del servicio no es condición.** Alan planteó que la tarifa del servicio 5
-está en ARS y se muestra en USD. La conversión suma decimales, pero los markups solos
-—el M 0.50 del usuario, el de la agencia, el del servicio y el de ProductSetting— ya
-pueden dejar decimales. **Queda sin verificar en la base** la moneda y la tarifa del
-servicio 5: el acceso de Alan venció el 16/09. La query, para cuando vuelva:
+**Verificado en la base el 2026-09-16: la tarifa está en pesos**, como planteó Alan.
+El servicio 5 tiene `CurrencyID` 8 (**ARS**), `Markup` 1,00 y `NoResidentChangeRate`
+1,00, y una sola tarifa Regular publicada (`ServiceRate` 272873): **ARS 47.300 por
+pasajero**, de 1 a 1 pax, vigente hasta 2031.
 
-```sql
-SELECT S.ID, S.CurrencyID, C.CurrencyCode, S.Markup, S.NoResidentChangeRate,
-       R.ID AS ServiceRateID, R.RateTypeID, R.IsResident, R.PaxFrom, R.PaxTo, R.TotalRate, R.DateTo
-FROM qa.dbo.Service S
-JOIN qa.dbo.Currency C ON C.ID = S.CurrencyID
-JOIN qa.dbo.ServiceRate R ON R.ServiceID = S.ID AND R.Published = 1
-WHERE S.ID = 5 AND R.RateTypeID = 6 AND R.DateTo >= '20260916'
-ORDER BY R.IsResident, R.PaxFrom
-```
+Con eso se ve dónde nacen los decimales:
+
+1. En pesos no hay diferencia: la ficha redondea 47.300 × 2 = 94.600 y el carrito
+   47.300, los dos enteros.
+2. Los decimales aparecen **al convertir a dólares y aplicar los markups**.
+3. El precio por pasajero se acota con lo que guardó el carrito, sin conocer la
+   cotización: `TotalRate` 19 = RoundUp(precio × 2), así que cada pasajero vale **más de
+   USD 9,00 y hasta USD 9,50**.
+4. Con cualquier valor de ese rango la ficha da 10 × 2 = **20** y el carrito **19**.
+
+La tarifa en pesos es lo que produce los decimales; lo que hace que ficha y carrito no
+coincidan es que **redondean en distinto momento** desde la US 4739.
 
 Va como consulta y no como bug: la US 4739 habla del recargo por idioma, y acá el
 idioma es español, sin recargo. Lo marca en rojo el test de Servicio del Bloque B en
