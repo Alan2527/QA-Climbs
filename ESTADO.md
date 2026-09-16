@@ -88,7 +88,6 @@ Documento de traspaso. Última actualización: **2026-09-15**.
 
 1. **Hallazgo 10**: mandar la consulta, que ya está redactada.
 2. **Hallazgo 9**: cuando se corrija, pasar `ESQUIVAR_HALLAZGO_9` a `false` y volver a correr `tests/bloque-c/no-asignados.spec.ts`.
-3. **Bloque A: sumar los tags de servicio de la US 4735** ("Mostrar Tags en el tarifario de servicios online") a las pruebas del tarifario. Qué exigir, qué no y qué datos preparar, en la sección "US 4735 — tags en el tarifario de servicios: a sumar".
 
 ## ⚠️ Plan acordado el 2026-09-05
 
@@ -1537,70 +1536,53 @@ reserva queda en cero y el historial deriva su cartel de los elementos.
 - **El botón de refresco por pestaña**, por lo mismo: `StyleTariff.css:583` lo
   deja en `display: none` siempre.
 
-### US 4735 — tags en el tarifario de servicios: a sumar
+### US 4735 — tags de servicio en la card del tarifario: hecho el 2026-09-16
 
-Anotado el 2026-09-15 a pedido de Alan. **Sin empezar.**
+**Hecho y en verde.** Alcance acordado con Alan: que los servicios propios tengan tags
+y que el test del tarifario **valide su presencia en la card**. Nada más.
 
-La US 4735 (Sprint 23, en QA Aprobación) muestra en el tarifario online los tags que se
-asignan a los servicios desde Administración > Servicios > Detalle, en las solapas
-**Excursión, Traslado y Cena Show**. Hoy la suite no cubre nada de eso: de tags sólo
-valida los chips de categoría de Hoteles (`filtros-y-card.spec.ts`) y el tag
-RECOMENDADO de la card de hotel, que es otra cosa.
+La US 4735 (Sprint 23) muestra en el tarifario online los tags asignados a los
+servicios, en las solapas Excursión, Traslado y Cena Show. El test cubre el criterio:
 
-**Qué exigir**, uno por criterio de aceptación de la US:
+> "Dado un servicio con uno o más tags asignados, cuando se muestra su tarjeta en el
+> tarifario, entonces deben visualizarse todos los tags asociados a ese servicio en el
+> pie de la tarjeta."
 
-| Criterio | Qué tendría que verificar el test |
-|---|---|
-| Servicio con tags | La card muestra **todos** sus tags en el pie, entre la descripción y la fila de "Ver detalle", comparados contra `ServiceTag` + `Tag` |
-| Servicio sin tags | La card no muestra espacio de tags vacío ni error |
-| Pills | Con tags cargados en la solapa, aparecen las pills debajo del buscador de nombre |
-| Filtro por pills | Con uno o más tags elegidos, el listado muestra sólo los servicios que tienen **al menos uno** (OR entre tags) |
-| Sugerencias | Al tipear un texto que coincide con un tag, la sugerencia muestra el tag junto al nombre del servicio |
-| Sin tag elegido | El filtro no afecta el listado |
-| Combinación | Tag + proveedor, y tag + búsqueda por nombre, se combinan en AND |
-| Contador | "N excursiones en Ciudad" refleja el filtro de tags aplicado |
+**Qué exige.** En `validarCard` (`tests/bloque-a/tarifario.spec.ts`), la card tiene que
+mostrar en el pie exactamente los tags de la base: todos, y sin que sobre ninguno. Se
+compara como conjunto, no por orden: el orden alfabético sale del código, no de la US.
+Los tags se leen de `div.tariff-service-tags span.tariff-service-tag`
+(`ServiceTariffControl.ascx.cs:206`) con `TarifarioPage.tagsDeServicio()`, y los
+esperados viven en `card.tagsDeServicio` de `data/candidatos.json`.
 
-El contador con proveedor fue el **bug 4755**, hijo de la 4735: con Gastronomía +
-EXPEDICIONES el listado filtraba bien, pero el contador perdía el tag y la pill quedaba
-deseleccionada. Se corrigió en `f7f2877c` (WEB, PR 6501): `pagedOnLoaded` le pasa los
-tags a `refreshFromFeed` para que restaure las pills. Al 15/09 **faltaba el retest en
-pantalla**. El test lo dejaría cubierto.
+El texto que muestra la card es `TagDetail.Detail` del idioma del sitio, con fallback a
+`Tag.Name` (`TagManager.GetServiceTagsBulk`, repo API). Los esperados son los de
+`LanguageID = 1`.
 
-**Qué no exigir**, porque la US no lo define:
+**Datos AUTO-QA creados el 2026-09-15** (**no se borran**, no confundir con los QA4735 8,
+9 y 10 de la ejecución manual, que sí):
 
-- **Tocar una pill después de buscar por nombre descarta la búsqueda.** Pasa igual en
-  Hoteles y quedó como consulta al PM, sin respuesta. Sí se exige el orden que la US
-  describe (tag + nombre, tag + proveedor), no el inverso.
-- **Las sugerencias dejan de mostrar la duración** (Día completo / Medio día), porque el
-  campo pasó a llevar los tags. También es consulta pendiente.
-- **La traducción de los tags** (`TagDetail` por idioma): la US no la menciona. Se
-  adjunta sin exigir, como las etiquetas de series.
+| Tag | Nombre | Español / Inglés / Portugués |
+|---|---|---|
+| 11 | AUTO-QA NO TOCAR - Nocturno | AUTO-QA Nocturno / AUTO-QA Night / AUTO-QA Noturno |
+| 12 | AUTO-QA NO TOCAR - Gastronomia | AUTO-QA Gastronomía / AUTO-QA Gastronomy / AUTO-QA Gastronomia |
 
-**Datos.** Los servicios AUTO-QA de las tres solapas (5 Excursión, 1223 Traslado, 163
-Cena Show) **no tienen tags**. Los tags de la ejecución manual de la US (8 QA4735
-Nieve, 9 QA4735 Gastronomía, 10 QA4735 Nocturno) **se van a borrar** en su limpieza,
-así que la suite no puede depender de ellos. Hace falta:
+| Servicio | Pestaña | Tags | ServiceTag |
+|---|---|---|---|
+| 5 Tigre y Delta | Excursiones | Gastronomía y Nocturno | 1029, 1030 |
+| 1223 Aeropuerto / Hotel | Traslados | Nocturno | 1031 |
+| 163 Café de los Angelitos | Cena Show | Gastronomía | 1032 |
 
-1. Uno o dos tags propios con prefijo `AUTO-QA NO TOCAR`, con su `TagDetail`.
-2. Asignarlos a los servicios AUTO-QA, dejando al menos uno **sin tags** en alguna
-   solapa, porque el criterio "sin tags" también se exige.
-3. Para la combinación con proveedor, un proveedor que tenga servicios con y sin el
-   tag en la misma ciudad. Medirlo por base antes de elegirlo.
-4. Sumar los tags y sus asignaciones a `precondiciones.setup.ts`, como el resto de los
-   datos AUTO-QA.
+**Verificado el 2026-09-15** corriendo los tres tests: en verde, con los tags leídos del
+adjunto de cada card. Los tags del pie no afectaron el resto de la card: descripción,
+componentes, observaciones, tooltips e importes siguieron en verde.
 
-**Riesgos a mirar antes de escribirlo:**
-
-- Asignar un tag a un servicio AUTO-QA **cambia su card**. La comparación de la
-  descripción por prefijo ya descarta el `span.tariff-category-tag`
-  (`tarifario.page.ts:1024`). Hay que ver si los tags del pie caen dentro de lo que se
-  compara y si la matriz de componentes de `candidatos.json` necesita el componente
-  nuevo, con presencia y ausencia.
-- La primera página del listado se cachea (`ServiceRatesBaseCache`, 1 minuto blando y
-  10 duro). Después de asignar los tags por SQL, esperar y recargar antes de dar un
-  rojo por bueno.
-- Las pills y el contador se desincronizaban al volver a una solapa ya cargada. Es el
-  mismo mecanismo del 4755: conviene cubrir también ese recorrido.
+**Afuera por decisión**, aunque la US los pide: pills, filtro por tags, sugerencias del
+buscador, contador y combinación con proveedor o nombre. Si alguna vez se suman, ya está
+relevado: las pills viven en `#tariffCategoryTags` como `button.tariff-category-pill`
+(`TariffFilterControl.ascx:401`), el filtro de proveedor usa `BO_ServiceSupplier` y
+EXPEDICIONES (338) tiene la 5 como única excursión con tags AUTO-QA. Para probar el "al
+menos uno" haría falta un segundo servicio propio en la misma solapa con otro tag.
 
 ### Bloque A — pendientes menores
 

@@ -500,6 +500,7 @@ test.describe('Tarifario', () => {
    *   - leyenda "Mas observaciones disponibles en el detalle"
    *   - tooltips (duracion, idiomas, operatividad y amenity destacada)
    *   - tag RECOMENDADO -> Hotel.Great = 1
+   *   - tags de servicio del pie (US 4735) -> ServiceTag + TagDetail en espanol
    */
   async function validarCard(page: Page, t: TarifarioPage, cfg: any) {
     const card = cfg.card;
@@ -637,6 +638,26 @@ test.describe('Tarifario', () => {
         await conResaltado(page, t.locatorTag(cfg.container), 'el tag no coincide', () => {
           expect(soloLetras(tag ?? ''), 'El tag tiene que decir exactamente RECOMENDADO')
             .toBe(card.tagRecomendado.toUpperCase());
+        });
+      }
+
+      // US 4735: "deben visualizarse todos los tags asociados a ese servicio en el pie
+      // de la tarjeta". Se compara como conjunto y en los dos sentidos: que esten todos
+      // los de la base y que no sobre ninguno. El orden no se exige: sale del codigo
+      // (alfabetico), no de la historia.
+      if (card.tagsDeServicio) {
+        const tags = await t.tagsDeServicio(cfg.container);
+        await adjuntarTexto('Tags de servicio de la card',
+          'en pantalla: ' + JSON.stringify(tags) + SALTO +
+          'de la base:  ' + JSON.stringify(card.tagsDeServicio));
+
+        // Si la card no dibujo el bloque de tags, se resalta la card entera.
+        const zonaTags = t.locatorTagsDeServicio(cfg.container);
+        const donde = (await zonaTags.count()) ? zonaTags : page.locator(cfg.container).first();
+        await conResaltado(page, donde, 'los tags de servicio no coinciden', () => {
+          expect(tags.map(norm).sort(),
+            'La card tiene que mostrar en el pie exactamente los tags asignados al servicio',
+          ).toEqual((card.tagsDeServicio as string[]).map(norm).sort());
         });
       }
     });

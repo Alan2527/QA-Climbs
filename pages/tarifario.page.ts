@@ -785,6 +785,21 @@ export class TarifarioPage {
     );
   }
 
+  /**
+   * Tags de servicio del pie de la card (US 4735): un `span.tariff-service-tag` por
+   * tag dentro de `div.tariff-service-tags`, que no se dibuja si el servicio no
+   * tiene ninguno (`ServiceTariffControl.ascx.cs:206`). El texto es la traduccion del
+   * tag en el idioma del sitio (`TagDetail.Detail`).
+   */
+  async tagsDeServicio(container: string): Promise<string[]> {
+    const tags = this.contenedor(container).locator('.tariff-service-tags .tariff-service-tag');
+    return (await tags.allInnerTexts()).map((x) => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  }
+
+  locatorTagsDeServicio(container: string): Locator {
+    return this.contenedor(container).locator('.tariff-service-tags').first();
+  }
+
   /** Tag "RECOMENDADO" de la card de hoteles (se muestra si Hotel.Great = 1). */
   async tagRecomendado(container: string): Promise<string | null> {
     const loc = this.contenedor(container).locator('.featured-tag');

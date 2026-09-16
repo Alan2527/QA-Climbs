@@ -222,6 +222,8 @@
         "textoDesplegado": "Cerrar Tarifario"
       },
       "card": {
+        "tagsDeServicio": ["AUTO-QA Gastronomía", "AUTO-QA Nocturno"],
+        "_fuenteTags": "US 4735. TagDetail.Detail con LanguageID = 1 de los tags asignados en ServiceTag: 11 Nocturno y 12 Gastronomia (ServiceTag 1029 y 1030)",
         "observacionesDestacadas": [
           "Sujeto a modificaciones según condiciones del río",
           "Traer ropa cómoda y calzado antideslizante"
@@ -514,6 +516,8 @@
         "textoDesplegado": "Cerrar Tarifario"
       },
       "card": {
+        "tagsDeServicio": ["AUTO-QA Nocturno"],
+        "_fuenteTags": "US 4735. TagDetail.Detail con LanguageID = 1 de los tags asignados en ServiceTag: 11 Nocturno (ServiceTag 1031)",
         "observacionesDestacadas": [
           "Depende de las condiciones del tráfico",
           "Consultar por adicionales fuera del radio céntrico"
@@ -726,6 +730,8 @@
         "textoDesplegado": "Cerrar Tarifario"
       },
       "card": {
+        "tagsDeServicio": ["AUTO-QA Gastronomía"],
+        "_fuenteTags": "US 4735. TagDetail.Detail con LanguageID = 1 de los tags asignados en ServiceTag: 12 Gastronomia (ServiceTag 1032)",
         "observacionesDestacadas": [
           "No aplica para cenas de Navidad y Año Nuevo",
           "Consultar suplemento por hoteles en Palermo"
