@@ -107,7 +107,9 @@ jobs:
         with:
           allure_results: allure-results
           allure_history: allure-history
-          keep_histories: 20
+          # 5 corridas en el historial: con 20 lo publicado pesaba el cuadruple y
+          # nadie mira tan atras.
+          keep_histories: 5
 
       - name: Publicar en GitHub Pages
         if: always()
@@ -116,3 +118,11 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: allure-history
+          # Cada publicacion REEMPLAZA la anterior en vez de sumarse. Sin esto, la
+          # rama gh-pages guarda un commit con el reporte entero por cada corrida
+          # —capturas de cada paso, videos y trazas— y nada se borra nunca: el repo
+          # llego a ~12 GB y GitHub empezo a rechazar el push, asi que desde el
+          # 2026-09-16 las corridas 58 a 62 no publicaron. Los reportes de las
+          # ultimas corridas siguen publicados: viven dentro de allure-history, que
+          # es lo que se sube.
+          force_orphan: true
