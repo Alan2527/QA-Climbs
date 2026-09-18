@@ -93,6 +93,21 @@ jobs:
           path: playwright-report
           retention-days: 7
 
+      # GitHub rechaza cualquier archivo de mas de 100 MB, y las trazas de los tests
+      # largos —reservas y cobranzas— llegan a 146 MB: una sola alcanza para que el
+      # push del reporte entero sea rechazado ("GH001: Large files detected"), que es
+      # lo que dejo sin publicar las corridas 58 a 63. Se sacan del reporte los
+      # adjuntos que superan el limite, SIEMPRE DESPUES de subir los resultados como
+      # artefacto: ahi siguen disponibles para investigar. Las capturas y los videos
+      # no se tocan.
+      - name: Sacar del reporte los adjuntos que superan el limite de GitHub
+        if: always()
+        run: |
+          echo "Adjuntos de mas de 90 MB:"
+          find allure-results -type f -size +90M -printf '%s	%p
+' | sort -rn || true
+          find allure-results -type f -size +90M -delete || true
+
       # El CLI de Allure necesita Java; en el runner se instala en un paso.
       - name: Configurar Java (para Allure)
         if: always()
