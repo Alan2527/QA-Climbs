@@ -1,0 +1,14 @@
+markup: 0.5
+
+Regular              base 68.2  ->  esperado 137
+Menores en regular   base 34.1  ->  esperado 69
+Solo Show            base 44  ->  esperado 88
+Cena Show VIP        base 143  ->  esperado 286
+Cena Show VIP        base 71.5  ->  esperado 143
+
+en pantalla:
+Regular              137
+MENORES en regular   69
+SOLO Show            88
+CENA Show VIP        286
+CENA Show VIP        143
