@@ -27,6 +27,9 @@ test.describe('Tarifario', () => {
   type Config = {
     tab: string; container: string; nombre: string; id: number;
     cityIdBusqueda: number; terminoBusqueda: string;
+    // El titulo de la card puede no ser el nombre completo de la base: en Paquetes
+    // se corta en el primer parentesis y la duracion pasa a una pastilla.
+    nombreEnLaCard?: string; pastillaDelTitulo?: string;
     botonTarifario: {
       textoInicial: string; textoDesplegado?: string; abreModal?: boolean; _nota?: string; _hallazgoConocido?: string;
     };
@@ -768,6 +771,12 @@ test.describe('Tarifario', () => {
         ).toBe(filasEsperadas.length);
       }
     });
+
+    // Desde el rediseno `c9f4074b` el tarifario se abre en el explorador en casi
+    // todas las pestanias, y el modal tapa la card: los pasos que siguen —el modal
+    // de proveedores, "Ver detalle", las descargas— no llegan a hacer clic. Cerrarlo
+    // aca vale para todas; en Cruceros, que no abre explorador, no hace nada.
+    await t.cerrarExplorador();
   }
 
   async function validarItem(page: Page, cfg: Config, titulo: string) {
@@ -798,16 +807,35 @@ test.describe('Tarifario', () => {
       // dentro del texto completo de la pestania: agregarle una palabra adelante
       // no se detectaba porque el nombre original seguia estando adentro.
       const nombre = await tarifario.nombreDelItem(cfg.container);
+      const pastillas = await tarifario.pastillasDeLaCard(cfg.container);
       const texto = await tarifario.textoDe(cfg.container);
-      await adjuntarTexto('Esperado', `ID: ${cfg.id}\nNombre: ${cfg.nombre}`);
+
+      // Desde el rediseno `c9f4074b` el titulo puede llevar pastillas al lado del
+      // nombre —la categoria del hotel, la duracion del servicio, las noches del
+      // paquete—, que se comparan aparte. En Paquetes el nombre ademas se corta en
+      // el primer parentesis y la duracion pasa a la pastilla, asi que el esperado
+      // de la card no es el nombre completo de la base: va en `nombreEnLaCard`.
+      const esperado = cfg.nombreEnLaCard ?? cfg.nombre;
+      await adjuntarTexto('Esperado', `ID: ${cfg.id}\nNombre: ${cfg.nombre}\nEn la card: ${esperado}`);
       await adjuntarTexto('Obtenido en pantalla',
-        'titulo de la card: ' + nombre + SALTO + SALTO + texto.slice(0, 3000));
+        'titulo de la card: ' + nombre + SALTO +
+        'pastillas: ' + JSON.stringify(pastillas) + SALTO + SALTO + texto.slice(0, 3000));
 
       await conResaltado(page, tarifario.locatorTituloDeLaCard(cfg.container),
         'el nombre del item no coincide', () => {
-          expect(norm(nombre), `El titulo de la card tiene que ser "${cfg.nombre}"`)
-            .toBe(norm(cfg.nombre));
+          expect(norm(nombre), `El titulo de la card tiene que ser "${esperado}"`)
+            .toBe(norm(esperado));
         });
+
+      const pastillaEsperada = cfg.pastillaDelTitulo;
+      if (pastillaEsperada) {
+        await conResaltado(page, tarifario.locatorTituloDeLaCard(cfg.container),
+          'la pastilla del titulo no coincide', () => {
+            expect(pastillas.map(norm),
+              `El titulo de la card tiene que mostrar la pastilla "${pastillaEsperada}"`)
+              .toContain(norm(pastillaEsperada));
+          });
+      }
     });
 
     await validarElementos(page, tarifario, cfg);
@@ -953,6 +981,9 @@ test.describe('Tarifario', () => {
         esperado: precioMostrado(x.totalRate, markup),
       }));
 
+      // El tarifario se abre de nuevo: la comparacion con la linea base lo cierra,
+      // porque el explorador tapa la card y los pasos que siguen no podrian clickear.
+      await t.verTarifario(cfg.container);
       const filas = await t.leerTablaTarifas(cfg.container);
 
       // Cada fila es: FECHAS | TIPO DE SERVICIO | [PAX] | PRECIO
@@ -991,6 +1022,8 @@ test.describe('Tarifario', () => {
         enPantalla.length,
         'La pantalla tiene que mostrar las mismas tarifas que la base',
       ).toBe(esperados.length);
+
+      await t.cerrarExplorador();
     });
 
     await validarCard(page, t, cfg);

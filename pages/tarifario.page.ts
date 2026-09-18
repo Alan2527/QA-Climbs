@@ -220,6 +220,18 @@ export class TarifarioPage {
   }
 
   async verTarifario(container: string) {
+    // La card puede estar redibujandose cuando se llega aca recien buscado el item
+    // por nombre: sin esta espera, el boton del explorador todavia no existe, se cae
+    // al camino viejo —el del acordeon— y el tarifario nunca se despliega. Le pasaba
+    // al capturador de linea base en Excursiones, Traslados y Cruceros, y no a los
+    // tests, que entre la busqueda y el tarifario validan otras cosas.
+    await esperarFinDeCarga(this.page);
+    await this.contenedor(container)
+      .locator(`${this.botonExplorador}, a[onclick*='load'], a.accordeon-header`)
+      .first()
+      .waitFor({ state: 'visible', timeout: 30_000 })
+      .catch(() => {});
+
     // Paquetes: el tarifario se abre en el explorador modal, fuera de la card.
     const explorador = this.contenedor(container).locator(this.botonExplorador).first();
     if (await explorador.count()) {
@@ -825,7 +837,7 @@ export class TarifarioPage {
     return {
       imagen:           await visible('.tariff-image-view img, .tariff-image-view'),
       texto:            await visible('.tariff-detail'),
-      botonTarifario:   await visible(".tariff-view-table, [onclick*='openTariffExplorer']"),
+      botonTarifario:   await visible(".tariff-view-table, .tariff-secondary-btn, [onclick*='openTariffExplorer']"),
       cotizarYReservar: await hay('.tariff-quote-reserve-btn'),
       proveedores:      await hay("[onclick*='openSuppliersModal']"),
       descargaWord:     await hay("[onclick*='downloadWord']"),
@@ -895,12 +907,20 @@ export class TarifarioPage {
       const limpio = (x: string) => (x ?? '').replace(/\s+/g, ' ').trim();
       const fueraDelModal = (e: Element) => !e.closest('.modal');
 
+      // Desde el rediseno `c9f4074b` las cinco pestanias comparten un mismo
+      // contenedor —span.tariff-package-desc-text dentro de div.tariff-package-desc—
+      // y el link "Ver detalle" quedo FUERA del span. Antes cada control tenia su
+      // propia estructura y el link vivia adentro del parrafo. Los dos caminos
+      // viejos quedan como respaldo.
+      const nuevo = Array.from(cont.querySelectorAll('.tariff-package-desc-text'))
+        .find(fueraDelModal) as HTMLElement | undefined;
+
       const propio = Array.from(cont.querySelectorAll('.tariff-service-description'))
         .find(fueraDelModal) as HTMLElement | undefined;
-      if (propio) return limpio(propio.innerText);
+      if (!nuevo && propio) return limpio(propio.innerText);
 
-      const parrafo = Array.from(cont.querySelectorAll('.tours-details-menu-bottom p'))
-        .find(fueraDelModal) as HTMLElement | undefined;
+      const parrafo = nuevo ?? (Array.from(cont.querySelectorAll('.tours-details-menu-bottom p'))
+        .find(fueraDelModal) as HTMLElement | undefined);
       if (!parrafo) return '';
 
       const hijos = Array.from(parrafo.childNodes);
@@ -939,7 +959,20 @@ export class TarifarioPage {
     porIdioma: Record<string, string[][]>; solapasIdioma: number; tarifaExtendida: number;
   }> {
     const porIdioma: Record<string, string[][]> = {};
-    const solapas = this.page.locator(`${TarifarioPage.SOLAPAS_IDIOMA} > *`);
+
+    // Desde el rediseno `c9f4074b` el tarifario se abre en el explorador y el riel
+    // de la izquierda cambia segun la pestania:
+    //   servicios  -> los IDIOMAS, como variantes (.tariff-explorer-variant)
+    //   hoteles    -> las habitaciones
+    //   paquetes   -> las categorias
+    // Los idiomas de servicios dejaron de ser solapas sobre la tabla
+    // (`ServiceTariffDetailControl.ascx:15`: "El selector de idioma ya no se dibuja
+    // aca"), asi que se leen del riel y se siguen guardando con su nombre, como
+    // antes. Paquetes conserva sus solapas dentro del detalle.
+    const variantes = this.page.locator('#tariffExplorerModal:visible .tariff-explorer-variant');
+    const solapas = (await variantes.count())
+      ? variantes
+      : this.page.locator(`${TarifarioPage.SOLAPAS_IDIOMA} > *`);
     const cantidad = await solapas.count();
 
     // El explorador de paquetes muestra una categoria por vez
@@ -948,7 +981,10 @@ export class TarifarioPage {
     // base no cambia de forma. El scroll del modal no afecta: las filas estan en el
     // DOM y visibles aunque queden fuera de la vista, y Playwright scrollea solo
     // antes de cada clic.
-    const categorias = this.page.locator('#tariffExplorerModal:visible .tariff-explorer-hotel');
+    // Las variantes tambien son items del riel: si el riel son los idiomas, ya se
+    // recorren como solapas y no hay que recorrerlos otra vez como categorias.
+    const categorias = this.page.locator(
+      '#tariffExplorerModal:visible .tariff-explorer-hotel:not(.tariff-explorer-variant)');
     const totalCategorias = await categorias.count();
 
     for (let c = 0; c < Math.max(totalCategorias, 1); c++) {
@@ -984,7 +1020,9 @@ export class TarifarioPage {
     const mapa: Record<string, string> = {
       imagen:           '.tariff-image-view',
       texto:            '.tariff-detail',
-      botonTarifario:   ".tariff-view-table, [onclick*='openTariffExplorer']",
+      // Cruceros paso de `.tariff-view-table` a `a.accordeon-header.tariff-secondary-btn`
+      // en el rediseno `c9f4074b`; el resto abre el explorador.
+      botonTarifario:   ".tariff-view-table, .tariff-secondary-btn, [onclick*='openTariffExplorer']",
       cotizarYReservar: '.tariff-quote-reserve-btn',
       proveedores:      "[onclick*='openSuppliersModal']",
       descargaWord:     "[onclick*='downloadWord']",
@@ -1025,20 +1063,39 @@ export class TarifarioPage {
   /**
    * Nombre del item tal como lo muestra la card.
    *
-   * El titulo de la card es un <h2> en los cinco controles, con el badge de
-   * categoria o duracion en un span.tariff-category-tag adentro, que se descarta.
+   * El titulo de la card es un <h2> en los cinco controles, con una o mas
+   * pastillas adentro que se descartan para quedarse con el nombre:
+   *   .tariff-category-tag  categoria del hotel y duracion del servicio
+   *   .tariff-duration-tag  cantidad de noches del paquete (rediseno `c9f4074b`)
+   *
    * Se excluyen los titulos que esten dentro de un .modal: el modal de detalle
    * repite el nombre en un h3 y vive dentro del mismo contenedor.
    */
+  readonly pastillasDelTitulo = '.tariff-category-tag, .tariff-duration-tag';
+
   async nombreDelItem(container: string): Promise<string> {
     return this.contenedor(container).evaluate((cont) => {
       const titulos = Array.from(cont.querySelectorAll('h2'))
         .filter((h) => !h.closest('.modal'));
       if (!titulos.length) return '';
       const copia = titulos[0].cloneNode(true) as HTMLElement;
-      copia.querySelectorAll('.tariff-category-tag').forEach((b) => b.remove());
+      copia.querySelectorAll('.tariff-category-tag, .tariff-duration-tag').forEach((b) => b.remove());
       return (copia.textContent ?? '').replace(/\s+/g, ' ').trim();
     });
+  }
+
+  /**
+   * Pastillas del titulo de la card, como las lee una persona.
+   *
+   * Desde el rediseno `c9f4074b` el paquete muestra el nombre sin su duracion y
+   * la cantidad de noches al lado, en su propia pastilla: el nombre se corta en
+   * el primer parentesis (`StripDuration`) y las noches salen del dato del
+   * paquete (`FormatNights`), no del texto del nombre.
+   */
+  async pastillasDeLaCard(container: string): Promise<string[]> {
+    const pastillas = this.contenedor(container)
+      .locator('h2 .tariff-category-tag, h2 .tariff-duration-tag');
+    return (await pastillas.allInnerTexts()).map((x) => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
   }
 
   /** Titulo de la card, para resaltarlo cuando el nombre no coincide. */

@@ -1,6 +1,6 @@
 {
   "_nota": "Linea base de los importes tal como los muestra el tarifario. Capturada con tools/capturar-lineabase.spec.ts y consolidada con tools/consolidar-lineabase.mjs (npm run lineabase). Si un cambio del sistema altera un importe, el recargo por idioma o la marca TARIFA EXTENDIDA, la comparacion falla. Las dos fechas que se mueven solas con el almanaque se guardan como token y no como fecha: <HOY> es el inicio de la ventana del tarifario y <HOY+18M> su fin, que es hoy mas 18 meses (TariffFilterControl.ascx.cs:197). Sin eso la foto dejaba de servir al dia siguiente por un extremo del rango, sin que cambiara ninguna tarifa. Ver normalizarFechaDeHoy en utils/pasos.ts.",
-  "_capturada": "2026-09-14",
+  "_capturada": "2026-09-18",
   "_ambiente": "QA",
   "items": {
     "cenaShow": {
@@ -21,24 +21,24 @@
           ],
           [
             "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
-            "Menores en regular",
+            "MENORES en regular",
             "USD 69 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
-            "Solo Show",
+            "SOLO Show",
             "1",
             "USD 88 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
-            "Cena Show VIP",
+            "CENA Show VIP",
             "1",
             "USD 286 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
-            "Cena Show VIP",
+            "CENA Show VIP",
             "1",
             "USD 143 TARIFA EXTENDIDA"
           ]
@@ -57,24 +57,24 @@
           ],
           [
             "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
-            "Menores en regular",
+            "MENORES en regular",
             "USD 69 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
-            "Solo Show",
+            "SOLO Show",
             "1",
             "USD 88 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
-            "Cena Show VIP",
+            "CENA Show VIP",
             "1",
             "USD 286 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
-            "Cena Show VIP",
+            "CENA Show VIP",
             "1",
             "USD 143 TARIFA EXTENDIDA"
           ]
@@ -93,24 +93,24 @@
           ],
           [
             "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
-            "Menores en regular",
+            "MENORES en regular",
             "USD 69 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
-            "Solo Show",
+            "SOLO Show",
             "1",
             "USD 88 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
-            "Cena Show VIP",
+            "CENA Show VIP",
             "1",
             "USD 286 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
-            "Cena Show VIP",
+            "CENA Show VIP",
             "1",
             "USD 143 TARIFA EXTENDIDA"
           ]
@@ -1027,7 +1027,7 @@
           [
             "01/07/2026 - 31/12/2031 Recargo por idioma 10%",
             "Regular",
-            "Mínimo 2 pasajeros",
+            "MÍNIMO 2 pasajeros",
             "USD 10 TARIFA EXTENDIDA"
           ],
           [
@@ -1071,7 +1071,7 @@
           [
             "01/07/2026 - 31/12/2031 Recargo por idioma 10%",
             "Regular",
-            "Mínimo 2 pasajeros",
+            "MÍNIMO 2 pasajeros",
             "USD 11 TARIFA EXTENDIDA"
           ],
           [
@@ -1115,7 +1115,7 @@
           [
             "01/07/2026 - 31/12/2031 Recargo por idioma 10%",
             "Regular",
-            "Mínimo 2 pasajeros",
+            "MÍNIMO 2 pasajeros",
             "USD 10 TARIFA EXTENDIDA"
           ],
           [
@@ -1157,12 +1157,9 @@
       "item": "AUTO-QA NO TOCAR - Park Hyatt Palacio Duhau",
       "id": 5003,
       "porIdioma": {
-        "sin-solapas": [
+        "King Deluxe - Edificio Posadas .. Desde USD 430 por persona(base doble) · sin-solapas": [
           [
             "FECHAS",
-            "PRECIO POR NOCHE POR PERSONA"
-          ],
-          [
             "SGL",
             "DBL",
             "TPL"
@@ -1244,12 +1241,11 @@
             "USD 1,100 TARIFA EXTENDIDA",
             "USD 550 TARIFA EXTENDIDA",
             "USD 426 TARIFA EXTENDIDA"
-          ],
+          ]
+        ],
+        "Twin Deluxe - Edificio Posadas Desde USD 430 por persona(base doble) · sin-solapas": [
           [
             "FECHAS",
-            "PRECIO POR NOCHE POR PERSONA"
-          ],
-          [
             "SGL",
             "DBL",
             "TPL"
@@ -1331,12 +1327,11 @@
             "USD 1,100 TARIFA EXTENDIDA",
             "USD 550 TARIFA EXTENDIDA",
             "USD 426 TARIFA EXTENDIDA"
-          ],
+          ]
+        ],
+        "King Garden View - Edificio Posadas - Desde USD 460 por persona(base doble) · sin-solapas": [
           [
             "FECHAS",
-            "PRECIO POR NOCHE POR PERSONA"
-          ],
-          [
             "SGL",
             "DBL",
             "TPL"
@@ -1418,12 +1413,11 @@
             "USD 1,166 TARIFA EXTENDIDA",
             "USD 583 TARIFA EXTENDIDA",
             "USD 448 TARIFA EXTENDIDA"
-          ],
+          ]
+        ],
+        "King Balcony Deluxe Desde USD 470 por persona(base doble) · sin-solapas": [
           [
             "FECHAS",
-            "PRECIO POR NOCHE POR PERSONA"
-          ],
-          [
             "SGL",
             "DBL",
             "TPL"
@@ -1505,12 +1499,11 @@
             "USD 1,188 TARIFA EXTENDIDA",
             "USD 594 TARIFA EXTENDIDA",
             "USD 455 TARIFA EXTENDIDA"
-          ],
+          ]
+        ],
+        "King Palace/ Twin Palace Desde USD 590 por persona(base doble) · sin-solapas": [
           [
             "FECHAS",
-            "PRECIO POR NOCHE POR PERSONA"
-          ],
-          [
             "SGL",
             "DBL",
             "TPL"
@@ -1592,12 +1585,11 @@
             "USD 1,452 TARIFA EXTENDIDA",
             "USD 726 TARIFA EXTENDIDA",
             "USD 543 TARIFA EXTENDIDA"
-          ],
+          ]
+        ],
+        "Park Suite King - Edificio Posadas Desde USD 610 por persona(base doble) · sin-solapas": [
           [
             "FECHAS",
-            "PRECIO POR NOCHE POR PERSONA"
-          ],
-          [
             "SGL",
             "DBL",
             "TPL"
@@ -1679,12 +1671,11 @@
             "USD 1,496 TARIFA EXTENDIDA",
             "USD 748 TARIFA EXTENDIDA",
             "USD 558 TARIFA EXTENDIDA"
-          ],
+          ]
+        ],
+        "Bedroom Suite Palace Desde USD 680 por persona(base doble) · sin-solapas": [
           [
             "FECHAS",
-            "PRECIO POR NOCHE POR PERSONA"
-          ],
-          [
             "SGL",
             "DBL",
             "TPL"
@@ -1779,9 +1770,6 @@
         "sin-solapas": [
           [
             "VIGENCIA",
-            "PRECIO POR PERSONA"
-          ],
-          [
             "SGL",
             "DBL",
             "TPL"

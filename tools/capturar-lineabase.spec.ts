@@ -45,23 +45,21 @@ for (const [clave, cfg] of Object.entries(T)) {
 
     const salida: any = { item: cfg.nombre, id: cfg.id, porIdioma: {}, tarifaExtendida: 0 };
 
-    // Solapas de idioma (recargo por idioma): se captura la tabla de cada una.
-    // Los dos prefijos que existen: "srl-" (servicios) y "trl-" (paquetes).
-    const solapas = page.locator("[class*='-lang-tabs-'] > *");
-    const cantidad = await solapas.count();
-    if (cantidad > 0) {
-      for (let i = 0; i < cantidad; i++) {
-        const nombre = (await solapas.nth(i).innerText()).trim() || `solapa-${i}`;
-        await solapas.nth(i).click().catch(() => {});
-        await esperarFinDeCarga(page);
-        salida.porIdioma[nombre] = await leerTablas(page, cfg.container);
-      }
-    } else {
-      salida.porIdioma['sin-solapas'] = await leerTablas(page, cfg.container);
+    // La captura la hace el MISMO metodo que usa la suite (`capturarTarifas`), para
+    // que la linea base y lo que se compara tengan siempre la misma forma. Antes el
+    // capturador repetia la logica mirando solo las solapas de idioma, y con el
+    // rediseno `c9f4074b` —que movio los idiomas al riel del explorador y agrego una
+    // tabla por habitacion o por categoria— las dos formas dejaron de coincidir.
+    const capturado = await t.capturarTarifas(cfg.container);
+
+    // La fecha de hoy se guarda como <HOY> para que la linea base no caduque al dia
+    // siguiente; la suite normaliza igual de los dos lados al comparar.
+    for (const [clave, filas] of Object.entries(capturado.porIdioma)) {
+      salida.porIdioma[clave] = filas.map((f) => f.map((celda) => normalizarFechaDeHoy(celda)));
     }
 
-    salida.tarifaExtendida = await page.locator('.tariff-extended-label').count();
-    salida.solapasIdioma = cantidad;
+    salida.tarifaExtendida = capturado.tarifaExtendida;
+    salida.solapasIdioma = capturado.solapasIdioma;
 
     fs.mkdirSync('lineabase', { recursive: true });
     fs.writeFileSync(`lineabase/${clave}.json`, JSON.stringify(salida, null, 2), 'utf8');

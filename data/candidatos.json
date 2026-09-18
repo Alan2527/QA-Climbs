@@ -19,6 +19,9 @@
       "container": "tours-container",
       "id": 5059,
       "nombre": "AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia (6 días / 5 noches)",
+      "nombreEnLaCard": "AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia",
+      "pastillaDelTitulo": "5 noches",
+      "_fuenteTitulo": "Rediseno c9f4074b: DisplayTitle = Name cortado en el primer parentesis (StripDuration) y NightsLabel = noches del paquete (FormatNights).",
       "noches": 5,
       "vigenteHasta": "2031-12-31",
       "ciudades": [
@@ -219,7 +222,8 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Cerrar Tarifario"
+        "abreModal": true,
+        "_nota": "Desde el rediseno c9f4074b (4763) el boton Ver Tarifario abre el explorador de tarifas en una ventana, igual que Paquetes: ya no despliega la tabla dentro de la card ni cambia su texto a Cerrar Tarifario."
       },
       "card": {
         "tagsDeServicio": ["AUTO-QA Gastronomía", "AUTO-QA Nocturno"],
@@ -331,7 +335,8 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Cerrar Tarifario"
+        "abreModal": true,
+        "_nota": "Desde el rediseno c9f4074b (4763) el boton Ver Tarifario abre el explorador de tarifas en una ventana, igual que Paquetes: ya no despliega la tabla dentro de la card ni cambia su texto a Cerrar Tarifario."
       },
       "card": {
         "tagRecomendado": "RECOMENDADO",
@@ -513,7 +518,8 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Cerrar Tarifario"
+        "abreModal": true,
+        "_nota": "Desde el rediseno c9f4074b (4763) el boton Ver Tarifario abre el explorador de tarifas en una ventana, igual que Paquetes: ya no despliega la tabla dentro de la card ni cambia su texto a Cerrar Tarifario."
       },
       "card": {
         "tagsDeServicio": ["AUTO-QA Nocturno"],
@@ -727,7 +733,8 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Cerrar Tarifario"
+        "abreModal": true,
+        "_nota": "Desde el rediseno c9f4074b (4763) el boton Ver Tarifario abre el explorador de tarifas en una ventana, igual que Paquetes: ya no despliega la tabla dentro de la card ni cambia su texto a Cerrar Tarifario."
       },
       "card": {
         "tagsDeServicio": ["AUTO-QA Gastronomía"],
@@ -951,7 +958,8 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Cerrar Tarifario"
+        "abreModal": true,
+        "_nota": "Desde el rediseno c9f4074b (4763) el boton Ver Tarifario abre el explorador de tarifas en una ventana, igual que Paquetes: ya no despliega la tabla dentro de la card ni cambia su texto a Cerrar Tarifario."
       },
       "elementos": {
         "imagen": true,
