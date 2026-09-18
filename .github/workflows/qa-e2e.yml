@@ -104,8 +104,7 @@ jobs:
         if: always()
         run: |
           echo "Adjuntos de mas de 90 MB:"
-          find allure-results -type f -size +90M -printf '%s	%p
-' | sort -rn || true
+          find allure-results -type f -size +90M -exec du -h {} + || true
           find allure-results -type f -size +90M -delete || true
 
       # El CLI de Allure necesita Java; en el runner se instala en un paso.
