@@ -67,8 +67,15 @@ export class HotelPage {
     await this.page.locator(this.btnViajeros).first().click();
     await expect(this.page.locator(`${this.panelViajeros}.is-open`)).toHaveCount(1);
 
+    // El rediseno `c9f4074b` (4763) renombro los botones del contador:
+    // `span.quantityModify` paso a `span.pq-step`, dentro de un `.pq-stepper` por
+    // campo. El onclick sigue siendo `QuantityModify(1,'rooms')`, asi que el campo se
+    // ubica igual. Se aceptan los dos nombres.
     const sumar = (campo: string) =>
-      this.page.locator(`span.quantityModify[onclick*="'${campo}'"]`).filter({ hasText: '+' }).first();
+      this.page
+        .locator(`span.pq-step[onclick*="'${campo}'"], span.quantityModify[onclick*="'${campo}'"]`)
+        .filter({ hasText: '+' })
+        .first();
 
     for (let i = 0; i < habitaciones; i++) await sumar('rooms').click();
     for (let i = 0; i < adultos; i++) await sumar('adults').click();

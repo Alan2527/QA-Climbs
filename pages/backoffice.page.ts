@@ -69,9 +69,19 @@ export class BackOfficePage {
     await expect(this.page.locator(this.grilla).first()).toBeVisible({ timeout: 60_000 });
   }
 
-  /** La fila de la bandeja que corresponde al codigo BOxxxxxxxx. */
+  /**
+   * La fila de la bandeja que corresponde al codigo BOxxxxxxxx.
+   *
+   * **La bandeja muestra el ID pelado**, `25166` para `BO00025166`, asi que se busca
+   * por ese numero y no por el codigo entero: buscando el codigo no encuentra
+   * ninguna fila. Es la misma trampa de la bandeja de items no asignados, que
+   * muestra el numero del file sin prefijo ni ceros.
+   */
   fila(codigo: string): Locator {
-    return this.page.locator(this.grilla).filter({ hasText: codigo }).first();
+    const numero = String(Number(codigo.replace(/\D/g, '')));
+    return this.page.locator(this.grilla)
+      .filter({ hasText: new RegExp(`\\b(${codigo}|${numero})\\b`) })
+      .first();
   }
 
   /** Celdas de esa fila, en el orden de la grilla. */
@@ -87,7 +97,12 @@ export class BackOfficePage {
    * es la unica que se puede abrir.
    */
   async abrirDetalle(codigo: string) {
-    await this.fila(codigo).locator("a:has(i.icon-pencil)").first().click();
+    // El icono del lapiz cambio de familia: `i.icon-pencil` paso a `i.ph.ph-pencil-simple`
+    // (Files/Inbox.aspx:152). Se aceptan los dos para no atarse a la tipografia de iconos.
+    await this.fila(codigo)
+      .locator("a:has(i.icon-pencil), a:has(i.ph-pencil-simple)")
+      .first()
+      .click();
     await this.page.waitForURL(/inbox-detail/i, { timeout: 60_000 });
     await this.page.waitForLoadState('domcontentloaded');
   }

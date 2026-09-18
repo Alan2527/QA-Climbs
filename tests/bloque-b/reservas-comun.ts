@@ -696,7 +696,9 @@ export async function armarCircuitoYEmitir(opciones: {
     for (const [item, valor] of Object.entries(reserva.importePorItem)) {
       expect(valor, "El carrito tiene que mostrar el importe del item " + item).not.toBe("");
     }
-    capturarDelPortal('carrito (total del item)', delCarrito.at(-1) ?? '');
+    // Del resumen de la reserva, no del ultimo importe de la pantalla: ver
+    // `CarritoCustomToursPage.total()`.
+    capturarDelPortal('carrito (total del item)', await carrito.total());
 
     await conResaltado(page, page.locator('body'), 'Total del carrito', () => {
       expect(importes['carrito (total del item)'].valor,

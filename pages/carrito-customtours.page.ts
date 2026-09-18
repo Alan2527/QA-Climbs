@@ -27,10 +27,26 @@ export class CarritoCustomToursPage {
   readonly checkTerminos = "[id$='cbxTermsAndConditions']";
   readonly btnConfirmar = "[id$='cphMain_btnSaveBook']";
 
-  /** Total que muestra el carrito, para conciliar contra el del itinerario. */
+  /** Todos los importes de la pantalla, para adjuntarlos como evidencia. */
   async importes(): Promise<string[]> {
     const texto = await this.page.locator('body').innerText();
     return [...new Set(texto.match(/USD\s*[\d.,]+/g) ?? [])];
+  }
+
+  /**
+   * Total de la reserva, leido de la tarjeta "Resumen de la reserva"
+   * (`.ct-total` > `.ct-opt__total-val`, ShoppingCartCustomTour.aspx:398).
+   *
+   * Antes se tomaba el ultimo importe que apareciera en la pantalla. Con el
+   * rediseno `c9f4074b` ese ya no es el total —la pantalla muestra tambien el
+   * "Desde ... por persona"— y la conciliacion comparaba contra un numero que no
+   * era el que se cobra: leia 1.900 donde el carrito decia 2.368.
+   */
+  async total(): Promise<string> {
+    const total = this.page.locator('.ct-total .ct-opt__total-val').first();
+    await expect(total, 'El carrito tiene que mostrar el total de la reserva')
+      .toBeVisible({ timeout: 30_000 });
+    return (await total.innerText()).replace(/\s+/g, ' ').trim();
   }
 
   /**

@@ -245,6 +245,62 @@ con el código anterior: falla igual. Lo que el deploy cambió, medido:
    cambió; cambió el HTML donde vive.
 5. **El menú tiene una entrada nueva**: `Series → /online/serieAll.aspx`.
 
+### El rediseno 4763 — adaptado el 2026-09-18
+
+`c9f4074b` ("4763 Rediseño carrito y buscadores + inclusion de mapa", en QA desde el
+15/09 a la tarde) volvio a mover el tarifario, y dejo **8 de 14 tests del Bloque A en
+rojo** entre el 16/09 y el 18/09. Nada de eso era un defecto: cambio la pantalla.
+
+| Que cambio | Antes | Ahora |
+|---|---|---|
+| Donde se ve el tarifario | la tabla se desplegaba dentro de la card | **seis pestanias abren el explorador en una ventana**; solo Cruceros conserva la tabla en la card |
+| Boton de Cruceros | `.tariff-view-table` | `a.accordeon-header.tariff-secondary-btn` |
+| Titulo de la card | el nombre completo | el nombre mas pastillas: categoria (hoteles), duracion (servicios) y **noches (paquetes)** |
+| Nombre del paquete | entero | cortado en el primer parentesis (`StripDuration`), y las noches salen del dato del paquete (`FormatNights`) |
+| Descripcion | una estructura por control | las cinco comparten `div.tariff-package-desc > span.tariff-package-desc-text`, con el link afuera |
+| Idiomas de servicios | solapas sobre la tabla | opciones del riel del explorador (`.tariff-explorer-variant`) |
+
+**Como se adapto la suite:**
+
+- El titulo se lee sin las pastillas, y la pastilla se compara aparte
+  (`pastillaDelTitulo` en `candidatos.json`). En Paquetes el esperado de la card es el
+  nombre sin la duracion (`nombreEnLaCard`).
+- Las seis pestanias que abren el explorador quedaron con `abreModal: true`, asi que
+  no se les exige el boton "Cerrar Tarifario".
+- **El explorador se cierra despues de comparar los importes**: tapa la card, y sin
+  cerrarlo los pasos siguientes —proveedores, "Ver detalle", las descargas— no llegan
+  a hacer clic. Fue la causa de cinco rojos en una vuelta intermedia.
+- Cena Show **reabre** el tarifario para la comparacion con formula contra la base.
+- **El capturador de linea base usa ahora `capturarTarifas`**, el mismo metodo que la
+  suite. Repetia la logica mirando solo las solapas de idioma y las dos formas se
+  separaron con este rediseno.
+- `verTarifario` espera el boton antes de decidir el camino: recien buscado el item
+  por nombre la card se esta redibujando, y sin esa espera el capturador caia al
+  camino viejo. Fallaba en Excursiones, Traslados y Cruceros.
+
+**Linea base regenerada y verificada el 2026-09-18: ni un importe cambio**, comparados
+uno por uno contra la version anterior. Lo que cambio es el agrupamiento: en Hoteles
+hay una tabla por habitacion, y las filas bajaron de 105 a 98 y de 20 a 19 en Ofertas
+por encabezados que se dejaron de repetir.
+
+#### Bloques B y C: que se corrigio y que falta (2026-09-18)
+
+La corrida completa del 18/09 dio **19 en verde y 20 en rojo**. Nada de eso era un
+defecto del sistema: el mismo deploy toco el portal y el BackOffice. Verificado con
+Alan en pantalla, uno por uno:
+
+| Sintoma | Que era | Estado |
+|---|---|---|
+| "El carrito tiene que conservar el total que mostro el itinerario" (2368 contra 1900) | El test tomaba el ultimo importe de la pantalla; el total vive en la tarjeta "Resumen de la reserva" (`.ct-total .ct-opt__total-val`). Alan confirmo en pantalla que itinerario y carrito muestran 2.368 | **corregido** |
+| "La reserva tiene que estar en la bandeja Online" | La bandeja del BO muestra el **ID pelado** (`25166` para `BO00025166`). Misma trampa que la bandeja de items no asignados | **corregido** |
+| El lapiz del detalle no responde | El icono paso de `i.icon-pencil` a `i.ph.ph-pencil-simple` | **corregido** |
+| El buscador de hoteles no suma habitaciones | `span.quantityModify` paso a `span.pq-step` dentro de un `.pq-stepper` por campo; el onclick sigue siendo `QuantityModify(1,'rooms')` | **corregido** |
+| Los importes del file leen 3 y 2 donde espera 1.290 y 520 | **La grilla del file dejo de ser una tabla**: el merge de la **US 4648** (17/09) la paso a tarjetas con menu de acciones (`fi-card`, `fi-acc__item`). Los `td` ya no existen | **PENDIENTE, es lo que bloquea los dos bloques** |
+| El combo no ofrece "AUTO-QA NO TOCAR - CAJA USD" | La caja 187 del Bloque C no aparece: hay que ver si quedo despublicada, o le cambiaron sucursal o moneda | **PENDIENTE, dato de QA** |
+
+Lo que hay que rehacer para el file: la lectura de los items, sus importes, el ojito de
+SIX y los totales. Lo usan **todos** los tests de los Bloques B y C.
+
 ### La migración del rediseno — 2026-09-07
 
 El deploy es la **US 4613, "Rediseno multidestinos y Perfo"** (`f70394eb`, con
@@ -1433,6 +1489,25 @@ coincidan es que **redondean en distinto momento** desde la US 4739.
 Va como consulta y no como bug: la US 4739 habla del recargo por idioma, y acá el
 idioma es español, sin recargo. Lo marca en rojo el test de Servicio del Bloque B en
 tres comparaciones (ficha contra carrito y contra el detalle del BO).
+
+### 11. El explorador de tarifas de Paquetes pega el nombre a la cantidad de noches
+
+En el Tarifario, pestania Paquetes, "Ver Tarifario" abre el explorador y su titulo
+muestra el nombre pegado a las noches, sin espacio: "AUTO-QA NO TOCAR - Paquete Buenos
+Aires y Ushuaia5 noches". En la card se ve bien, porque el nombre y la pastilla son dos
+elementos separados.
+
+**Solo pasa en Paquetes.** Hoteles y las tres pestanias de servicios arman el titulo de
+la ventana con el nombre limpio del item (`data-sheet-title`, que
+`tariffExplorerTitleFrom` toma primero); Ofertas no lleva pastilla; Cruceros no abre
+explorador. Verificado en pantalla el 2026-09-18 y en el codigo de `origin/qa`.
+
+Es visual: las categorias, los idiomas y las tarifas de la ventana se ven bien. **Bug
+redactado el 2026-09-18**, que Alan carga en la US del rediseno. No hay frase de la US
+que lo cubra: el criterio es que se lea bien, como en las demas pestanias.
+
+Lo marca en rojo el test de Paquetes, en el paso que exige que el explorador se abra
+con el nombre del paquete de la card.
 
 ## Lo que queda por hacer
 
