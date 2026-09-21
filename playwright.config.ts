@@ -38,6 +38,8 @@ export default defineConfig({
     ['list'],
     // Reporte local sin dependencias: Allure necesita Java, este no.
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    // Resumen para el tablero de pruebas: `tools/resumen-corrida.mjs` lo lee en CI.
+    ['json', { outputFile: 'resultados/playwright.json' }],
     ['allure-playwright', {
       resultsDir: 'allure-results',
       environmentInfo: {

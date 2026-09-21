@@ -73,7 +73,14 @@ Documento de traspaso. Última actualización: **2026-09-15**.
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
 > toda en verde.
 
-## ⚠️ Para retomar — estado al cerrar la sesión del 2026-09-15
+## ⚠️ Para retomar — 2026-09-21
+
+- **Deploy del 15 al 17/09 (4763 y 4648) ya adaptado y subido.** Bloque A: 8 en verde y 1 en rojo (Paquetes, hallazgo 11). Bloque B en verde salvo los hallazgos 10 y 8 y los textos sin traducir de la US 4613. Bloque C entero en verde. Los rojos son defectos ya reportados.
+- **Tablero, etapa 1: hecha, falta verla correr en CI.** Cada corrida publica en GitHub Pages `tablero/corridas.json` (índice de las últimas 30) y `tablero/corridas/{n}.json` (detalle prueba por prueba), con `tools/resumen-corrida.mjs` leyendo el reporter `json` de Playwright (`resultados/playwright.json`). No toca Allure: el tablero anterior se trae a `publicacion-anterior/`, **no** a `./gh-pages`, que es la carpeta que lee el paso de Allure. Probado en local con tests falsos (pasa, falla, inestable, omitida, corrida sin resultados, índice encadenado).
+- **Observación sobre el Allure, sin tocar:** el comentario de `force_orphan` dice que las últimas corridas siguen publicadas, pero el workflow nunca trae `gh-pages` a `./gh-pages`, así que el paso de Allure arranca vacío cada vez. Verificado el 2026-09-21: en `gh-pages` solo está la corrida 68. El historial de 5 y la tendencia no se conservan.
+- **Monitoreo:** sigue esperando la respuesta del PM (si ya existe, si se autoriza producción, a quién avisa).
+
+## Estado al cerrar la sesión del 2026-09-15
 
 **Lo último que se hizo** (todo commiteado; mirar `git status -sb` por si queda algo sin pushear):
 

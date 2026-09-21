@@ -30,6 +30,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # El tablero guarda las ultimas corridas, y cada publicacion reemplaza la rama
+      # gh-pages entera: lo publicado antes hay que traerlo para volver a subirlo.
+      # Solo la carpeta del tablero, y NO en ./gh-pages: esa carpeta la lee el paso
+      # de Allure, y traerla ahi cambiaria que corridas conserva su reporte.
+      # La primera vez la carpeta no existe y el paso sigue igual.
+      - name: Traer el tablero publicado
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: publicacion-anterior
+          sparse-checkout: tablero
+
       - name: Configurar Node
         uses: actions/setup-node@v4
         with:
@@ -124,6 +137,21 @@ jobs:
           # 5 corridas en el historial: con 20 lo publicado pesaba el cuadruple y
           # nadie mira tan atras.
           keep_histories: 5
+
+      # Va DESPUES de generar el Allure: ese paso borra de allure-history todo lo que
+      # no sea el numero de una corrida, y se llevaria la carpeta del tablero.
+      # Si la corrida murio antes de los tests, igual queda registrada, sin resultados.
+      - name: Armar el resumen para el tablero
+        if: always()
+        env:
+          CORRIDA: ${{ github.run_number }}
+          CORRIDA_ID: ${{ github.run_id }}
+          SUITE: ${{ github.event.inputs.suite || 'bloque-a' }}
+          FILTRO: ${{ github.event.inputs.filtro }}
+          EVENTO: ${{ github.event_name }}
+          COMMIT: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: node tools/resumen-corrida.mjs resultados/playwright.json publicacion-anterior/tablero allure-history/tablero
 
       - name: Publicar en GitHub Pages
         if: always()
