@@ -922,6 +922,8 @@
       }
     },
     "ofertas": {
+      "alinearVigencias": true,
+      "_alinearVigencias": "La tabla viene partida en temporadas con precio propio y cada vez que termina una cambia la primera fila. Con esto el test compara solo las vigencias en curso, del dia de hoy al fin de lo que conocia la linea base (utils/pasos.ts, alinearVigencias).",
       "tab": "a-opportunities",
       "container": "opportunities-container",
       "id": 5060,

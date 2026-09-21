@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import { TarifarioPage } from '../../pages/tarifario.page';
 import {
   paso, adjuntarTexto, precioMostrado, importeANumero, resaltarYCapturar,
-  reiniciarNumeracionDePasos, conResaltado,
+  reiniciarNumeracionDePasos, conResaltado, alinearVigencias,
 } from '../../utils/pasos';
 import candidatos from '../../data/candidatos.json';
 import lineaBase from '../../data/importes-lineabase.json';
@@ -722,11 +722,34 @@ test.describe('Tarifario', () => {
    * Se recorren todas las solapas de idioma, porque el precio cambia entre ellas.
    */
   async function validarImportes(page: Page, t: TarifarioPage, clave: string, cfg: any) {
-    const esperado = (lineaBase.items as Record<string, any>)[clave];
-    if (!esperado) return;
+    const original = (lineaBase.items as Record<string, any>)[clave];
+    if (!original) return;
+    // Copia: la alineacion de vigencias la modifica, y el JSON importado se comparte
+    // entre tests y reintentos del mismo worker.
+    const esperado = structuredClone(original);
 
     await paso(page, 'Los importes coinciden con la linea base', async () => {
       const actual = await t.capturarTarifas(cfg.container);
+
+      // Tarifario por temporadas (la oferta): las dos tablas se llevan al tramo que
+      // va de hoy al fin de lo que conocia la linea base, para que una ventana que
+      // termina no haga fallar el test. Ver alinearVigencias en utils/pasos.
+      if (cfg.alinearVigencias) {
+        const captura = new Date(`${lineaBase._capturada}T00:00:00`);
+        const hoy = new Date();
+        const horizonte = new Date(captura);
+        horizonte.setMonth(horizonte.getMonth() + 18);
+        for (const idioma of Object.keys(esperado.porIdioma)) {
+          esperado.porIdioma[idioma] = alinearVigencias(esperado.porIdioma[idioma], captura, hoy, horizonte);
+          if (actual.porIdioma[idioma]) {
+            actual.porIdioma[idioma] = alinearVigencias(actual.porIdioma[idioma], hoy, hoy, horizonte);
+          }
+          // Pasados los 18 meses de la captura no queda nada que comparar: hay que recapturar.
+          expect(esperado.porIdioma[idioma].length,
+            `La linea base de la solapa "${idioma}" ya no cubre ninguna vigencia vigente: recapturarla con npm run lineabase`,
+          ).toBeGreaterThan(1);
+        }
+      }
 
       const resumen = (x: any) =>
         Object.entries(x.porIdioma)

@@ -113,6 +113,61 @@ export function normalizarFechaDeHoy(texto: string, hoy = new Date()): string {
     .split(comoTexto(limite)).join('<HOY+18M>');
 }
 
+/**
+ * Alinea contra hoy las filas de un tarifario armado por temporadas, para comparar
+ * la linea base con lo que se ve sin depender del dia en que se capturo.
+ *
+ * La oferta AUTO-QA vale hasta 2031, pero su tabla viene partida en ventanas con
+ * precio propio (hasta el 30/09, octubre, noviembre, las fiestas...). Cada vez que
+ * termina una, desaparece de pantalla y la primera fila pasa a ser la siguiente: el
+ * 2026-09-21 la linea base del 18/09 fallo porque la ventana "hasta el 19/09" ya no
+ * estaba, sin que cambiara ningun precio.
+ *
+ * Las dos tablas se llevan al mismo tramo, de hoy al fin de la ventana que conocia
+ * la linea base (`horizonte`, el dia de la captura + 18 meses):
+ *   - se sacan las ventanas que ya terminaron;
+ *   - la que esta en curso arranca hoy (`<HOY>`);
+ *   - se sacan las que empiezan despues del horizonte, y la que lo cruza se corta
+ *     ahi (`<FIN>`): son las que fueron apareciendo al correrse el calendario.
+ * Los precios de cada ventana se siguen comparando tal cual.
+ *
+ * `hoyDeLasFilas` es el dia al que se refieren los tokens <HOY> y <HOY+18M> de las
+ * filas: el de la captura para la linea base, hoy para lo que esta en pantalla. Las
+ * filas cuya primera celda no es una vigencia (el encabezado) quedan como estan.
+ */
+export function alinearVigencias(filas: string[][], hoyDeLasFilas: Date, hoy: Date, horizonte: Date): string[][] {
+  const dia = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const hoyD = dia(hoy);
+  const finD = dia(horizonte);
+  const base = dia(hoyDeLasFilas);
+  const baseMas18 = new Date(base);
+  baseMas18.setMonth(baseMas18.getMonth() + 18);
+
+  const leer = (x: string): Date | null => {
+    if (x === '<HOY>') return base;
+    if (x === '<HOY+18M>') return baseMas18;
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(x);
+    return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
+  };
+  const escribir = (d: Date) =>
+    `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+
+  const salida: string[][] = [];
+  for (const fila of filas) {
+    const m = /^(\S+) - (\S+)$/.exec(fila[0] ?? '');
+    const desde = m ? leer(m[1]) : null;
+    const hasta = m ? leer(m[2]) : null;
+    if (!desde || !hasta) { salida.push(fila); continue; }
+    if (hasta < hoyD || desde > finD) continue;
+    const d = desde < hoyD ? hoyD : desde;
+    const h = hasta > finD ? finD : hasta;
+    const inicio = d.getTime() === hoyD.getTime() ? '<HOY>' : escribir(d);
+    const fin = h.getTime() === finD.getTime() ? '<FIN>' : escribir(h);
+    salida.push([`${inicio} - ${fin}`, ...fila.slice(1)]);
+  }
+  return salida;
+}
+
 /** Fecha de busqueda estandar de la suite: hoy + 7 dias. */
 export function fechaDeBusqueda(diasExtra = 7): Date {
   const d = new Date();
