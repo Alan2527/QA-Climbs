@@ -151,7 +151,20 @@ jobs:
           EVENTO: ${{ github.event_name }}
           COMMIT: ${{ github.sha }}
           REPO: ${{ github.repository }}
-        run: node tools/resumen-corrida.mjs resultados/playwright.json publicacion-anterior/tablero allure-history/tablero
+        # La pagina y el catalogo salen del repo en cada corrida: un cambio de
+        # nombre o de defecto conocido se publica con la corrida siguiente.
+        #
+        # Se arma en una carpeta propia y se copia con sudo: allure-history la crea
+        # el paso de Allure, que corre en Docker como root, y el usuario del runner
+        # no puede escribir adentro. Es la causa
+        # probable de que este paso fallara en la corrida 69: el log no se pudo leer sin login.
+        run: |
+          mkdir -p tablero-publicar
+          cp tablero/index.html tablero/pruebas.json tablero-publicar/
+          node tools/resumen-corrida.mjs resultados/playwright.json publicacion-anterior/tablero tablero-publicar
+          sudo mkdir -p allure-history
+          sudo rm -rf allure-history/tablero
+          sudo cp -r tablero-publicar allure-history/tablero
 
       - name: Publicar en GitHub Pages
         if: always()

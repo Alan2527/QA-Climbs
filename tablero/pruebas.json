@@ -1,0 +1,51 @@
+{
+  "_leeme": "Catalogo del tablero. Cada prueba se identifica por archivo + titulo del test, tal como los informa Playwright. 'defecto' marca un rojo ya reportado: el tablero lo muestra como defecto conocido y no como falla nueva. Cuando el defecto se corrija, sacar el campo.",
+  "areas": [
+    { "id": "tarifario", "nombre": "Tarifario", "icono": "ph-tag", "descripcion": "Que cada producto muestre sus precios, textos y descargas correctos." },
+    { "id": "reservas", "nombre": "Reservas", "icono": "ph-suitcase-rolling", "descripcion": "Que una reserva hecha en la web llegue completa y sin cambios al BackOffice." },
+    { "id": "cobranzas", "nombre": "Cobranzas", "icono": "ph-receipt", "descripcion": "Que el circuito de pagos y cobros del file cierre en la caja del día." }
+  ],
+  "pruebas": [
+    { "archivo": "bloque-a/tarifario.spec.ts", "titulo": "Paquetes: trae tarifas y muestra el paquete esperado", "nombre": "Paquetes",
+      "defecto": { "id": "Hallazgo 11", "motivo": "El explorador de tarifas pega el nombre del paquete a la cantidad de noches." } },
+    { "archivo": "bloque-a/tarifario.spec.ts", "titulo": "Excursiones: trae tarifas y muestra la excursion esperada", "nombre": "Excursiones" },
+    { "archivo": "bloque-a/tarifario.spec.ts", "titulo": "Hoteles: trae tarifas y muestra el hotel esperado", "nombre": "Hoteles" },
+    { "archivo": "bloque-a/tarifario.spec.ts", "titulo": "Traslados: trae tarifas y muestra el traslado esperado", "nombre": "Traslados" },
+    { "archivo": "bloque-a/tarifario.spec.ts", "titulo": "Cena Show: trae tarifas y coinciden con las de la base", "nombre": "Cena show" },
+    { "archivo": "bloque-a/tarifario.spec.ts", "titulo": "Cruceros: trae tarifas y muestra el crucero esperado", "nombre": "Cruceros" },
+    { "archivo": "bloque-a/tarifario.spec.ts", "titulo": "Ofertas: trae tarifas y muestra la oferta esperada", "nombre": "Ofertas" },
+    { "archivo": "bloque-a/calendario.spec.ts", "titulo": "El calendario opera todos los dias que declaran sus reglas", "nombre": "Calendario de salidas" },
+    { "archivo": "bloque-a/filtros-y-card.spec.ts", "titulo": "Cabecera: el contador, los chips de categoria y Limpiar acompanan al listado", "nombre": "Filtros y contador" },
+    { "archivo": "bloque-a/filtros-y-card.spec.ts", "titulo": "Card: el carrusel trae todas las imagenes del hotel", "nombre": "Fotos de la tarjeta" },
+    { "archivo": "bloque-a/multiidioma.spec.ts", "titulo": "El contenido del tarifario se muestra en el idioma elegido", "nombre": "Contenido en inglés y portugués" },
+    { "archivo": "bloque-a/multiidioma.spec.ts", "titulo": "El tarifario muestra hoteles, paquetes y ofertas en el idioma elegido", "nombre": "Hoteles, paquetes y ofertas en otro idioma" },
+
+    { "archivo": "bloque-b/reservas-clasico.spec.ts", "titulo": "Servicio: la reserva emitida conserva los datos en el BackOffice", "nombre": "Reserva de excursión",
+      "defecto": { "id": "Hallazgo 10", "motivo": "La ficha del servicio muestra un total distinto del que cobra el carrito." } },
+    { "archivo": "bloque-b/reservas-clasico.spec.ts", "titulo": "Hotel: la reserva emitida conserva los datos en el BackOffice", "nombre": "Reserva de hotel" },
+    { "archivo": "bloque-b/reservas-circuitos.spec.ts", "titulo": "Oferta: la reserva emitida conserva los datos en el BackOffice", "nombre": "Reserva de oferta" },
+    { "archivo": "bloque-b/reservas-circuitos.spec.ts", "titulo": "Multidestino: la reserva emitida conserva los datos en el BackOffice", "nombre": "Reserva multidestino" },
+    { "archivo": "bloque-b/reservas-series.spec.ts", "titulo": "Serie: la reserva emitida conserva los datos en el BackOffice", "nombre": "Reserva de serie" },
+    { "archivo": "bloque-b/reservas-series.spec.ts", "titulo": "Serie: el asistente no deja avanzar con datos incompletos", "nombre": "Serie con datos incompletos" },
+    { "archivo": "bloque-b/reservas-series.spec.ts", "titulo": "Serie: las pantallas se muestran en el idioma elegido", "nombre": "Serie en otro idioma" },
+    { "archivo": "bloque-b/validaciones.spec.ts", "titulo": "Checkout: el portal no deja emitir una reserva incompleta", "nombre": "No deja emitir una reserva incompleta" },
+    { "archivo": "bloque-b/anulacion.spec.ts", "titulo": "Servicio: una reserva emitida se puede cancelar y el portal lo refleja", "nombre": "Cancelar una excursión" },
+    { "archivo": "bloque-b/anulacion.spec.ts", "titulo": "Hotel: una reserva emitida se puede cancelar y el portal lo refleja", "nombre": "Cancelar un hotel" },
+    { "archivo": "bloque-b/anulacion.spec.ts", "titulo": "Multidestino: una reserva emitida se puede cancelar y el portal lo refleja", "nombre": "Cancelar un multidestino" },
+    { "archivo": "bloque-b/anulacion.spec.ts", "titulo": "Serie: una reserva emitida se puede cancelar y el portal lo refleja", "nombre": "Cancelar una serie" },
+    { "archivo": "bloque-b/multiidioma-reservas.spec.ts", "titulo": "Carrito y checkout: el servicio se muestra en el idioma elegido", "nombre": "Carrito en otro idioma",
+      "defecto": { "id": "Hallazgo 8", "motivo": "Carrito y checkout muestran el servicio en español con el sitio en inglés o portugués." } },
+    { "archivo": "bloque-b/multiidioma-reservas.spec.ts", "titulo": "Multidestino: armado, detalle y carrito se muestran en el idioma elegido", "nombre": "Multidestino en otro idioma",
+      "defecto": { "id": "US 4613", "motivo": "Quedan textos sin traducir al armar el multidestino en otro idioma." } },
+
+    { "archivo": "bloque-c/factura-proveedor.spec.ts", "titulo": "Factura de proveedor: se carga sobre el file y se imputa al item", "nombre": "Factura del proveedor" },
+    { "archivo": "bloque-c/orden-de-pago.spec.ts", "titulo": "Orden de pago: cancela la factura del proveedor desde la caja de regresion", "nombre": "Orden de pago" },
+    { "archivo": "bloque-c/factura-cliente.spec.ts", "titulo": "Factura al cliente: se emite sobre el file y toma sus conceptos", "nombre": "Factura al cliente" },
+    { "archivo": "bloque-c/orden-de-cobro.spec.ts", "titulo": "Orden de cobro: cobra el comprobante del cliente en la caja de regresion", "nombre": "Orden de cobro" },
+    { "archivo": "bloque-c/caja-diaria.spec.ts", "titulo": "Caja diaria: recibe el pago y el cobro del mismo file y cuadra", "nombre": "Caja diaria" },
+    { "archivo": "bloque-c/liquidacion.spec.ts", "titulo": "Liquidacion: se arma desde el file, guarda lo editado y se regenera", "nombre": "Liquidación del file" },
+    { "archivo": "bloque-c/validaciones-bo.spec.ts", "titulo": "Validaciones: el BO rechaza lo que no debe permitir", "nombre": "El BackOffice rechaza datos inválidos" },
+    { "archivo": "bloque-c/no-asignados.spec.ts", "titulo": "No asignados: el item y la factura figuran pendientes y salen al imputar", "nombre": "Pendientes de asignar: ítems y facturas" },
+    { "archivo": "bloque-c/no-asignados.spec.ts", "titulo": "No asignados: la orden de pago aprobada figura sin imputar y sale al imputarla", "nombre": "Pendientes de asignar: órdenes de pago" }
+  ]
+}

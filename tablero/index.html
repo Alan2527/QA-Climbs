@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pruebas automatizadas · AMV Travel</title>
+<!--
+  Tablero de pruebas de la suite E2E.
+
+  Lee lo que publica cada corrida del workflow (tools/resumen-corrida.mjs):
+    corridas.json          indice de las ultimas corridas
+    corridas/{n}.json      detalle de cada una
+  y el catalogo pruebas.json, con el nombre de negocio de cada prueba y sus
+  defectos conocidos.
+
+  El estilo copia el del WebAdmin (Administration/Css): sidebar casi negro con el
+  acento amarillo de la marca, cards blancas de 12px, encabezados de grilla en
+  mayuscula de 11px y el modo oscuro con los mismos tokens de dark-mode.css.
+-->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script>
+  // Antes de pintar, para que no parpadee en claro. Misma clase que el admin: html.dark.
+  try {
+    const t = localStorage.getItem('tablero-tema');
+    if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+  } catch (e) { /* sin storage: queda el tema del sistema en claro */ }
+</script>
+<style>
+  /* --- Tokens: layout.css y dark-mode.css del WebAdmin ------------------------ */
+  :root {
+    --color-primary: #eab308;
+    --color-surface: #ffffff;
+    --color-surface-alt: #f8fafc;
+    --color-border: #e2e8f0;
+    --color-soft: #f1f5f9;
+    --color-text: #0f172a;
+    --color-text-strong: #111827;
+    --color-text-muted: #64748b;
+    --color-text-faint: #94a3b8;
+    --body-bg: #f3f4f6;
+    --sidebar-bg: linear-gradient(180deg, #16171d, #101114);
+    --sidebar-width: 188px;
+    --nav-text: #d2d5db;
+    --nav-hover-bg: #262c37;
+    --card-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+    /* Estados: los de components/tags.css (admin-tag-ok / -warn / -error / -info) */
+    --ok: #16a34a;     --ok-text: #166534;   --ok-bg: #f0fdf4;   --ok-border: #bbf7d0;
+    --known: #d97706;  --known-text: #92400e; --known-bg: #fffbeb; --known-border: #fde68a;
+    --fail: #dc2626;   --fail-text: #991b1b; --fail-bg: #fef2f2; --fail-border: #fecaca;
+    --info: #3b82f6;   --info-text: #1e3a5f; --info-bg: #eef6ff; --info-border: #cfe6ff;
+    --skip: #94a3b8;
+  }
+  html.dark {
+    --color-surface: #1b1f27;
+    --color-surface-alt: #161a21;
+    --color-border: #2b313c;
+    --color-soft: #232834;
+    --color-text: #e6e8ee;
+    --color-text-strong: #e6e8ee;
+    --color-text-muted: #9aa3b2;
+    --color-text-faint: #6b7483;
+    --body-bg: #0f1115;
+    --sidebar-bg: linear-gradient(180deg, #1b1f27, #14171d);
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+
+    --ok: #4ade80;    --ok-text: #86efac;   --ok-bg: rgba(34, 197, 94, .12);  --ok-border: rgba(34, 197, 94, .35);
+    --known: #fbbf24; --known-text: #fcd34d; --known-bg: rgba(245, 158, 11, .14); --known-border: rgba(245, 158, 11, .4);
+    --fail: #f87171;  --fail-text: #fca5a5; --fail-bg: rgba(239, 68, 68, .14); --fail-border: rgba(239, 68, 68, .4);
+    --info: #60a5fa;  --info-text: #bfdbfe; --info-bg: rgba(59, 130, 246, .14); --info-border: rgba(59, 130, 246, .4);
+    --skip: #6b7483;
+    color-scheme: dark;
+    scrollbar-color: #3a4150 transparent;
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--body-bg); }
+  body {
+    margin: 0; background: var(--body-bg); color: var(--color-text);
+    font: 14px/1.45 var(--font); -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+  .num { font-variant-numeric: tabular-nums; }
+  [hidden] { display: none !important; }
+
+  /* --- Sidebar: sidebar.css ---------------------------------------------------- */
+  .sidebar {
+    position: fixed; inset: 0 auto 0 0; width: var(--sidebar-width); z-index: 20;
+    background: var(--sidebar-bg); box-shadow: 8px 0 24px rgba(0, 0, 0, .08);
+    display: flex; flex-direction: column; color: var(--nav-text);
+  }
+  .brand { height: 60px; display: flex; align-items: center; gap: 9px; padding: 0 16px; }
+  .brand i { font-size: 21px; color: var(--color-primary); }
+  .brand-name { font-size: 15px; font-weight: 700; letter-spacing: -.02em; color: #fff; line-height: 1.15; }
+  .brand-name b { color: var(--color-primary); font-weight: 700; }
+  .brand-sub { font-size: 11px; color: #8b93a1; font-weight: 500; }
+  .nav { list-style: none; margin: 8px 0 0; padding: 0 8px; display: grid; gap: 2px; }
+  .nav-label { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #6b7280; padding: 14px 10px 6px; }
+  .nav a {
+    position: relative; display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13.5px; color: var(--nav-text);
+  }
+  .nav a i { font-size: 17px; color: #8b93a1; }
+  .nav a:hover { background: var(--nav-hover-bg); color: #fff; }
+  .nav a.current {
+    color: #fff; font-weight: 600;
+    background-image: linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 30%, transparent), color-mix(in srgb, var(--color-primary) 10%, transparent));
+  }
+  .nav a.current::before {
+    content: ""; position: absolute; left: 5px; top: 50%; transform: translateY(-50%);
+    width: 3px; height: 18px; border-radius: 3px; background: var(--color-primary);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 70%, transparent);
+  }
+  .nav a.current i { color: var(--color-primary); }
+  .nav a.soon { opacity: .55; pointer-events: none; }
+  .nav a .soon-tag { margin-left: auto; font-size: 10px; font-weight: 600; color: #8b93a1; border: 1px solid #3a4150; border-radius: 999px; padding: 0 6px; }
+  .nav a .count {
+    margin-left: auto; min-width: 20px; height: 18px; padding: 0 6px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; display: inline-grid; place-items: center;
+    background: rgba(239, 68, 68, .9); color: #fff;
+  }
+  .nav a .count.known { background: rgba(245, 158, 11, .25); color: #fcd34d; }
+  .sidebar-foot { margin-top: auto; padding: 14px 16px; font-size: 11px; color: #6b7280; line-height: 1.5; }
+  .sidebar-foot a { color: #9aa3b2; }
+
+  /* --- Contenido y barra superior: layout.css / navbar-top.css ------------------ */
+  .main { margin-left: calc(var(--sidebar-width) + 16px); padding: 4px 24px 48px 8px; max-width: 1360px; }
+  .topbar { height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .crumbs { font-size: 13px; color: var(--color-text-muted); display: flex; align-items: center; gap: 6px; }
+  .crumbs b { color: var(--color-text); font-weight: 600; }
+  .top-right { display: flex; align-items: center; gap: 10px; }
+  .qa-badge { background: #ef4444; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: .02em; }
+  .icon-btn {
+    width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--color-border);
+    background: var(--color-surface); display: grid; place-items: center; font-size: 17px; color: var(--color-text-muted);
+  }
+  .icon-btn:hover { color: var(--color-text); border-color: var(--color-text-faint); }
+
+  .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 6px 0 16px; }
+  .page-head h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; color: var(--color-text-strong); }
+  .page-head p { margin: 2px 0 0; color: var(--color-text-muted); font-size: 13px; }
+
+  /* --- Botones: components/buttons.css ----------------------------------------- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px;
+    border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-surface);
+    font-size: 13px; font-weight: 600; text-decoration: none; color: var(--color-text); white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--color-text-faint); }
+  .btn i { font-size: 16px; }
+  .btn-primary { background: var(--color-primary); border-color: var(--color-primary); color: #1a1a1a; }
+  .btn-primary:hover { filter: brightness(1.05); border-color: var(--color-primary); }
+  .btn-sm { height: 30px; padding: 0 10px; font-size: 12px; }
+
+  /* --- Cards: components/cards.css --------------------------------------------- */
+  .card { background: var(--color-surface); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden; }
+  .card-header {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 14px 16px; border-bottom: 1px solid var(--color-soft);
+  }
+  .card-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--color-text-strong); display: flex; align-items: center; gap: 8px; }
+  .card-title i { font-size: 18px; color: var(--color-text-muted); }
+  .card-sub { margin: 2px 0 0; font-size: 12.5px; color: var(--color-text-muted); font-weight: 400; }
+  .card-body { padding: 14px 16px; }
+
+  /* --- Resumen ------------------------------------------------------------------ */
+  .hero { display: grid; grid-template-columns: minmax(0, 1.35fr) repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .verdict { padding: 16px 18px; display: flex; gap: 14px; align-items: center; }
+  .verdict-ico {
+    width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 24px; flex: none;
+    background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-border);
+  }
+  .verdict.fail .verdict-ico { background: var(--fail-bg); color: var(--fail); border-color: var(--fail-border); }
+  .verdict.empty .verdict-ico { background: var(--color-soft); color: var(--color-text-muted); border-color: var(--color-border); }
+  .verdict h2 { margin: 0; font-size: 17px; font-weight: 700; color: var(--color-text-strong); letter-spacing: -.01em; }
+  .verdict p { margin: 2px 0 0; font-size: 12.5px; color: var(--color-text-muted); }
+  .stat { padding: 14px 16px; display: grid; gap: 4px; align-content: center; }
+  .stat .k { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-muted); display: flex; align-items: center; gap: 6px; }
+  .stat .k i { font-size: 14px; }
+  .stat .v { font-size: 24px; font-weight: 700; letter-spacing: -.02em; color: var(--color-text-strong); }
+  .stat .v small { font-size: 13px; font-weight: 500; color: var(--color-text-muted); letter-spacing: 0; }
+  .stat .d { font-size: 12px; color: var(--color-text-muted); }
+  .stat.is-fail .v { color: var(--fail); }
+  .stat.is-known .v { color: var(--known); }
+
+  .alert {
+    display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; margin-bottom: 16px;
+    background: var(--fail-bg); border: 1px solid var(--fail-border); color: var(--fail-text); font-size: 13px;
+  }
+  .alert i { font-size: 18px; margin-top: 1px; }
+  .alert.info { background: var(--info-bg); border-color: var(--info-border); color: var(--info-text); }
+
+  /* --- Barra de filtros -------------------------------------------------------- */
+  .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 22px 0 12px; }
+  .toolbar h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--color-text-strong); }
+  .seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 9px; background: var(--color-surface); box-shadow: var(--card-shadow); border: 1px solid var(--color-border); }
+  .seg button { border: 0; background: transparent; padding: 5px 11px; border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--color-text-muted); }
+  .seg button[aria-pressed="true"] { background: var(--color-soft); color: var(--color-text); }
+
+  /* --- Areas ------------------------------------------------------------------ */
+  .areas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .area { scroll-margin-top: 16px; }
+  .area .card-header { align-items: flex-start; }
+  .score { font-size: 12.5px; color: var(--color-text-muted); white-space: nowrap; text-align: right; }
+  .score b { font-size: 18px; color: var(--color-text-strong); font-weight: 700; }
+  .meter { display: flex; height: 6px; border-radius: 6px; overflow: hidden; background: var(--color-soft); margin: 0 16px 12px; }
+  .meter i { display: block; height: 100%; }
+  .meter .m-ok { background: var(--ok); }
+  .meter .m-known { background: var(--known); }
+  .meter .m-fail { background: var(--fail); }
+  .meter .m-skip { background: var(--skip); }
+
+  .tests { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-soft); }
+  .test { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 16px; border-bottom: 1px solid var(--color-soft); }
+  .test:last-child { border-bottom: 0; }
+  .test:hover { background: var(--color-surface-alt); }
+  .st { font-size: 18px; line-height: 1; margin-top: 1px; }
+  .st.ok { color: var(--ok); } .st.known { color: var(--known); } .st.fail { color: var(--fail); }
+  .st.skip, .st.none { color: var(--skip); }
+  .t-main { min-width: 0; display: grid; gap: 4px; }
+  .t-name { font-size: 13.5px; font-weight: 500; color: var(--color-text); }
+  .t-err { font-size: 12px; color: var(--color-text-muted); overflow-wrap: anywhere; }
+  .t-when { font-size: 11.5px; color: var(--color-text-faint); white-space: nowrap; margin-top: 2px; }
+  .empty-row { padding: 14px 16px; color: var(--color-text-muted); font-size: 13px; display: flex; gap: 8px; align-items: center; }
+  .empty-row i { color: var(--ok); font-size: 17px; }
+
+  /* --- Tags: components/tags.css (.admin-tag) ----------------------------------- */
+  .tag {
+    justify-self: start; display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+    padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1.35;
+    border: 1px solid var(--color-border); background: var(--color-surface-alt); color: var(--color-text-muted);
+  }
+  .tag-ok { color: var(--ok-text); background: var(--ok-bg); border-color: var(--ok-border); }
+  .tag-warn { color: var(--known-text); background: var(--known-bg); border-color: var(--known-border); }
+  .tag-error { color: var(--fail-text); background: var(--fail-bg); border-color: var(--fail-border); }
+  .tag-info { color: var(--info-text); background: var(--info-bg); border-color: var(--info-border); }
+  .tag-plain { font-weight: 400; }
+
+  /* --- Historial: tables.css (.table-modern / .headerstyle) ------------------- */
+  .hist { margin-top: 22px; scroll-margin-top: 16px; }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 720px; }
+  th {
+    text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--color-text-muted); padding: 10px 14px; background: var(--color-surface);
+    box-shadow: inset 0 -1px 0 var(--color-border); white-space: nowrap;
+  }
+  td { padding: 11px 14px; border-top: 1px solid var(--color-soft); font-size: 13px; vertical-align: middle; }
+  tbody tr:nth-child(even) td { background: var(--color-surface-alt); }
+  tbody tr:hover td { background: var(--color-soft); }
+  td.muted { color: var(--color-text-muted); }
+  td .run-no { font-weight: 600; color: var(--color-text-strong); }
+  td .links { display: flex; gap: 12px; justify-content: flex-end; }
+  td .links a { font-size: 12.5px; font-weight: 600; color: var(--color-text-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+  td .links a:hover { color: var(--color-text); }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 16px; border-top: 1px solid var(--color-soft); font-size: 12px; color: var(--color-text-muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { font-size: 15px; }
+
+  .loading { padding: 60px 0; text-align: center; color: var(--color-text-muted); }
+
+  /* --- Responsivo: debajo de 900px el sidebar pasa a barra superior ------------ */
+  @media (max-width: 1180px) {
+    .hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .verdict { grid-column: 1 / -1; }
+    .areas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 900px) {
+    .sidebar { position: sticky; top: 0; inset: auto; width: auto; flex-direction: row; align-items: center; overflow-x: auto; box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+    .brand { height: 52px; flex: none; }
+    .brand-sub, .nav-label, .sidebar-foot { display: none; }
+    .nav { display: flex; margin: 0; padding: 0 8px 0 0; }
+    .nav a { white-space: nowrap; padding: 7px 10px 7px 12px; }
+    .nav a .count, .nav a .soon-tag { margin-left: 4px; }
+    .main { margin-left: 0; padding: 4px 16px 40px; }
+  }
+  @media (max-width: 640px) {
+    .areas { grid-template-columns: 1fr; }
+    .hero { grid-template-columns: 1fr 1fr; }
+    .page-head h1 { font-size: 19px; }
+    .crumbs { display: none; }
+    .topbar { justify-content: flex-end; height: 48px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .card, .alert { animation: rise .35s ease both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand">
+    <i class="ph-fill ph-airplane-tilt" aria-hidden="true"></i>
+    <div>
+      <div class="brand-name">AMV <b>Travel</b></div>
+      <div class="brand-sub">Pruebas automatizadas</div>
+    </div>
+  </div>
+  <ul class="nav" id="nav">
+    <li><a href="#resumen" class="current" data-sec="resumen"><i class="ph ph-squares-four"></i>Resumen</a></li>
+    <li class="nav-label">Áreas</li>
+    <li><a href="#tarifario" data-sec="tarifario"><i class="ph ph-tag"></i>Tarifario</a></li>
+    <li><a href="#reservas" data-sec="reservas"><i class="ph ph-suitcase-rolling"></i>Reservas</a></li>
+    <li><a href="#cobranzas" data-sec="cobranzas"><i class="ph ph-receipt"></i>Cobranzas</a></li>
+    <li><a href="#" class="soon" aria-disabled="true"><i class="ph ph-sliders-horizontal"></i>WebAdmin<span class="soon-tag">Pronto</span></a></li>
+    <li class="nav-label">Corridas</li>
+    <li><a href="#historial" data-sec="historial"><i class="ph ph-clock-counter-clockwise"></i>Historial</a></li>
+  </ul>
+  <div class="sidebar-foot">Ambiente QA<br><a id="repo-link" href="https://github.com/alan2527/QA-Climbs" target="_blank" rel="noopener">Suite en GitHub</a></div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="crumbs"><i class="ph ph-house"></i>AMV Travel <i class="ph ph-caret-right"></i><b>Pruebas automatizadas</b></div>
+    <div class="top-right">
+      <span class="qa-badge">QA</span>
+      <button class="icon-btn" id="theme" aria-label="Cambiar entre modo claro y oscuro"><i class="ph ph-moon"></i></button>
+    </div>
+  </div>
+
+  <div class="page-head" id="resumen">
+    <div>
+      <h1>Estado de las pruebas</h1>
+      <p id="updated">Cargando…</p>
+    </div>
+    <a class="btn btn-primary" id="run-link" href="https://github.com/alan2527/QA-Climbs/actions/workflows/qa-e2e.yml" target="_blank" rel="noopener"><i class="ph ph-play"></i>Correr pruebas</a>
+  </div>
+
+  <div id="app"><div class="loading">Cargando resultados…</div></div>
+</main>
+
+<script>
+(() => {
+  const AREA_DE_SUITE = { 'bloque-a': 'Tarifario', 'bloque-b': 'Reservas', 'bloque-c': 'Cobranzas', 'todas': 'Todas las pruebas' };
+  // Cuantas corridas se leen en detalle: alcanza para el ultimo resultado de cada prueba
+  // aunque cada area se haya corrido por separado.
+  const DETALLES = 15;
+  const FILAS_HISTORIAL = 10;
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const clave = (archivo, titulo) => `${archivo}::${titulo}`;
+  const p2 = (n) => String(n).padStart(2, '0');
+  const fecha = (iso) => { const d = new Date(iso); return `${p2(d.getDate())}/${p2(d.getMonth() + 1)} · ${p2(d.getHours())}:${p2(d.getMinutes())}`; };
+  const minutos = (ms) => ms == null ? '—' : ms < 60000 ? `${Math.max(1, Math.round(ms / 1000))} s` : `${Math.round(ms / 60000)} min`;
+  function hace(iso) {
+    const min = Math.round((Date.now() - new Date(iso)) / 60000);
+    if (min < 60) return `hace ${Math.max(1, min)} min`;
+    const h = Math.round(min / 60);
+    if (h < 36) return `hace ${h} h`;
+    return `hace ${Math.round(h / 24)} días`;
+  }
+
+  // --- Tema: mismo mecanismo que el admin (clase dark en <html>) ---------------
+  function iconoTema() { $('theme').innerHTML = `<i class="ph ${document.documentElement.classList.contains('dark') ? 'ph-sun' : 'ph-moon'}"></i>`; }
+  $('theme').addEventListener('click', () => {
+    const dark = document.documentElement.classList.toggle('dark');
+    try { localStorage.setItem('tablero-tema', dark ? 'dark' : 'light'); } catch (e) { /* sin storage */ }
+    iconoTema();
+  });
+  iconoTema();
+
+  let soloProblemas = false;
+  try { soloProblemas = localStorage.getItem('tablero-filtro') === 'problemas'; } catch (e) { /* sin storage */ }
+
+  async function json(url) {
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`${url}: ${r.status}`);
+    return r.json();
+  }
+
+  async function cargar() {
+    let catalogo, indice;
+    try {
+      [catalogo, indice] = await Promise.all([json('pruebas.json'), json('corridas.json')]);
+    } catch (e) {
+      $('updated').textContent = 'Sin datos';
+      $('app').innerHTML = `<div class="alert info"><i class="ph ph-info"></i><div>Todavía no hay corridas publicadas, o no se pudieron leer. El tablero se llena solo con la próxima corrida de la suite.</div></div>`;
+      return;
+    }
+    const corridas = indice.corridas ?? [];
+    const detalles = (await Promise.all(corridas.slice(0, DETALLES).map((c) => json(c.detalle).catch(() => null)))).filter(Boolean);
+    pintar(catalogo, corridas, detalles);
+  }
+
+  /** Estado de una prueba de cara al tablero: el de Playwright, cruzado con los defectos conocidos. */
+  function estadoVisible(resultado, defecto) {
+    if (!resultado) return 'none';
+    if (resultado.estado === 'fallo') return defecto ? 'known' : 'fail';
+    if (resultado.estado === 'omitida') return 'skip';
+    return 'ok'; // paso o inestable
+  }
+
+  /** Clasifica una corrida entera con el catalogo: cuantas fallas son nuevas y cuantas conocidas. */
+  function clasificar(det, defectos) {
+    const r = { ok: 0, known: 0, fail: 0, skip: 0, prep: false };
+    for (const p of det.pruebas) {
+      if (p.area === 'preparacion') { if (p.estado === 'fallo') r.prep = true; continue; }
+      const e = estadoVisible(p, defectos.get(clave(p.archivo, p.titulo)));
+      r[e === 'none' ? 'skip' : e]++;
+    }
+    return r;
+  }
+
+  function pintar(catalogo, corridas, detalles) {
+    const defectos = new Map(catalogo.pruebas.filter((p) => p.defecto).map((p) => [clave(p.archivo, p.titulo), p.defecto]));
+
+    // Ultimo resultado de cada prueba, buscando de la corrida mas nueva a la mas vieja.
+    const ultimo = new Map();
+    for (const d of detalles) {
+      for (const p of d.pruebas) {
+        const k = clave(p.archivo, p.titulo);
+        if (!ultimo.has(k) && p.estado !== 'omitida') ultimo.set(k, { ...p, corrida: d.corrida, fecha: d.fecha });
+      }
+    }
+    // Las omitidas cuentan solo si nunca hubo un resultado real.
+    for (const d of detalles) for (const p of d.pruebas) {
+      const k = clave(p.archivo, p.titulo);
+      if (!ultimo.has(k)) ultimo.set(k, { ...p, corrida: d.corrida, fecha: d.fecha });
+    }
+
+    // Pruebas que corrieron y no estan en el catalogo: se muestran con su titulo tecnico.
+    const enCatalogo = new Set(catalogo.pruebas.map((p) => clave(p.archivo, p.titulo)));
+    const extras = [...ultimo.values()].filter((p) => p.area !== 'preparacion' && !enCatalogo.has(clave(p.archivo, p.titulo)));
+    const areaDeArchivo = (a) => a.startsWith('bloque-a/') ? 'tarifario' : a.startsWith('bloque-b/') ? 'reservas' : a.startsWith('bloque-c/') ? 'cobranzas' : null;
+
+    const areas = catalogo.areas.map((a) => {
+      const pruebas = [
+        ...catalogo.pruebas.filter((p) => areaDeArchivo(p.archivo) === a.id),
+        ...extras.filter((p) => p.area === a.id).map((p) => ({ archivo: p.archivo, titulo: p.titulo, nombre: p.titulo })),
+      ].map((p) => {
+        const res = ultimo.get(clave(p.archivo, p.titulo));
+        return { ...p, res, vis: estadoVisible(res, p.defecto) };
+      });
+      const n = (e) => pruebas.filter((p) => p.vis === e).length;
+      return { ...a, pruebas, ok: n('ok'), known: n('known'), fail: n('fail'), skip: n('skip') + n('none') };
+    });
+
+    const tot = areas.reduce((t, a) => ({ ok: t.ok + a.ok, known: t.known + a.known, fail: t.fail + a.fail, skip: t.skip + a.skip, total: t.total + a.pruebas.length }),
+      { ok: 0, known: 0, fail: 0, skip: 0, total: 0 });
+    const ultima = corridas[0];
+    const detUltima = detalles.find((d) => d.corrida === ultima?.corrida);
+    const prepFallo = detUltima ? clasificar(detUltima, defectos).prep : false;
+
+    $('updated').textContent = ultima
+      ? `Última corrida #${ultima.corrida}, ${fecha(ultima.fecha)} (${hace(ultima.fecha)}). Cada prueba muestra su resultado más reciente.`
+      : 'Sin corridas publicadas.';
+
+    // --- Resumen ------------------------------------------------------------
+    let vClase = '', vIco = 'ph-check-circle', vTit = 'Sin fallas nuevas', vSub = tot.known
+      ? 'Todo lo que falla ya está reportado como defecto.'
+      : 'Todas las pruebas funcionan.';
+    if (tot.fail) {
+      vClase = 'fail'; vIco = 'ph-warning-circle';
+      vTit = `${tot.fail} falla${tot.fail > 1 ? 's' : ''} nueva${tot.fail > 1 ? 's' : ''}`;
+      vSub = 'Algo que funcionaba dejó de funcionar. Conviene revisarlo.';
+    } else if (!ultimo.size) {
+      vClase = 'empty'; vIco = 'ph-hourglass'; vTit = 'Sin resultados'; vSub = 'Las corridas publicadas no traen pruebas.';
+    }
+
+    const alertas = [];
+    if (prepFallo) alertas.push(`<div class="alert"><i class="ph ph-plug"></i><div><b>La última corrida no llegó a probar.</b> Falló el ingreso o faltan datos AUTO-QA en QA, así que las pruebas quedaron sin correr. Los resultados que se ven son de corridas anteriores.</div></div>`);
+    if (ultima?.estado === 'sin-resultados' && !prepFallo) alertas.push(`<div class="alert"><i class="ph ph-plug"></i><div><b>La corrida #${ultima.corrida} terminó sin resultados.</b> Se cortó antes de las pruebas; el detalle está en GitHub.</div></div>`);
+
+    const stat = (k, ico, v, d, cls = '') => `<div class="card stat ${cls}"><span class="k"><i class="ph ${ico}"></i>${k}</span><span class="v num">${v}</span><span class="d">${d}</span></div>`;
+
+    const html = [];
+    html.push(alertas.join(''));
+    html.push(`<section class="hero">
+      <div class="card verdict ${vClase}"><div class="verdict-ico"><i class="ph-fill ${vIco}"></i></div><div><h2>${vTit}</h2><p>${vSub}</p></div></div>
+      ${stat('Funcionan', 'ph-check-circle', `${tot.ok} <small>de ${tot.total}</small>`, 'último resultado de cada prueba')}
+      ${stat('Defectos conocidos', 'ph-bug', tot.known, 'fallan por algo ya reportado', tot.known ? 'is-known' : '')}
+      ${stat('Fallas nuevas', 'ph-warning-circle', tot.fail, tot.fail ? 'hay que revisarlas' : 'ninguna', tot.fail ? 'is-fail' : '')}
+      ${stat('Última corrida', 'ph-clock', ultima ? `#${ultima.corrida}` : '—', ultima ? `${AREA_DE_SUITE[ultima.suite] ?? ultima.suite ?? ''} · ${minutos(ultima.duracionMs)}` : '')}
+    </section>`);
+
+    html.push(`<div class="toolbar"><h2>Qué se prueba</h2>
+      <div class="seg" role="group" aria-label="Filtrar pruebas">
+        <button data-f="todas" aria-pressed="${!soloProblemas}">Todas</button>
+        <button data-f="problemas" aria-pressed="${soloProblemas}">Solo con problemas</button>
+      </div></div>`);
+
+    html.push(`<section class="areas">${areas.map(pintarArea).join('')}</section>`);
+    html.push(pintarHistorial(corridas, detalles, defectos));
+    $('app').innerHTML = html.join('');
+
+    // Contadores del sidebar: fallas nuevas en rojo, conocidas en ambar.
+    for (const a of areas) {
+      const link = document.querySelector(`.nav a[data-sec="${a.id}"]`);
+      link.querySelector('.count')?.remove();
+      if (a.fail) link.insertAdjacentHTML('beforeend', `<span class="count" title="Fallas nuevas">${a.fail}</span>`);
+      else if (a.known) link.insertAdjacentHTML('beforeend', `<span class="count known" title="Defectos conocidos">${a.known}</span>`);
+    }
+
+    document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+      soloProblemas = b.dataset.f === 'problemas';
+      try { localStorage.setItem('tablero-filtro', soloProblemas ? 'problemas' : 'todas'); } catch (e) { /* sin storage */ }
+      pintar(catalogo, corridas, detalles);
+    }));
+    espiarSecciones();
+  }
+
+  function pintarArea(a) {
+    const total = a.pruebas.length || 1;
+    const pct = (n) => `${(n / total * 100).toFixed(2)}%`;
+    const filas = a.pruebas
+      .filter((p) => !soloProblemas || p.vis === 'known' || p.vis === 'fail')
+      .sort((x, y) => ({ fail: 0, known: 1, skip: 2, none: 3, ok: 4 }[x.vis] - { fail: 0, known: 1, skip: 2, none: 3, ok: 4 }[y.vis]))
+      .map(pintarPrueba).join('');
+    const vacio = soloProblemas
+      ? '<li class="empty-row"><i class="ph-fill ph-check-circle"></i>Sin problemas en esta área.</li>'
+      : '<li class="empty-row">Sin pruebas.</li>';
+    return `<article class="card area" id="${a.id}">
+      <div class="card-header">
+        <div><h3 class="card-title"><i class="ph ${esc(a.icono)}"></i>${esc(a.nombre)}</h3><p class="card-sub">${esc(a.descripcion)}</p></div>
+        <div class="score"><b class="num">${a.ok}</b> de ${a.pruebas.length}<br>funcionan</div>
+      </div>
+      <div class="meter" aria-hidden="true" style="margin-top:12px">
+        <i class="m-ok" style="width:${pct(a.ok)}"></i><i class="m-known" style="width:${pct(a.known)}"></i><i class="m-fail" style="width:${pct(a.fail)}"></i><i class="m-skip" style="width:${pct(a.skip)}"></i>
+      </div>
+      <ul class="tests">${filas || vacio}</ul>
+    </article>`;
+  }
+
+  function pintarPrueba(p) {
+    const ico = { ok: 'ph-fill ph-check-circle', known: 'ph-fill ph-bug', fail: 'ph-fill ph-x-circle', skip: 'ph ph-minus-circle', none: 'ph ph-circle-dashed' }[p.vis];
+    const tags = [];
+    if (p.vis === 'known') tags.push(`<span class="tag tag-warn">${esc(p.defecto.id)}</span><span class="t-err">${esc(p.defecto.motivo)}</span>`);
+    if (p.vis === 'fail') tags.push(`<span class="tag tag-error">Falla nueva</span>${p.res?.error ? `<span class="t-err">${esc(p.res.error)}</span>` : ''}`);
+    if (p.vis === 'ok' && p.res?.estado === 'inestable') tags.push('<span class="tag tag-info">Pasó al reintentar</span>');
+    // Un defecto conocido que ahora pasa puede estar corregido: se avisa para sacarlo del catalogo.
+    if (p.vis === 'ok' && p.defecto) tags.push(`<span class="tag tag-ok">Pasó: revisar si el ${esc(p.defecto.id)} ya se corrigió</span>`);
+    if (p.vis === 'skip') tags.push('<span class="tag">No se ejecutó</span>');
+    if (p.vis === 'none') tags.push('<span class="tag">Sin resultados todavía</span>');
+    const cuando = p.res ? `<span class="t-when" title="Corrida #${p.res.corrida}, ${fecha(p.res.fecha)}">#${p.res.corrida} · ${hace(p.res.fecha)}</span>` : '<span></span>';
+    return `<li class="test">
+      <i class="st ${p.vis} ${ico}" aria-label="${{ ok: 'Funciona', known: 'Defecto conocido', fail: 'Falla nueva', skip: 'No se ejecutó', none: 'Sin resultados' }[p.vis]}"></i>
+      <div class="t-main"><span class="t-name">${esc(p.nombre)}</span>${tags.join('')}</div>
+      ${cuando}
+    </li>`;
+  }
+
+  function pintarHistorial(corridas, detalles, defectos) {
+    const filas = corridas.slice(0, FILAS_HISTORIAL).map((c, i) => {
+      const det = detalles.find((d) => d.corrida === c.corrida);
+      let tag, cuenta;
+      if (det) {
+        const r = clasificar(det, defectos);
+        const total = r.ok + r.known + r.fail + r.skip;
+        if (c.estado === 'sin-resultados' || (r.prep && !r.ok && !r.fail && !r.known)) tag = '<span class="tag tag-error">No llegó a probar</span>';
+        else if (r.fail) tag = `<span class="tag tag-error">${r.fail} falla${r.fail > 1 ? 's' : ''} nueva${r.fail > 1 ? 's' : ''}</span>`;
+        else if (r.known) tag = '<span class="tag tag-warn">Solo defectos conocidos</span>';
+        else tag = '<span class="tag tag-ok">Todo OK</span>';
+        cuenta = total ? `${r.ok} de ${total} OK` : '—';
+      } else {
+        // Mas vieja que las que se leen en detalle: solo los totales del indice.
+        const t = c.totales;
+        tag = c.estado === 'sin-fallas' ? '<span class="tag tag-ok">Sin fallas</span>'
+          : c.estado === 'con-fallas' ? `<span class="tag tag-plain">${t.fallo} con falla</span>` : '<span class="tag tag-error">Sin resultados</span>';
+        cuenta = t.total ? `${t.paso + t.inestable} de ${t.total} OK` : '—';
+      }
+      const que = `${esc(AREA_DE_SUITE[c.suite] ?? c.suite ?? '—')}${c.filtro ? ` <span class="tag tag-plain">${esc(c.filtro)}</span>` : ''}`;
+      const origen = c.evento === 'push' ? 'Automática' : c.evento === 'workflow_dispatch' ? 'Manual' : (c.evento ?? '');
+      // Allure publica solo el reporte de la corrida mas reciente.
+      const informe = i === 0 && det?.enlaces?.allure ? `<a href="${esc(det.enlaces.allure)}" target="_blank" rel="noopener"><i class="ph ph-file-text"></i>Informe</a>` : '';
+      const gh = det?.enlaces?.github ? `<a href="${esc(det.enlaces.github)}" target="_blank" rel="noopener"><i class="ph ph-github-logo"></i>GitHub</a>` : '';
+      return `<tr>
+        <td><span class="run-no num">#${c.corrida}</span></td>
+        <td class="num">${fecha(c.fecha)}</td>
+        <td>${que}</td>
+        <td class="muted">${origen}</td>
+        <td>${tag}</td>
+        <td class="num muted">${cuenta}</td>
+        <td class="num muted">${minutos(c.duracionMs)}</td>
+        <td><div class="links">${informe}${gh}</div></td>
+      </tr>`;
+    }).join('');
+    return `<section class="card hist" id="historial">
+      <div class="card-header"><div><h3 class="card-title"><i class="ph ph-clock-counter-clockwise"></i>Últimas corridas</h3>
+        <p class="card-sub">El informe completo, con capturas paso a paso, queda publicado para la corrida más reciente.</p></div></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Corrida</th><th>Fecha</th><th>Qué se corrió</th><th>Origen</th><th>Resultado</th><th>Pruebas</th><th>Duración</th><th></th></tr></thead>
+        <tbody>${filas || '<tr><td colspan="8" class="muted">Sin corridas.</td></tr>'}</tbody>
+      </table></div>
+      <div class="legend">
+        <span><i class="ph-fill ph-check-circle st ok"></i>Funciona</span>
+        <span><i class="ph-fill ph-bug st known"></i>Falla por un defecto ya reportado</span>
+        <span><i class="ph-fill ph-x-circle st fail"></i>Falla nueva: hay que revisarla</span>
+      </div>
+    </section>`;
+  }
+
+  // Marca en el sidebar la seccion que se esta viendo, como el item activo del admin.
+  let espia;
+  function espiarSecciones() {
+    espia?.disconnect();
+    const links = [...document.querySelectorAll('.nav a[data-sec]')];
+    const marcar = (id) => links.forEach((l) => l.classList.toggle('current', l.dataset.sec === id));
+    espia = new IntersectionObserver((entradas) => {
+      const visible = entradas.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (visible) marcar(visible.target.id);
+    }, { rootMargin: '-10% 0px -70% 0px' });
+    ['resumen', 'tarifario', 'reservas', 'cobranzas', 'historial'].forEach((id) => { const el = $(id); if (el) espia.observe(el); });
+  }
+
+  cargar();
+})();
+</script>
+</body>
+</html>
