@@ -160,7 +160,7 @@ jobs:
         # probable de que este paso fallara en la corrida 69: el log no se pudo leer sin login.
         run: |
           mkdir -p tablero-publicar
-          cp tablero/index.html tablero/pruebas.json tablero-publicar/
+          cp tablero/index.html tablero/pruebas.json tablero/favicon.svg tablero-publicar/
           node tools/resumen-corrida.mjs resultados/playwright.json publicacion-anterior/tablero tablero-publicar
           sudo mkdir -p allure-history
           sudo rm -rf allure-history/tablero
