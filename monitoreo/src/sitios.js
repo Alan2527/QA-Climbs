@@ -12,7 +12,11 @@ export const SITIOS = [
   {
     id: 'portal',
     nombre: 'Portal online',
-    url: 'https://amv.travel/online/',
+    // No /online/: en produccion redirige a /home/, una aplicacion Next.js que arma el
+    // login en el navegador, y el HTML no trae el formulario. El 2026-09-21 eso dio
+    // una falsa alarma de caida. /login.aspx es la pantalla de ingreso que usan los
+    // tests y trae txtPassword en QA y en produccion.
+    url: 'https://amv.travel/login.aspx',
     contiene: 'txtPassword',
     activo: true,
   },

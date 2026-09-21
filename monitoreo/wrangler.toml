@@ -7,10 +7,10 @@ compatibility_date = "2026-09-01"
 [triggers]
 crons = ["*/5 * * * *", "0 12 * * *"]
 
-# El id sale de: npx wrangler kv namespace create ESTADO
+# Creado el 2026-09-21 con: npx wrangler kv namespace create ESTADO
 [[kv_namespaces]]
 binding = "ESTADO"
-id = "COMPLETAR_CON_EL_ID_DEL_NAMESPACE"
+id = "bf2e9ad04f1c4c848678223a4dc9694b"
 
 [observability]
 enabled = true

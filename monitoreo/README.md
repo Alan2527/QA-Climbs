@@ -8,12 +8,14 @@ día no llega, el que se cayó es el monitoreo.
 No inicia sesión ni carga datos: pide la pantalla de ingreso y verifica que traiga
 el formulario (`txtPassword`). Un 200 con una página de error cuenta como caído.
 
-Qué se vigila y con qué criterio: `src/sitios.js`. La API está declarada pero
+Qué se vigila y con qué criterio: `src/sitios.js`. El portal se chequea en `/login.aspx` y no en `/online/`, que en producción redirige a `/home/` y no trae el formulario en el HTML. La API está declarada pero
 desactivada hasta tener un endpoint liviano confirmado por el dev.
 
 ## Desplegarlo por primera vez
 
-1. Crear la cuenta gratis en https://dash.cloudflare.com/sign-up con el mail del equipo.
+1. Crear la cuenta gratis en https://dash.cloudflare.com/sign-up con el mail laboral
+   de Alan (alan.herrera@amv.travel, no el personal). Más adelante, desde **Manage Account → Members**, invitar a otra
+   persona del equipo como administrador: así el acceso no depende de una sola persona.
 2. Crear el canal de aviso en Teams: en el canal, **Workflows** → "Post to a channel
    when a webhook request is received" (o "Enviar al canal cuando se reciba una
    solicitud de webhook"). Copiar la URL que genera.
