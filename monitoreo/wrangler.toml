@@ -1,0 +1,16 @@
+name = "amv-monitoreo"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# Cada 5 minutos se chequean los sitios; a las 12 UTC (9 en Argentina) va el resumen diario.
+# Si se cambia el diario, cambiar tambien CRON_DIARIO en src/index.js.
+[triggers]
+crons = ["*/5 * * * *", "0 12 * * *"]
+
+# El id sale de: npx wrangler kv namespace create ESTADO
+[[kv_namespaces]]
+binding = "ESTADO"
+id = "COMPLETAR_CON_EL_ID_DEL_NAMESPACE"
+
+[observability]
+enabled = true

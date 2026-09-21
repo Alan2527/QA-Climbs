@@ -1,6 +1,6 @@
 {
   "_nota": "Linea base de los importes tal como los muestra el tarifario. Capturada con tools/capturar-lineabase.spec.ts y consolidada con tools/consolidar-lineabase.mjs (npm run lineabase). Si un cambio del sistema altera un importe, el recargo por idioma o la marca TARIFA EXTENDIDA, la comparacion falla. Las dos fechas que se mueven solas con el almanaque se guardan como token y no como fecha: <HOY> es el inicio de la ventana del tarifario y <HOY+18M> su fin, que es hoy mas 18 meses (TariffFilterControl.ascx.cs:197). Sin eso la foto dejaba de servir al dia siguiente por un extremo del rango, sin que cambiara ninguna tarifa. Ver normalizarFechaDeHoy en utils/pasos.ts.",
-  "_capturada": "2026-09-18",
+  "_capturada": "2026-09-21",
   "_ambiente": "QA",
   "items": {
     "cenaShow": {
@@ -21,24 +21,24 @@
           ],
           [
             "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
-            "MENORES en regular",
+            "Menores en regular",
             "USD 69 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
-            "SOLO Show",
+            "Solo Show",
             "1",
             "USD 88 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
-            "CENA Show VIP",
+            "Cena Show VIP",
             "1",
             "USD 286 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
-            "CENA Show VIP",
+            "Cena Show VIP",
             "1",
             "USD 143 TARIFA EXTENDIDA"
           ]
@@ -57,24 +57,24 @@
           ],
           [
             "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
-            "MENORES en regular",
+            "Menores en regular",
             "USD 69 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
-            "SOLO Show",
+            "Solo Show",
             "1",
             "USD 88 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
-            "CENA Show VIP",
+            "Cena Show VIP",
             "1",
             "USD 286 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
-            "CENA Show VIP",
+            "Cena Show VIP",
             "1",
             "USD 143 TARIFA EXTENDIDA"
           ]
@@ -93,24 +93,24 @@
           ],
           [
             "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
-            "MENORES en regular",
+            "Menores en regular",
             "USD 69 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
-            "SOLO Show",
+            "Solo Show",
             "1",
             "USD 88 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo.",
-            "CENA Show VIP",
+            "Cena Show VIP",
             "1",
             "USD 286 TARIFA EXTENDIDA"
           ],
           [
             "01/01/2026 - 31/12/2031 Menores de 3 a 11 años",
-            "CENA Show VIP",
+            "Cena Show VIP",
             "1",
             "USD 143 TARIFA EXTENDIDA"
           ]
@@ -1027,7 +1027,7 @@
           [
             "01/07/2026 - 31/12/2031 Recargo por idioma 10%",
             "Regular",
-            "MÍNIMO 2 pasajeros",
+            "Mínimo 2 pasajeros",
             "USD 10 TARIFA EXTENDIDA"
           ],
           [
@@ -1071,7 +1071,7 @@
           [
             "01/07/2026 - 31/12/2031 Recargo por idioma 10%",
             "Regular",
-            "MÍNIMO 2 pasajeros",
+            "Mínimo 2 pasajeros",
             "USD 11 TARIFA EXTENDIDA"
           ],
           [
@@ -1115,7 +1115,7 @@
           [
             "01/07/2026 - 31/12/2031 Recargo por idioma 10%",
             "Regular",
-            "MÍNIMO 2 pasajeros",
+            "Mínimo 2 pasajeros",
             "USD 10 TARIFA EXTENDIDA"
           ],
           [
@@ -1775,13 +1775,7 @@
             "TPL"
           ],
           [
-            "<HOY> - 19/09/2026",
-            "USD 4,910",
-            "USD 2,582",
-            "USD 2,084"
-          ],
-          [
-            "20/09/2026 - 30/09/2026",
+            "<HOY> - 30/09/2026",
             "USD 4,450",
             "USD 2,368",
             "USD 1,940"

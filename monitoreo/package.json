@@ -1,0 +1,11 @@
+{
+  "name": "amv-monitoreo",
+  "private": true,
+  "type": "module",
+  "description": "Monitoreo de produccion de AMV Travel con aviso a Teams (Cloudflare Worker)",
+  "scripts": {
+    "test": "node --test test/monitor.test.mjs",
+    "deploy": "wrangler deploy",
+    "logs": "wrangler tail"
+  }
+}
