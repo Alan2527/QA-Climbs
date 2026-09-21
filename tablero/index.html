@@ -12,8 +12,7 @@
   Lee lo que publica cada corrida del workflow (tools/resumen-corrida.mjs):
     corridas.json          indice de las ultimas corridas
     corridas/{n}.json      detalle de cada una
-  y el catalogo pruebas.json, con el nombre de negocio de cada prueba y sus
-  defectos conocidos.
+  y el catalogo pruebas.json, con el nombre de negocio de cada prueba.
 
   El estilo replica el del WebAdmin con los valores de sus hojas
   (WEB/.../Administration/Css): layout.css, sidebar.css, navbar-top.css,
@@ -344,8 +343,8 @@
   const AREA_DE_SUITE = { 'bloque-a': 'Tarifario', 'bloque-b': 'Reservas', 'bloque-c': 'Cobranzas', 'todas': 'Todas las pruebas' };
   const DETALLES = 15;        // corridas leidas en detalle: alcanza para el historial de cada prueba
   const FILAS_HISTORIAL = 10;
-  const ORDEN = { fail: 0, known: 1, skip: 2, none: 3, ok: 4 };
-  const ETIQUETA = { ok: 'Funciona', known: 'Falla con hallazgo reportado', fail: 'Falla', skip: 'No se ejecutó', none: 'Sin resultados' };
+  const ORDEN = { fail: 0, skip: 1, none: 2, ok: 3 };
+  const ETIQUETA = { ok: 'Funciona', fail: 'Falla', skip: 'No se ejecutó', none: 'Sin resultados' };
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -398,30 +397,28 @@
   /**
    * Estado visible de una prueba.
    *
-   * El tablero NO consulta Azure DevOps: que una falla tenga un hallazgo reportado
-   * lo sabe solo por el campo `defecto` de pruebas.json, que se carga a mano. Lo que
-   * si sabe por si mismo, mirando las corridas anteriores, es si la prueba dejo de
-   * funcionar recien (en la corrida anterior pasaba) o si ya venia fallando.
+   * Todo sale de las corridas publicadas, sin nada cargado a mano: si falla, el
+   * tablero dice si dejo de funcionar en la ultima corrida (en la anterior pasaba)
+   * o desde que corrida viene fallando.
    */
-  function estadoVisible(res, defecto) {
+  function estadoVisible(res) {
     if (!res) return 'none';
-    if (res.estado === 'fallo') return defecto ? 'known' : 'fail';
+    if (res.estado === 'fallo') return 'fail';
     if (res.estado === 'omitida') return 'skip';
     return 'ok'; // paso o inestable
   }
 
-  function contarCorrida(det, defectos) {
-    const r = { ok: 0, known: 0, fail: 0, skip: 0, prep: false };
+  function contarCorrida(det) {
+    const r = { ok: 0, fail: 0, skip: 0, prep: false };
     for (const p of det.pruebas) {
       if (p.area === 'preparacion') { if (p.estado === 'fallo') r.prep = true; continue; }
-      const e = estadoVisible(p, defectos.get(clave(p.archivo, p.titulo)));
+      const e = estadoVisible(p);
       r[e === 'none' ? 'skip' : e]++;
     }
     return r;
   }
 
   function preparar(catalogo, corridas, detalles) {
-    const defectos = new Map(catalogo.pruebas.filter((p) => p.defecto).map((p) => [clave(p.archivo, p.titulo), p.defecto]));
 
     // Resultados reales de cada prueba, de la corrida mas nueva a la mas vieja.
     // Una omitida cuenta solo si nunca hubo otro resultado.
@@ -452,18 +449,18 @@
         while (n < h.length && h[n].estado === 'fallo') n++;
         racha = { corridas: n, desde: h[n - 1].corrida, antesPasaba: n < h.length };
       }
-      return { ...p, area: areaDe(p.archivo), res, racha, vis: estadoVisible(res, p.defecto) };
+      return { ...p, area: areaDe(p.archivo), res, racha, vis: estadoVisible(res) };
     }).filter((p) => p.area);
 
     const areas = catalogo.areas.map((a) => {
       const delArea = pruebas.filter((p) => p.area === a.id);
       const n = (e) => delArea.filter((p) => p.vis === e).length;
-      return { ...a, pruebas: delArea, total: delArea.length, ok: n('ok'), known: n('known'), fail: n('fail'), skip: n('skip') + n('none') };
+      return { ...a, pruebas: delArea, total: delArea.length, ok: n('ok'), fail: n('fail'), skip: n('skip') + n('none') };
     });
     const ultima = corridas[0];
     const detUltima = detalles.find((d) => d.corrida === ultima?.corrida);
     const prepFallo = !!detUltima?.pruebas.some((p) => p.area === 'preparacion' && p.estado === 'fallo');
-    return { corridas, detalles, defectos, pruebas, areas, ultima, prepFallo };
+    return { corridas, detalles, pruebas, areas, ultima, prepFallo };
   }
 
   // --- Vistas: Resumen muestra todo; cada area y el historial, solo su tabla ----
@@ -481,12 +478,11 @@
     $('titulo').textContent = area ? area.nombre : vista === 'historial' ? 'Historial' : 'Resumen';
     document.title = `${$('titulo').textContent} · Tablero de pruebas · Climbs`;
 
-    // Contadores del sidebar: fallas en rojo; si todas tienen hallazgo reportado, en ambar.
+    // Contador de fallas del sidebar.
     for (const a of areas) {
       const link = document.querySelector(`.sf-menu a[data-vista="${a.id}"]`);
       link.querySelector('.count')?.remove();
-      if (a.fail) link.insertAdjacentHTML('beforeend', `<span class="count" title="Fallan">${a.fail + a.known}</span>`);
-      else if (a.known) link.insertAdjacentHTML('beforeend', `<span class="count known" title="Fallan con hallazgo reportado">${a.known}</span>`);
+      if (a.fail) link.insertAdjacentHTML('beforeend', `<span class="count" title="Fallan">${a.fail}</span>`);
     }
 
     let html;
@@ -516,23 +512,20 @@
 
   function resumen() {
     const { pruebas, ultima } = datos;
-    const tot = { ok: 0, known: 0, fail: 0 };
-    for (const p of pruebas) if (p.vis in tot) tot[p.vis]++;
-    const fallan = tot.fail + tot.known;
-    const dejaron = pruebas.filter((p) => p.racha?.antesPasaba && p.racha.corridas === 1).length;
+    const ok = pruebas.filter((p) => p.vis === 'ok').length;
+    const fallan = pruebas.filter((p) => p.vis === 'fail');
+    const dejaron = fallan.filter((p) => p.racha?.antesPasaba && p.racha.corridas === 1).length;
+    const siguen = fallan.length - dejaron;
 
     let vClase = '', vIco = 'ph-check', vTit = 'Todas las pruebas funcionan', vSub = 'Ninguna falla en su última corrida.';
     if (dejaron) {
       vClase = 'fail'; vIco = 'ph-warning';
       vTit = `${dejaron} prueba${dejaron > 1 ? 's' : ''} dej${dejaron > 1 ? 'aron' : 'ó'} de funcionar`;
       vSub = 'Pasaban en la corrida anterior y ahora fallan. Conviene revisarlas.';
-    } else if (tot.fail) {
+    } else if (siguen) {
       vClase = 'fail'; vIco = 'ph-warning';
-      vTit = `${tot.fail} falla${tot.fail > 1 ? 's' : ''} sin hallazgo asociado`;
-      vSub = 'Ya venían fallando, pero no tienen un hallazgo cargado en el catálogo.';
-    } else if (tot.known) {
-      vTit = 'Solo fallan pruebas con hallazgo reportado';
-      vSub = 'Todo lo que falla tiene un hallazgo cargado en el catálogo.';
+      vTit = `${siguen} prueba${siguen > 1 ? 's siguen' : ' sigue'} fallando`;
+      vSub = 'Ya fallaban en la corrida anterior: no hay fallas nuevas.';
     }
     if (!pruebas.some((p) => p.res)) { vClase = 'empty'; vIco = 'ph-hourglass'; vTit = 'Sin resultados'; vSub = 'Las corridas publicadas no traen pruebas.'; }
 
@@ -540,9 +533,9 @@
     return `<section class="stats">
       <div class="card-panel verdict ${vClase}"><div class="verdict-ico"><i class="ph-bold ${vIco}"></i></div>
         <div><h2>${vTit}</h2><p>${vSub}</p>${ultima ? `<p>Última corrida #${ultima.corrida}, ${hace(ultima.fecha)}.</p>` : ''}</div></div>
-      ${stat('Funcionan', `${tot.ok} <small>de ${pruebas.length}</small>`, 'según su última corrida')}
-      ${stat('Fallan', fallan, fallan ? `${tot.known} con hallazgo reportado` : 'ninguna', tot.fail ? 'is-fail' : fallan ? 'is-known' : '')}
+      ${stat('Funcionan', `${ok} <small>de ${pruebas.length}</small>`, 'según su última corrida')}
       ${stat('Dejaron de funcionar', dejaron, 'pasaban en la corrida anterior', dejaron ? 'is-fail' : '')}
+      ${stat('Siguen fallando', siguen, 'ya fallaban en la corrida anterior', siguen ? 'is-known' : '')}
       ${stat('Última corrida', ultima ? `#${ultima.corrida}` : '—', ultima ? `${esc(AREA_DE_SUITE[ultima.suite] ?? ultima.suite ?? '')} · ${duracion(ultima.duracionMs)}` : '')}
     </section>`;
   }
@@ -557,29 +550,27 @@
 
   function detalle(p) {
     const r = p.racha;
-    let desde = '';
-    if (r) {
-      if (r.antesPasaba && r.corridas === 1) desde = `<span class="admin-tag admin-tag-error">Dejó de funcionar en #${p.res.corrida}</span>`;
-      // Sin un resultado anterior que pasara, "desde" es la corrida mas vieja que se leyo: puede venir de antes.
-      else desde = `<span class="admin-tag" title="${r.antesPasaba ? `La última vez que pasó fue antes de #${r.desde}` : 'No pasó en ninguna de las corridas publicadas: puede venir fallando de antes'}">Falla desde #${r.desde}${r.antesPasaba ? '' : ' o antes'}</span>`;
+    if (p.vis === 'fail') {
+      let tag;
+      if (r.antesPasaba && r.corridas === 1) tag = `<span class="admin-tag admin-tag-error">Dejó de funcionar en #${p.res.corrida}</span>`;
+      // Sin un resultado anterior que pasara, "desde" es la corrida mas vieja publicada: puede venir de antes.
+      else tag = `<span class="admin-tag admin-tag-warn" title="${r.antesPasaba ? `La última vez que pasó fue antes de #${r.desde}` : 'No pasó en ninguna de las corridas publicadas: puede venir fallando de antes'}">Falla desde #${r.desde}${r.antesPasaba ? '' : ' o antes'}</span>`;
+      return `${tag}${p.res?.error ? `<span class="why">${esc(p.res.error)}</span>` : ''}`;
     }
-    if (p.vis === 'known') return `<span class="admin-tag admin-tag-warn" title="Cargado a mano en tablero/pruebas.json">${esc(p.defecto.id)}</span>${desde}<span class="why">${esc(p.defecto.motivo)}</span>`;
-    if (p.vis === 'fail') return `${desde}${p.res?.error ? `<span class="why">${esc(p.res.error)}</span>` : ''}`;
-    if (p.vis === 'ok' && p.defecto) return `<span class="admin-tag admin-tag-ok">Pasó: revisar si el ${esc(p.defecto.id)} ya se corrigió</span>`;
     if (p.vis === 'ok' && p.res?.estado === 'inestable') return '<span class="admin-tag admin-tag-info">Pasó al reintentar</span>';
     if (p.vis === 'skip') return '<span class="admin-tag">No se ejecutó</span>';
     if (p.vis === 'none') return '<span class="admin-tag">Sin resultados todavía</span>';
     return '<span class="why">—</span>';
   }
 
-  const leyenda = () => `<div class="legend"><span><i class="dot ok"></i>Funciona</span><span><i class="dot known"></i>Falla con hallazgo reportado</span><span><i class="dot fail"></i>Falla</span><span><i class="dot skip"></i>Sin resultados</span></div>`;
+  const leyenda = () => `<div class="legend"><span><i class="dot ok"></i>Funciona</span><span><i class="dot fail"></i>Falla</span><span><i class="dot skip"></i>Sin resultados</span></div>`;
 
   function tablaArea(a) {
     const t = a.total || 1;
     const pct = (n) => `${(n / t * 100).toFixed(2)}%`;
     const conTiempo = (p) => p.res && p.res.estado !== 'omitida';
     const filas = a.pruebas
-      .filter((p) => !soloProblemas || p.vis === 'fail' || p.vis === 'known')
+      .filter((p) => !soloProblemas || p.vis === 'fail')
       .sort((x, y) => ORDEN[x.vis] - ORDEN[y.vis])
       .map((p) => `<tr>
         <td><i class="dot ${p.vis}" title="${ETIQUETA[p.vis]}" aria-label="${ETIQUETA[p.vis]}"></i></td>
@@ -598,7 +589,7 @@
           <div><h3 class="card-header-title"><i class="ph ${esc(a.icono)}"></i>${esc(a.nombre)}</h3><p class="card-header-subtitle">${esc(a.descripcion)}</p></div>
           <div class="area-score"><b class="num">${a.ok}</b> de ${a.total} funcionan${total ? `<br>${duracion(total)} en total` : ''}</div>
         </div>
-        <div class="meter" aria-hidden="true"><i class="m-ok" style="width:${pct(a.ok)}"></i><i class="m-known" style="width:${pct(a.known)}"></i><i class="m-fail" style="width:${pct(a.fail)}"></i><i class="m-skip" style="width:${pct(a.skip)}"></i></div>
+        <div class="meter" aria-hidden="true"><i class="m-ok" style="width:${pct(a.ok)}"></i><i class="m-fail" style="width:${pct(a.fail)}"></i><i class="m-skip" style="width:${pct(a.skip)}"></i></div>
       </div>
       <div class="grid-wrap"><table class="tablestyle">
         <thead><tr><th>Estado</th><th class="left">Prueba</th><th class="left">Detalle</th><th>Duración</th><th>Corrida</th><th>Cuándo</th></tr></thead>
@@ -609,16 +600,15 @@
   }
 
   function historialHtml() {
-    const { corridas, detalles, defectos } = datos;
+    const { corridas, detalles } = datos;
     const filas = corridas.slice(0, FILAS_HISTORIAL).map((c, i) => {
       const det = detalles.find((d) => d.corrida === c.corrida);
       let tag, cuenta;
       if (det) {
-        const r = contarCorrida(det, defectos);
-        const total = r.ok + r.known + r.fail + r.skip;
-        if (c.estado === 'sin-resultados' || (r.prep && !r.ok && !r.fail && !r.known)) tag = '<span class="admin-tag admin-tag-error">No llegó a probar</span>';
-        else if (r.fail) tag = `<span class="admin-tag admin-tag-error">${r.fail + r.known} fallan${r.known ? ` · ${r.known} con hallazgo` : ''}</span>`;
-        else if (r.known) tag = `<span class="admin-tag admin-tag-warn">${r.known} fallan, con hallazgo</span>`;
+        const r = contarCorrida(det);
+        const total = r.ok + r.fail + r.skip;
+        if (c.estado === 'sin-resultados' || (r.prep && !r.ok && !r.fail)) tag = '<span class="admin-tag admin-tag-error">No llegó a probar</span>';
+        else if (r.fail) tag = `<span class="admin-tag admin-tag-error">${r.fail} falla${r.fail > 1 ? 'n' : ''}</span>`;
         else tag = '<span class="admin-tag admin-tag-ok">Todo OK</span>';
         cuenta = total ? `${r.ok} de ${total}` : '—';
       } else {
