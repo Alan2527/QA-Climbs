@@ -55,6 +55,62 @@ test.describe('Reservas — anulacion', () => {
   const AVISO_DE_GASTOS = 'puede llegar a incurrir en gastos';
   const AVISO_DE_CANCELADA = 'Reserva cancelada';
 
+  /**
+   * Ubica la reserva en el historial, recorriendo el paginado si hace falta.
+   *
+   * **El historial pagina**, y despues de cancelar el portal vuelve a la primera
+   * pagina: con una sola corrida de la suite la reserva recien cancelada ya no
+   * entra ahi y el test la daba por desaparecida, estando bien cancelada y a la
+   * vista en otra pagina. El pager son links `__doPostBack(..., 'Page$N')` dentro
+   * de la solapa; se recorren por su numero, como lo haria una persona.
+   *
+   * Se acota a la solapa activa: el historial tiene dos tablas y la que no esta
+   * activa vive en display:none.
+   */
+  async function filaDelHistorial(page: Page, solapa: string, codigo: string) {
+    const fila = () => page.locator(`${solapa} tr`)
+      .filter({ hasText: codigo }).filter({ visible: true }).first();
+
+    // Primero, activar la solapa del riel: despues de cancelar, el historial abre
+    // en la de Multidestino y la del carrito de compras queda oculta, asi que sus
+    // filas —y su paginado— no cuentan como visibles. Antes se clickeaba el link
+    // sin esperar a que el panel se mostrara.
+    const link = page.locator(`a[href='${solapa}']`).first();
+    if (await link.count() && !(await page.locator(solapa).isVisible())) {
+      await link.click();
+      await esperarFinDeCarga(page);
+      await expect(page.locator(solapa), `La solapa ${solapa} del historial tiene que abrirse`)
+        .toBeVisible({ timeout: 30_000 });
+    }
+
+    if (await fila().count()) return fila();
+
+    const paginas = (await page.locator(`${solapa} a[href*="Page$"]`).allInnerTexts())
+      .map((t) => t.trim()).filter((t) => /^\d+$/.test(t));
+
+    for (const numero of paginas) {
+      const link = page.locator(`${solapa} a[href*="Page$"]`)
+        .filter({ hasText: new RegExp(`^${numero}$`) }).first();
+      if (!(await link.count())) continue;
+      // El clic se hace como una persona, pero con respaldo: el cartel de carga del
+      // historial queda por encima del pager y lo bloquea. Si no se puede clickear,
+      // se dispara el mismo postback que dispara el link.
+      await link.scrollIntoViewIfNeeded().catch(() => {});
+      try {
+        await link.click({ timeout: 15_000 });
+      } catch {
+        await link.evaluate((a) => {
+          const salto = (a as HTMLAnchorElement).href.replace(/^javascript:/, '');
+          // eslint-disable-next-line no-eval
+          window.eval(salto);
+        });
+      }
+      await esperarFinDeCarga(page);
+      if (await fila().count()) return fila();
+    }
+    return fila();
+  }
+
   test.beforeEach(async ({ page }) => {
     reiniciarNumeracionDePasos();
     await new InicioPage(page).abrir();
@@ -167,8 +223,7 @@ test.describe('Reservas — anulacion', () => {
       // oculta de la otra solapa y el test fallaba estando la reserva bien
       // cancelada. Se noto recien en la corrida completa, cuando el historial
       // tenia reservas de los dos rieles.
-      const fila = page.locator(`${solapa} tr`)
-        .filter({ hasText: codigo }).filter({ visible: true }).first();
+      const fila = await filaDelHistorial(page, solapa, codigo);
       await expect(
         fila,
         `La reserva ${codigo} tiene que seguir figurando en el historial despues de cancelarla`,

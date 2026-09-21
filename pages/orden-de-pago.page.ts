@@ -133,6 +133,25 @@ export class OrdenDePagoPage {
     await esperarFinDeCarga(this.page);
   }
 
+  /**
+   * Deja la orden parada en la sucursal indicada.
+   *
+   * **La pantalla recuerda la ultima sucursal usada** (`lastSelectedBranch`,
+   * PayOrders/Detail.aspx.cs:1313) y solo cae en Argentina cuando no hay ninguna
+   * guardada. Antes se daba por hecho que abria en Argentina y no se tocaba el combo;
+   * si la sesion venia de otra sucursal, la orden abria en esa y el combo de caja
+   * ofrecia las cajas de alla —la de regresion no aparecia y el Bloque C se quedaba
+   * sin donde pagar.
+   *
+   * Solo se cambia cuando hace falta: reelegir el valor que ya esta dispara un
+   * postback que repinta el UpdatePanel y deja los handlers sin enganchar.
+   */
+  async asegurarSucursal(nombre = 'Argentina'): Promise<string> {
+    const actual = await this.opcionElegida(this.comboSucursal);
+    if (actual.toUpperCase().includes(nombre.toUpperCase())) return actual;
+    return this.elegirEnCombo(this.comboSucursal, nombre);
+  }
+
   /** Texto de la opcion elegida en un combo. */
   async opcionElegida(selector: string): Promise<string> {
     return this.page.locator(selector).evaluate((el) => {

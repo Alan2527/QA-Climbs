@@ -195,12 +195,12 @@ export async function reservarServicioYGenerarFile(page: Page, sello: string): P
     // Costo y Venta son las dos ultimas celdas con importe de la fila del
     // servicio. Venta se escribe sin codigo de moneda, asi que no sirve
     // buscar el patron "USD 999".
+    // Desde la US 4648 los dos importes viven en `td.fi-money` con la moneda pegada
+    // al numero, asi que los lee el page object.
     const filaDelServicio = page.locator(bo.filaServicioDelFile).first();
-    const celdas = await celdasDe(filaDelServicio);
-    const soloImporte = /^([A-Z]{3}\s*)?\d[\d.,]*$/;
-    const conImporte = celdas.filter((c) => soloImporte.test(c));
-    costoDelItem = importe(conImporte.at(-2) ?? '');
-    ventaDelItem = importe(conImporte.at(-1) ?? '');
+    const montos = await bo.montosDelItemDelFile(filaDelServicio);
+    costoDelItem = importe(montos.costo);
+    ventaDelItem = importe(montos.venta);
 
     await adjuntarTexto('Precondicion generada', [
       `Reserva: ${codigo}`,
@@ -208,8 +208,8 @@ export async function reservarServicioYGenerarFile(page: Page, sello: string): P
       `Servicio: ${datos.servicio}`,
       `Pasajero: ${datos.pasajeros[0]?.nombre} ${datos.apellido}`,
       `Cliente: ${cliente}`,
-      `Costo del item: ${conImporte.at(-2) ?? '?'}`,
-      `Venta del item: ${conImporte.at(-1) ?? '?'}`,
+      `Costo del item: ${montos.costo || '?'}`,
+      `Venta del item: ${montos.venta || '?'}`,
     ].join(SALTO));
 
     // Sin costo no hay nada que facturar: el item ni siquiera se listaria

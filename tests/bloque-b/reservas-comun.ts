@@ -444,11 +444,13 @@ export async function verificarEnElBackOffice(opciones: {
     // toman por posicion desde el final: la fila termina con varias celdas
     // vacias. Y Venta se escribe con ToMoneyN3() pelado, sin codigo de moneda,
     // asi que tampoco sirve buscar el patron "USD 999".
-    const soloImporte = /^([A-Z]{3}\s*)?\d[\d.,]*$/;
-    const importesDeLaFila = celdas.filter((c) => soloImporte.test(c));
-    capturar('file (Venta del item)', importesDeLaFila.at(-1) ?? '');
-    await adjuntarTexto('Costo y Venta del item en el file',
-      `Costo: ${importesDeLaFila.at(-2) ?? '?'} | Venta: ${importesDeLaFila.at(-1) ?? '?'}`);
+    // Desde la US 4648 el Costo y la Venta viven en `td.fi-money` con la moneda
+    // pegada al numero, y la grilla sumo la columna Noches: por eso se leen con el
+    // page object y no filtrando las celdas que "parecen" un importe, que terminaba
+    // tomando las noches.
+    const venta = (await bo.ventasDeLosItemsDelFile(fila)).at(0) ?? '';
+    capturar('file (Venta del item)', venta);
+    await adjuntarTexto('Venta del item en el file', venta);
 
     // Todos los items del viaje, no solo el que se mira en detalle.
     const filasDelFile = page.locator(bo.filaServicioDelFile);
@@ -469,13 +471,9 @@ export async function verificarEnElBackOffice(opciones: {
     // La suma de las ventas de los items tiene que dar el total del file. Es
     // lo que detecta que un item llegue con otro importe sin que el total se
     // mueva: conciliar solo el total no lo veria.
-    const ventaDeCadaItem = await filasDelFile.evaluateAll((trs) =>
-      trs.map((tr) => {
-        const celdasDeLaFila = Array.from(tr.querySelectorAll('td'))
-          .map((c) => (c.textContent || '').replace(/\s+/g, ' ').trim());
-        const conNumero = celdasDeLaFila.filter((c) => /^([A-Z]{3}\s*)?\d[\d.,]*$/.test(c));
-        return conNumero.at(-1) ?? '';
-      }));
+    // La columna Venta se lee con el page object: desde la US 4648 el importe trae
+    // la moneda pegada y la grilla sumo la columna Noches.
+    const ventaDeCadaItem = await bo.ventasDeLosItemsDelFile(filasDelFile);
     sumaDeLosItems = ventaDeCadaItem
       .map((c) => importe(c).valor ?? 0)
       .reduce((a, b) => a + b, 0);
@@ -499,9 +497,7 @@ export async function verificarEnElBackOffice(opciones: {
     // El importe de cada item del file contra el que mostro el portal.
     for (const [esperado, delPortal] of Object.entries(importePorItemDelPortal)) {
       const filaDelItem = filasDelFile.filter({ hasText: new RegExp(esperado, 'i') }).first();
-      const celdasDeEse = (await filaDelItem.locator('td').allInnerTexts())
-        .map((c) => c.replace(/\s+/g, ' ').trim());
-      const venta = celdasDeEse.filter((c) => soloImporte.test(c)).at(-1) ?? '';
+      const venta = (await bo.ventasDeLosItemsDelFile(filaDelItem)).at(0) ?? '';
       await conResaltado(page, filaDelItem, `Importe del item ${esperado} en el file`, () => {
         expect(importe(venta).valor,
           `El file tiene que conservar el importe de ${esperado}`)
@@ -509,14 +505,12 @@ export async function verificarEnElBackOffice(opciones: {
       });
     }
 
-    // Totales del file, que es el numero que despues usa toda la operacion.
-    const totales = page.locator('#updFileTotals table')
-      .filter({ has: page.locator('th', { hasText: 'USD' }) }).first();
-    const celdasTotales = (await totales.locator('tbody tr').first().locator('td')
-      .allInnerTexts()).map((c) => c.trim());
-    capturar('file (Venta en Totales)', celdasTotales[1] ?? '');
+    // Totales del file, que es el numero que despues usa toda la operacion. Desde la
+    // US 4648 son tarjetas y no una tabla: los lee el page object por su rotulo.
+    const totalesDelFile = await bo.totalesDelFile();
+    capturar('file (Venta en Totales)', totalesDelFile['VENTA'] ?? '');
     await adjuntarTexto('Totales USD del file',
-      `Costo | Venta | Over | Utilidad => ${celdasTotales.join(' | ')}`);
+      Object.entries(totalesDelFile).map(([k, v]) => `${k}: ${v}`).join(' | '));
   });
 
   await paso(page, 'Conciliar los importes de punta a punta', async () => {

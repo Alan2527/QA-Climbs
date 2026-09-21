@@ -233,6 +233,8 @@ export async function armarOrdenDePagoAprobada(
   await paso(page, 'Pagar la factura del proveedor desde la caja de regresion', async () => {
     await orden.irABandejaDeOrdenes();
     await orden.nuevaOrden();
+    // La pantalla recuerda la ultima sucursal usada: se fija, no se supone.
+    await orden.asegurarSucursal('Argentina');
     await orden.elegirProveedor('GRUPO SUMMA', 'GRUPO SUMMA SRL');
     await orden.elegirEnCombo(orden.comboMoneda, factura.moneda);
     await orden.elegirEnCombo(orden.comboCaja, CAJA_DE_REGRESION);

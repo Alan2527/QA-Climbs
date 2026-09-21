@@ -81,6 +81,8 @@ test.describe('Cobranzas', () => {
     await paso(page, 'Entrar a la bandeja de ordenes de pago y abrir una nueva', async () => {
       await orden.irABandejaDeOrdenes();
       await orden.nuevaOrden();
+      // La pantalla recuerda la ultima sucursal usada: se fija, no se supone.
+      await orden.asegurarSucursal('Argentina');
       await expect(page.locator(orden.campoImporteDeLaCaja)).toBeVisible();
 
       // La orden nace con la fecha de hoy y el vencimiento de la forma de pago

@@ -295,11 +295,25 @@ Alan en pantalla, uno por uno:
 | "La reserva tiene que estar en la bandeja Online" | La bandeja del BO muestra el **ID pelado** (`25166` para `BO00025166`). Misma trampa que la bandeja de items no asignados | **corregido** |
 | El lapiz del detalle no responde | El icono paso de `i.icon-pencil` a `i.ph.ph-pencil-simple` | **corregido** |
 | El buscador de hoteles no suma habitaciones | `span.quantityModify` paso a `span.pq-step` dentro de un `.pq-stepper` por campo; el onclick sigue siendo `QuantityModify(1,'rooms')` | **corregido** |
-| Los importes del file leen 3 y 2 donde espera 1.290 y 520 | **La grilla del file dejo de ser una tabla**: el merge de la **US 4648** (17/09) la paso a tarjetas con menu de acciones (`fi-card`, `fi-acc__item`). Los `td` ya no existen | **PENDIENTE, es lo que bloquea los dos bloques** |
-| El combo no ofrece "AUTO-QA NO TOCAR - CAJA USD" | La caja 187 del Bloque C no aparece: hay que ver si quedo despublicada, o le cambiaron sucursal o moneda | **PENDIENTE, dato de QA** |
+| Los importes del file leen 3 y 2 donde espera 1.290 y 520 | La **US 4648** (17/09) rehizo la pantalla del file. La grilla sigue siendo una tabla, pero Costo y Venta pasaron a `td.fi-money .fi-money__amount` **con la moneda pegada al numero** y se sumo la columna Noches: la lectura vieja —la ultima celda que pareciera un importe— terminaba leyendo las noches (3 y 2). Los totales pasaron de tabla a tarjetas `.bo-tot__card` | **corregido**: los lee el page object (`ventasDeLosItemsDelFile`, `montosDelItemDelFile`, `totalesDelFile`) |
+| El combo no ofrece "AUTO-QA NO TOCAR - CAJA USD" | **La caja esta perfecta** (publicada, USD, sucursal Argentina, categoria de regresion): verificado en pantalla. Lo que cambio es de donde sale la sucursal. La **orden de cobro** nunca filtro por sucursal, solo por moneda (`LoadPublished`); la **orden de pago** si (`LoadPublishedByBranch`), y ahora **recuerda la ultima sucursal usada** (`Detail.aspx.cs:1313`) en vez de caer siempre en Argentina | **corregido**: al entrar al BO se elige Argentina en el encabezado (`ddWorkingBranch`, nuevo) y cada orden de pago fija su sucursal |
 
-Lo que hay que rehacer para el file: la lectura de los items, sus importes, el ojito de
-SIX y los totales. Lo usan **todos** los tests de los Bloques B y C.
+Dos sintomas mas, aparecidos al reparar los anteriores:
+
+| Sintoma | Que era | Estado |
+|---|---|---|
+| "La reserva tiene que seguir figurando en el historial despues de cancelarla" | Al cancelar, el historial **abre en la solapa Multidestino**: la reserva clasica queda en la otra solapa, oculta, y sus filas no cuentan como visibles. Ademas el listado **pagina** | **corregido**: `filaDelHistorial` activa la solapa del riel, espera a que se muestre y recorre el paginado |
+| El clic en la pagina 2 del historial no responde | El cartel de carga se dibuja encima del pager | **corregido**: si el clic no entra, se dispara el mismo postback del link |
+
+**Cierre del 2026-09-21.** Despues de adaptar todo, el Bloque C quedo entero en verde y
+el Bloque B solo con los rojos de defectos ya reportados. De los 20 rojos que dejo el
+deploy **no queda ninguno por adaptacion**:
+
+| Bloque | Resultado |
+|---|---|
+| A — Tarifario | 8 en verde, 1 en rojo: Paquetes, por el hallazgo 11 |
+| B — Reservas | en verde salvo Servicio (hallazgo 10), carrito y checkout en idioma (hallazgo 8) y multidestino en idioma (US 4613) |
+| C — Cobranzas | todo en verde |
 
 ### La migración del rediseno — 2026-09-07
 

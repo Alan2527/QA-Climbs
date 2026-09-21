@@ -165,6 +165,8 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
     await paso(page, 'Cargar la orden de pago del proveedor y aprobarla sin imputar', async () => {
       await orden.irABandejaDeOrdenes();
       await orden.nuevaOrden();
+      // La pantalla recuerda la ultima sucursal usada: se fija, no se supone.
+      await orden.asegurarSucursal('Argentina');
       await orden.elegirProveedor('GRUPO SUMMA', 'GRUPO SUMMA SRL');
       await orden.elegirEnCombo(orden.comboMoneda, factura.moneda);
       await orden.elegirEnCombo(orden.comboCaja, CAJA_DE_REGRESION);

@@ -43,6 +43,9 @@ export class BackOfficePage {
     await this.page.locator('#btnLogin').click();
     await this.page.waitForURL((u) => !u.pathname.toLowerCase().includes('login'), { timeout: 90_000 });
     await this.page.waitForLoadState('domcontentloaded');
+    // La sucursal de trabajo se elige una sola vez, al entrar: de ella dependen las
+    // cajas que ofrecen las ordenes de pago y de cobro.
+    await this.elegirSucursalDeTrabajo('Argentina');
   }
 
   /**
@@ -111,6 +114,92 @@ export class BackOfficePage {
    *  las dos pantallas usan los mismos ids (txtQuantity, txtCustomerReference...). */
   async campo(id: string): Promise<string> {
     return (await this.page.locator(`#${id}`).first().inputValue()).trim();
+  }
+
+  /**
+   * Costo y Venta de un item de la grilla del file.
+   *
+   * Las dos celdas son `td.fi-money` —primero Costo, despues Venta— con la moneda
+   * pegada al numero desde la US 4648. Se devuelven como "USD 1.290,00".
+   */
+  async montosDelItemDelFile(fila: Locator): Promise<{ costo: string; venta: string }> {
+    const montos = await fila.locator('td.fi-money .fi-money__amount').evaluateAll((celdas) =>
+      celdas.map((c) => {
+        const texto = ((c as HTMLElement).innerText ?? '').replace(/\s+/g, ' ').trim();
+        const m = texto.match(/^(-?[\d.,]+)\s*([A-Za-z]{3})$/);
+        return m ? `${m[2].toUpperCase()} ${m[1]}` : texto;
+      }));
+    if (montos.length >= 2) return { costo: montos[0], venta: montos[montos.length - 1] };
+
+    // Respaldo: la grilla anterior, con los dos importes en celdas sueltas.
+    const celdas = (await fila.locator('td').allInnerTexts()).map((c) => c.replace(/\s+/g, ' ').trim());
+    const conImporte = celdas.filter((c) => /^([A-Z]{3}\s*)?\d[\d.,]*$/.test(c));
+    return { costo: conImporte.at(-2) ?? '', venta: conImporte.at(-1) ?? '' };
+  }
+
+  /**
+   * Totales USD del file, por rotulo: Costo, Venta, Over y Utilidad.
+   *
+   * **La US 4648 paso los totales de una tabla a tarjetas**: cada uno es un
+   * `.bo-tot__card` con su `.bo-tot__rotulo` y su `.bo-tot__valor`, y el valor trae
+   * la moneda pegada al numero ("1.290,000USD"). Antes se leia la primera fila de la
+   * tabla y se tomaba la segunda celda como Venta.
+   *
+   * Se devuelve cada importe como "USD 1.290,000", para que lo parsee el helper de
+   * siempre, y se deja el respaldo por si se corre contra un BO anterior.
+   */
+  async totalesDelFile(): Promise<Record<string, string>> {
+    const tarjetas = this.page.locator('#updFileTotals .bo-tot__card');
+    if (await tarjetas.count()) {
+      return tarjetas.evaluateAll((cards) => {
+        const limpio = (x: string) => (x ?? '').replace(/\s+/g, ' ').trim();
+        const salida: Record<string, string> = {};
+        for (const card of cards) {
+          const rotulo = limpio((card.querySelector('.bo-tot__rotulo') as HTMLElement)?.innerText ?? '');
+          const valor = limpio((card.querySelector('.bo-tot__valor') as HTMLElement)?.innerText ?? '');
+          const m = valor.match(/^(-?[\d.,]+)\s*([A-Za-z]{3})$/);
+          if (rotulo) salida[rotulo.toUpperCase()] = m ? `${m[2].toUpperCase()} ${m[1]}` : valor;
+        }
+        return salida;
+      });
+    }
+
+    // Respaldo: la tabla anterior a la US 4648 (Costo | Venta | Over | Utilidad).
+    const fila = this.page.locator('#updFileTotals table')
+      .filter({ has: this.page.locator('th', { hasText: 'USD' }) }).first()
+      .locator('tbody tr').first();
+    const celdas = (await fila.locator('td').allInnerTexts()).map((c) => c.trim());
+    return { COSTO: celdas[0] ?? '', VENTA: celdas[1] ?? '', OVER: celdas[2] ?? '', UTILIDAD: celdas[3] ?? '' };
+  }
+
+  // --- Sucursal de trabajo (encabezado) ---
+  /**
+   * Desde el rediseno del BackOffice (US 4648) **la sucursal se elige una sola vez
+   * en el encabezado** y no en cada pantalla: es `ddWorkingBranch`, dentro de
+   * `li.bo-working-branch` (BOMaster.Master:1017). Los combos de caja de las ordenes
+   * pasaron a listar las cajas de esa sucursal, asi que parado en Peru no aparece la
+   * caja de regresion de Argentina y el Bloque C se queda sin donde cobrar.
+   *
+   * El control lo dibuja TomSelect, que esconde el `select` original: se opera por la
+   * pastilla y su lista, como haria una persona. Si la pantalla no lo tiene —una
+   * version anterior del BO— no hace nada.
+   */
+  async elegirSucursalDeTrabajo(nombre = 'Argentina') {
+    const pastilla = this.page.locator('li.bo-working-branch .ts-control').first();
+    if (!(await pastilla.count())) return;
+
+    const actual = (await pastilla.innerText()).replace(/\s+/g, ' ').trim();
+    if (actual.toUpperCase().includes(nombre.toUpperCase())) return;
+
+    await pastilla.click();
+    const opcion = this.page.locator('.ts-dropdown .option', { hasText: nombre }).first();
+    await expect(opcion, `El encabezado tiene que ofrecer la sucursal ${nombre}`)
+      .toBeVisible({ timeout: 30_000 });
+    await opcion.click();
+    // El combo hace AutoPostBack: la pantalla se recarga con la sucursal nueva.
+    await this.page.waitForLoadState('domcontentloaded');
+    await expect(this.page.locator('li.bo-working-branch .ts-control').first())
+      .toContainText(nombre, { timeout: 30_000 });
   }
 
   // --- Generacion del file ---
@@ -188,6 +277,34 @@ export class BackOfficePage {
    * ToMoneyN3() pelado, sin codigo de moneda.
    */
   readonly filaServicioDelFile = 'tr:has(a.fileitemdetail)';
+
+  /**
+   * Venta de cada item de la grilla del file, en el orden de la grilla.
+   *
+   * **La US 4648 (17/09/2026) rehizo la pantalla del file.** El importe dejo de ser
+   * una celda suelta: vive en `td.fi-money .fi-money__amount`, con la MONEDA PEGADA
+   * al numero ("1.290,00USD" en una sola cadena), y la grilla sumo la columna
+   * "Noches". Leyendo "la ultima celda que parezca un importe" —como se hacia— se
+   * terminaba leyendo las noches: 3 donde el item vale 1.290.
+   *
+   * Hay dos celdas `fi-money` por fila, Costo y Venta: la venta es la ultima. Se
+   * devuelve como "USD 1.290,00" para que la parsee el mismo helper de siempre.
+   */
+  async ventasDeLosItemsDelFile(filas: Locator): Promise<string[]> {
+    return filas.evaluateAll((trs) =>
+      trs.map((tr) => {
+        const limpio = (x: string) => (x ?? '').replace(/\s+/g, ' ').trim();
+        const money = Array.from(tr.querySelectorAll('td.fi-money .fi-money__amount'));
+        if (money.length) {
+          const texto = limpio((money[money.length - 1] as HTMLElement).innerText);
+          const m = texto.match(/^([\d.,]+)\s*([A-Za-z]{3})$/);
+          return m ? `${m[2].toUpperCase()} ${m[1]}` : texto;
+        }
+        // Respaldo: la grilla anterior a la US 4648, con el importe en su propia celda.
+        const celdas = Array.from(tr.querySelectorAll('td')).map((c) => limpio(c.textContent ?? ''));
+        return celdas.filter((c) => /^([A-Z]{3}\s*)?\d[\d.,]*$/.test(c)).at(-1) ?? '';
+      }));
+  }
 
   /**
    * Genera el file desde el detalle de la bandeja y devuelve su ID.
