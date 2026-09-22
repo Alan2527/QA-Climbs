@@ -30,18 +30,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # El tablero guarda las ultimas corridas, y cada publicacion reemplaza la rama
-      # gh-pages entera: lo publicado antes hay que traerlo para volver a subirlo.
-      # Solo la carpeta del tablero, y NO en ./gh-pages: esa carpeta la lee el paso
-      # de Allure, y traerla ahi cambiaria que corridas conserva su reporte.
-      # La primera vez la carpeta no existe y el paso sigue igual.
-      - name: Traer el tablero publicado
+      # Cada publicacion reemplaza la rama gh-pages entera (force_orphan, mas abajo),
+      # asi que lo publicado antes hay que traerlo para volver a subirlo. Va a
+      # ./gh-pages porque es la carpeta que lee el paso de Allure: de ahi copia los
+      # reportes anteriores y last-history, que arma la tendencia. Hasta el 2026-09-22
+      # no se traia, y cada corrida publicaba solo su propio reporte. El tablero lee
+      # sus corridas anteriores de la misma carpeta (gh-pages/tablero).
+      # La primera vez la rama no existe y el paso sigue igual.
+      - name: Traer lo publicado en GitHub Pages
         uses: actions/checkout@v4
         continue-on-error: true
         with:
           ref: gh-pages
-          path: publicacion-anterior
-          sparse-checkout: tablero
+          path: gh-pages
 
       - name: Configurar Node
         uses: actions/setup-node@v4
@@ -136,7 +137,7 @@ jobs:
           allure_history: allure-history
           # 5 corridas en el historial: con 20 lo publicado pesaba el cuadruple y
           # nadie mira tan atras.
-          keep_histories: 5
+          keep_reports: 5
 
       # Va DESPUES de generar el Allure: ese paso borra de allure-history todo lo que
       # no sea el numero de una corrida, y se llevaria la carpeta del tablero.
@@ -161,7 +162,7 @@ jobs:
         run: |
           mkdir -p tablero-publicar
           cp tablero/index.html tablero/pruebas.json tablero/favicon.svg tablero-publicar/
-          node tools/resumen-corrida.mjs resultados/playwright.json publicacion-anterior/tablero tablero-publicar
+          node tools/resumen-corrida.mjs resultados/playwright.json gh-pages/tablero tablero-publicar
           sudo mkdir -p allure-history
           sudo rm -rf allure-history/tablero
           sudo cp -r tablero-publicar allure-history/tablero

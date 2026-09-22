@@ -198,6 +198,8 @@ test.describe('Tarifario — multiidioma del encabezado', () => {
     const ITEMS = [
       {
         clave: 'hoteles',
+        recortaDuracion: false,
+        tagNoches: null as Record<string, string> | null,
         tab: 'a-hotels',
         container: 'hotels-container',
         ciudad: 'Buenos Aires',
@@ -213,6 +215,10 @@ test.describe('Tarifario — multiidioma del encabezado', () => {
       },
       {
         clave: 'paquetes',
+        // Desde el rediseno 4763 la card saca la duracion del nombre y muestra las noches
+        // en su propio tag (NewTourTariffControl, StripDuration y FormatNights).
+        recortaDuracion: true,
+        tagNoches: { ES: '5 noches', EN: '5 nights', PT: '5 noites' } as Record<string, string> | null,
         tab: 'a-tours',
         container: 'tours-container',
         ciudad: 'Buenos Aires',
@@ -235,6 +241,9 @@ test.describe('Tarifario — multiidioma del encabezado', () => {
       },
       {
         clave: 'ofertas',
+        // La card de la oferta conserva la duracion dentro del nombre.
+        recortaDuracion: false,
+        tagNoches: null as Record<string, string> | null,
         tab: 'a-opportunities',
         container: 'opportunities-container',
         // La oferta se lista bajo Ushuaia: con Buenos Aires la pestania ni se
@@ -304,18 +313,37 @@ test.describe('Tarifario — multiidioma del encabezado', () => {
 
           if (item.nombre) {
             // Paquetes y ofertas: el nombre esta traducido en ReceptiveTourDetail.
+            //
+            // Desde el rediseno 4763, en Paquetes la card recorta la duracion que viene pegada
+            // al final del nombre ("... (6 dias / 5 noches)") y la muestra aparte en su tag
+            // (NewTourTariffControl.ascx.cs, StripDuration). La oferta no la recorta. Lo que
+            // se prueba aca es el idioma del nombre, no donde va la duracion: en Paquetes se
+            // compara sin ese parentesis. Hasta el 2026-09-22 el test fallaba por eso.
+            const sinDuracion = (x: string) => !item.recortaDuracion ? x :
+              x.replace(/\s*\([^()]*\b(?:d[ií]as?|noches?|days?|nights?|dias?|noites?)\b[^()]*\)\s*$/i, '').trim();
             await conResaltado(page, contenedor, `Nombre de ${item.clave} en ${idioma.nombre}`, () => {
               expect(nombre,
                 `En ${idioma.nombre} la card tiene que mostrar el nombre de ese idioma, ` +
                 'el que tiene cargado ReceptiveTourDetail')
-                .toBe(item.nombre![codigo]);
+                .toBe(sinDuracion(item.nombre![codigo]));
             });
             if (codigo !== 'ES') {
               await conResaltado(page, contenedor, `Sin caer al espaniol en ${item.clave} / ${idioma.nombre}`, () => {
                 expect(nombre,
                   `En ${idioma.nombre} el nombre no puede ser el espaniol: seria el filtro por ` +
                   'idioma sin aplicar')
-                  .not.toBe(item.nombre!.ES);
+                  .not.toBe(sinDuracion(item.nombre!.ES));
+              });
+            }
+            // La duracion que se saco del nombre tiene que estar en el tag, con la palabra
+            // "noches" en el idioma elegido.
+            if (item.tagNoches) {
+              const tag = contenedor.locator('.tariff-duration-tag').first();
+              await expect(tag, `La card de ${item.clave} tiene que mostrar el tag con las noches`).toBeVisible();
+              const textoTag = (await tag.innerText()).replace(/\s+/g, ' ').trim();
+              await conResaltado(page, tag, `Tag de noches de ${item.clave} en ${idioma.nombre}`, () => {
+                expect(textoTag, `En ${idioma.nombre} el tag tiene que decir "${item.tagNoches![codigo]}"`)
+                  .toBe(item.tagNoches![codigo]);
               });
             }
           } else {
