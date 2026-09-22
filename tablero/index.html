@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablero de pruebas · Climbs</title>
+<!-- Favicon: las dos cimas del logo de Climbs sobre el fondo oscuro de la marca. -->
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<!--
+  Tablero de pruebas de la suite E2E.
+
+  Lee lo que publica cada corrida del workflow (tools/resumen-corrida.mjs):
+    corridas.json          indice de las ultimas corridas
+    corridas/{n}.json      detalle de cada una
+  y el catalogo pruebas.json, con el nombre de negocio de cada prueba.
+
+  El estilo replica el del WebAdmin con los valores de sus hojas
+  (WEB/.../Administration/Css): layout.css, sidebar.css, navbar-top.css,
+  components/buttons.css, components/cards.css,
+  components/tags.css, tables.css y dark-mode.css. El color de acento es el de la
+  agencia con la que se ingresa al admin en QA (#6b72f2).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Solo para el logo de Climbs; el resto usa la tipografia del sistema, como el admin. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<script>
+  // Antes de pintar, para que no parpadee. Misma clase que el admin: html.dark.
+  try {
+    const t = localStorage.getItem('tablero-tema');
+    if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+  } catch (e) { /* sin storage */ }
+</script>
+<style>
+  /* --- Tokens: layout.css ------------------------------------------------------ */
+  :root {
+    --color-primary: #6b72f2;
+    --color-secondary: #ffffff;
+    --sidebar-accent: #9398f6;
+    --color-surface: #ffffff;
+    --color-surface-alt: #f8fafc;
+    --color-border: #e2e8f0;
+    --color-text: #0f172a;
+    --color-text-muted: #64748b;
+    --body-bg: #f3f4f6;
+
+    --nav-text: #d2d5db;
+    --nav-text-hover: #ffffff;
+    --sidebar-width: 168px;
+    --sidebar-bg: linear-gradient(180deg, #16171d, #101114);
+
+    --grid-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    --grid-header-bg: #ffffff;
+    --grid-header-text: #64748b;
+    --grid-border: var(--color-border);
+    --grid-row-hover: #f1f5f9;
+    --grid-alt-row: var(--color-surface-alt);
+    --grid-text: #475569;
+    --divider: #f1f5f9;
+    --input-bg: #ffffff;
+    --input-text: #334155;
+    --icon-btn-bg: #ffffff;
+
+    --ok: #22c55e;
+    --fail: #ef4444;
+    --known: #f59e0b;
+    --skip: #94a3b8;
+
+    --transition-fast: .2s cubic-bezier(.4, 0, .2, 1);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  /* --- dark-mode.css ------------------------------------------------------------- */
+  html.dark {
+    --color-surface: #1b1f27;
+    --color-surface-alt: #161a21;
+    --color-border: #2b313c;
+    --color-text: #e6e8ee;
+    --color-text-muted: #9aa3b2;
+    --body-bg: #0f1115;
+    --sidebar-bg: linear-gradient(180deg, #1b1f27, #14171d);
+
+    --grid-header-bg: #161a21;
+    --grid-header-text: #9aa3b2;
+    --grid-border: #2b313c;
+    --grid-row-hover: #232834;
+    --grid-alt-row: #1e232b;
+    --grid-text: #d7dbe3;
+    --divider: #2b313c;
+    --input-bg: #161a21;
+    --input-text: #d7dbe3;
+    --icon-btn-bg: #1b1f27;
+    color-scheme: dark;
+    scrollbar-color: #3a4150 transparent;
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--body-bg); }
+  body { margin: 0; background: var(--body-bg); color: var(--color-text); font: 13px/1.42857 var(--font); -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+  .num { font-variant-numeric: tabular-nums; }
+  [hidden] { display: none !important; }
+
+  /* --- Sidebar: sidebar.css ---------------------------------------------------- */
+  .admin-sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar-width); z-index: 99;
+    background: var(--sidebar-bg); box-shadow: 8px 0 24px rgba(0, 0, 0, .08);
+    display: flex; flex-direction: column;
+  }
+  .sidebar-header { height: 60px; padding: 0 16px; display: flex; flex-direction: column; justify-content: center; gap: 3px; flex-shrink: 0; }
+  .logo-climbs { display: block; height: 24px; width: 90px; align-self: flex-start; }
+  .agency-name { font-size: 10px; font-weight: 500; color: #94a3b8; text-transform: uppercase; white-space: nowrap; line-height: 1.2; letter-spacing: .02em; }
+  .sf-menu { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; overflow-y: auto; }
+  .sf-menu a {
+    position: relative; display: flex; align-items: center; gap: 12px; margin: 2px 10px; padding: 10px 16px;
+    border-radius: 10px; color: var(--nav-text); font: 500 13.5px/1.4 var(--grid-font); text-decoration: none; white-space: nowrap;
+    transition: color var(--transition-fast), background-color var(--transition-fast), transform .34s cubic-bezier(.34, 1.45, .64, 1);
+  }
+  .sf-menu a:active { transform: scale(.96); transition-duration: .08s; }
+  .sf-menu a i { font-size: 18px; flex-shrink: 0; }
+  .sf-menu a span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .sf-menu a:hover { color: var(--nav-text-hover); background-color: rgba(255, 255, 255, .06); }
+  .sf-menu a.current {
+    color: #fff; font-weight: 600; background-color: transparent;
+    background-image: linear-gradient(90deg, color-mix(in srgb, var(--sidebar-accent) 30%, transparent), color-mix(in srgb, var(--sidebar-accent) 10%, transparent));
+  }
+  .sf-menu a.current:hover { background-image: linear-gradient(90deg, color-mix(in srgb, var(--sidebar-accent) 38%, transparent), color-mix(in srgb, var(--sidebar-accent) 14%, transparent)); }
+  .sf-menu a.current::before {
+    content: ""; position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 3px; height: 18px; border-radius: 3px;
+    background: var(--sidebar-accent); box-shadow: 0 0 8px color-mix(in srgb, var(--sidebar-accent) 70%, transparent);
+  }
+  .sf-menu a.current i { color: var(--sidebar-accent); }
+  .sf-menu a.soon { opacity: .45; pointer-events: none; }
+  .sf-section { height: 11px; display: flex; align-items: center; justify-content: center; }
+  .sf-section::after { content: ""; width: 28px; height: 1px; border-radius: 1px; background: rgba(255, 255, 255, .06); }
+  .sf-menu .count { flex: none; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; font-size: 10.5px; font-weight: 700; display: inline-grid; place-items: center; background: var(--fail); color: #fff; }
+  .sf-menu .count.known { background: rgba(245, 158, 11, .2); color: #fcd34d; }
+  .sidebar-foot { margin-top: auto; padding: 12px 10px 14px; border-top: 1px solid rgba(255, 255, 255, .06); }
+  .sidebar-link {
+    display: flex; align-items: center; justify-content: center; gap: 6px; height: 30px; border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, .12); color: var(--nav-text); font-size: 12px; font-weight: 600; text-decoration: none;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+  }
+  .sidebar-link:hover { color: #fff; border-color: color-mix(in srgb, var(--sidebar-accent) 60%, transparent); }
+
+  /* --- Contenido y barra superior: layout.css / navbar-top.css ------------------ */
+  #body { margin-left: calc(var(--sidebar-width) + 16px); padding: 0 16px 32px 6px; }
+  .admin-header-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0 2px; margin-bottom: 10px; min-height: 60px; }
+  .admin-breadcrumb-container { display: grid; padding-left: 6px; }
+  .breadcrumb-parent { font-size: 13px; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; line-height: 1; }
+  .breadcrumb-current { font-size: 24px; font-weight: 700; color: var(--color-text); letter-spacing: -.02em; line-height: 1; margin-top: 4px; }
+  .admin-nav-right { display: flex; align-items: center; gap: 10px; height: 48px; }
+  .qa-badge { background: #ef4444; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: .05em; }
+  .nav-icon-btn {
+    width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--color-border); background: var(--icon-btn-bg);
+    display: grid; place-items: center; font-size: 18px; color: var(--color-text-muted); cursor: pointer;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+  }
+  .nav-icon-btn:hover { color: var(--color-primary); border-color: var(--color-primary); }
+
+  /* --- Botones: components/buttons.css ----------------------------------------- */
+  .btn-primary, .adminButtonBlue, .btn-outline {
+    font: 700 13px var(--font); height: 38px; padding: 0 18px; border: 0; border-radius: 12px; cursor: pointer;
+    gap: 8px; letter-spacing: .03em; display: inline-flex; align-items: center; justify-content: center; text-decoration: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, .08), 0 2px 4px -2px rgba(0, 0, 0, .04);
+    transition: all .2s cubic-bezier(.4, 0, .2, 1); white-space: nowrap;
+  }
+  .btn-primary, .adminButtonBlue { background-color: var(--color-primary); color: var(--color-secondary); }
+  .btn-primary:hover, .adminButtonBlue:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, .1), 0 4px 6px -4px rgba(0, 0, 0, .1); }
+  .btn-primary:active, .adminButtonBlue:active { transform: translateY(0); filter: brightness(.95); }
+  .btn-outline { background: var(--icon-btn-bg); color: var(--color-text); border: 1px solid var(--color-border); box-shadow: none; }
+  .btn-outline:hover { border-color: var(--color-primary); color: var(--color-primary); }
+  .btn-icon-wrapper { width: 20px; height: 20px; border-radius: 50%; background: rgba(255, 255, 255, .22); display: inline-grid; place-items: center; font-size: 12px; }
+
+  /* --- Cards: components/cards.css (con el dark de dark-mode.css) --------------- */
+  .card-panel { background: var(--color-surface); border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, .05); overflow: hidden; margin-bottom: 16px; }
+  .card-header { padding: 1rem 16px; display: flex; justify-content: space-between; align-items: center; gap: 1rem; border-bottom: 1px solid var(--divider); }
+  .card-header-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--color-text); display: flex; align-items: center; gap: .5rem; }
+  .card-header-title i { font-size: 1.15rem; color: var(--color-text-muted); }
+  .card-header-subtitle { font-size: .8rem; color: var(--color-text-muted); margin: .15rem 0 0; font-weight: 400; }
+  .card-body { padding: 14px 16px; }
+
+  /* --- Resumen ------------------------------------------------------------------ */
+  .stats { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+  .stats .card-panel { margin: 0; }
+  .verdict { padding: 16px; display: flex; align-items: center; gap: 14px; }
+  .verdict-ico { width: 44px; height: 44px; border-radius: 12px; flex: none; display: grid; place-items: center; font-size: 24px; color: #fff; background: var(--ok); box-shadow: 0 4px 12px color-mix(in srgb, var(--ok) 35%, transparent); }
+  .verdict.fail .verdict-ico { background: var(--fail); box-shadow: 0 4px 12px color-mix(in srgb, var(--fail) 35%, transparent); }
+  .verdict.empty .verdict-ico { background: var(--skip); box-shadow: none; }
+  .verdict h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+  .verdict p { margin: .15rem 0 0; font-size: .8rem; color: var(--color-text-muted); }
+  .stat { padding: 14px 16px; display: grid; gap: 2px; align-content: center; }
+  .stat .k { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--grid-header-text); }
+  .stat .v { font-size: 24px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
+  .stat .v small { font-size: 13px; font-weight: 500; color: var(--color-text-muted); letter-spacing: 0; }
+  .stat .d { font-size: 12px; color: var(--color-text-muted); }
+  .stat.is-fail .v { color: var(--fail); }
+  .stat.is-known .v { color: var(--known); }
+
+  .alert { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; margin-bottom: 16px; font-size: 13px; color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; }
+  .alert i { font-size: 18px; }
+  .alert.info { color: #1e3a5f; background: #eef6ff; border-color: #cfe6ff; }
+  html.dark .alert { color: #fca5a5; background: rgba(239, 68, 68, .12); border-color: rgba(239, 68, 68, .35); }
+  html.dark .alert.info { color: #bfdbfe; background: rgba(59, 130, 246, .12); border-color: rgba(59, 130, 246, .35); }
+
+  /* --- Barra sobre las tablas --------------------------------------------------- */
+  .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 12px; }
+  .toolbar h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+  .seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--color-surface); border: 1px solid var(--color-border); }
+  .seg button { border: 0; background: transparent; height: 30px; padding: 0 12px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--color-text-muted); cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: color-mix(in srgb, var(--color-primary) 16%, transparent); color: var(--color-primary); }
+  html.dark .seg button[aria-pressed="true"] { color: var(--sidebar-accent); }
+
+  /* --- Cabecera de cada area ----------------------------------------------------- */
+  .area-head { padding: 14px 16px 12px; display: grid; gap: 10px; border-bottom: 1px solid var(--divider); }
+  .area-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .area-score { text-align: right; font-size: 12px; color: var(--color-text-muted); white-space: nowrap; }
+  .area-score b { font-size: 20px; color: var(--color-text); font-weight: 700; }
+  .meter { display: flex; height: 6px; border-radius: 6px; overflow: hidden; background: var(--divider); }
+  .meter i { display: block; height: 100%; }
+  .m-ok { background: var(--ok); } .m-known { background: var(--known); } .m-fail { background: var(--fail); } .m-skip { background: var(--skip); }
+
+  /* --- Grilla: tables.css (.headerstyle / .rowstyle / .altrowstyle) ------------- */
+  .grid-wrap { overflow-x: auto; }
+  table.tablestyle { width: 100%; border-collapse: collapse; font-family: var(--grid-font); min-width: 820px; }
+  .tablestyle th {
+    position: sticky; top: 0; z-index: 1; background: var(--grid-header-bg); color: var(--grid-header-text);
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; padding: 10px 12px;
+    text-align: center; border: 0; box-shadow: inset 0 -1px 0 var(--grid-border); white-space: nowrap;
+  }
+  .tablestyle th.left, .tablestyle td.left { text-align: left; }
+  .tablestyle td { padding: 5px 12px; height: 52px; border: 0; vertical-align: middle; text-align: center; font-size: 13px; color: var(--grid-text); background: var(--color-surface); transition: background-color .15s ease, color .15s ease; }
+  .tablestyle tbody tr:nth-child(even) td { background: var(--grid-alt-row); }
+  .tablestyle tbody tr:hover td { background: var(--grid-row-hover); color: var(--color-text); }
+  .tablestyle td.strong { color: var(--color-text); font-weight: 500; }
+  .tablestyle td.muted { color: var(--color-text-muted); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; }
+  .dot.ok { background: var(--ok); } .dot.fail { background: var(--fail); } .dot.known { background: var(--known); } .dot.skip, .dot.none { background: var(--skip); }
+  .detail { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; max-width: 520px; }
+  .detail .why { font-size: 12px; color: var(--color-text-muted); overflow-wrap: anywhere; }
+  .grid-action {
+    width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--grid-border); background: var(--icon-btn-bg);
+    display: inline-grid; place-items: center; font-size: 15px; color: var(--color-text-muted); text-decoration: none;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+  }
+  .grid-action:hover { color: var(--color-primary); border-color: var(--color-primary); }
+  .grid-actions { display: inline-flex; gap: 6px; }
+  .grid-empty td { height: 90px; color: var(--color-text-muted); }
+  .grid-foot { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px; border-top: 1px solid var(--divider); font-size: 12px; color: var(--color-text-muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* --- Tags: components/tags.css (.admin-tag) ----------------------------------- */
+  .admin-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; line-height: 1.35; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 999px; white-space: nowrap; }
+  .admin-tag-ok { color: #166534; background: #f0fdf4; border-color: #bbf7d0; }
+  .admin-tag-warn { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+  .admin-tag-error { color: #991b1b; background: #fef2f2; border-color: #fecaca; }
+  .admin-tag-info { color: #1e3a5f; background: #eef6ff; border-color: #cfe6ff; }
+  .admin-tag-serie { color: #4338ca; background: #eef2ff; border-color: #c7d2fe; }
+  html.dark .admin-tag { color: #cbd5e1; background: #161a21; border-color: #2b313c; }
+  html.dark .admin-tag-ok { color: #86efac; background: rgba(34, 197, 94, .12); border-color: rgba(34, 197, 94, .35); }
+  html.dark .admin-tag-warn { color: #fcd34d; background: rgba(245, 158, 11, .14); border-color: rgba(245, 158, 11, .4); }
+  html.dark .admin-tag-error { color: #fca5a5; background: rgba(239, 68, 68, .14); border-color: rgba(239, 68, 68, .4); }
+  html.dark .admin-tag-info { color: #bfdbfe; background: rgba(59, 130, 246, .14); border-color: rgba(59, 130, 246, .4); }
+  html.dark .admin-tag-serie { color: #c7d2fe; background: rgba(99, 102, 241, .16); border-color: rgba(99, 102, 241, .4); }
+
+  .loading { padding: 60px 0; text-align: center; color: var(--color-text-muted); }
+  .section { scroll-margin-top: 12px; }
+
+  /* --- Responsivo --------------------------------------------------------------- */
+  @media (max-width: 1200px) {
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .verdict { grid-column: 1 / -1; }
+  }
+  @media (max-width: 900px) {
+    .admin-sidebar { position: sticky; top: 0; bottom: auto; width: auto; flex-direction: row; align-items: center; overflow-x: auto; }
+    .sidebar-header { height: 52px; flex: none; }
+    .agency-name, .sidebar-foot, .sf-section { display: none; }
+    .sf-menu { flex-direction: row; margin: 0; overflow: visible; }
+    .sf-menu a { padding: 8px 12px; }
+    #body { margin-left: 0; padding: 0 16px 32px; }
+  }
+  @media (max-width: 640px) {
+    .admin-header-nav { flex-wrap: wrap; }
+    .breadcrumb-current { font-size: 20px; }
+    .stats { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<aside class="admin-sidebar">
+  <div class="sidebar-header">
+    <!-- Logo de Climbs redibujado en SVG a partir del original: "Cli", las dos cimas y "bs". -->
+    <svg class="logo-climbs" viewBox="0 0 150 40" role="img" aria-label="Climbs">
+      <text x="0" y="32" font-family="Poppins, 'Segoe UI', sans-serif" font-weight="600" font-size="34" fill="#f9f9f9" letter-spacing="-0.5">Cli</text>
+      <circle cx="46.5" cy="29" r="3.4" fill="#2f5ce6"/>
+      <path d="M54 29 L63.5 9.5 L73 29" fill="none" stroke="#2f5ce6" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M68 29 L77.5 9.5 L87 29" fill="none" stroke="#3b33a8" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="91" y="32" font-family="Poppins, 'Segoe UI', sans-serif" font-weight="600" font-size="34" fill="#f9f9f9" letter-spacing="-0.5">bs</text>
+    </svg>
+    <span class="agency-name">Pruebas automatizadas</span>
+  </div>
+  <ul class="sf-menu" id="nav">
+    <li><a href="#resumen" data-vista="resumen"><i class="ph ph-house"></i><span>Resumen</span></a></li>
+    <li class="sf-section"></li>
+    <li><a href="#tarifario" data-vista="tarifario"><i class="ph ph-tag"></i><span>Tarifario</span></a></li>
+    <li><a href="#reservas" data-vista="reservas"><i class="ph ph-suitcase-rolling"></i><span>Reservas</span></a></li>
+    <li><a href="#cobranzas" data-vista="cobranzas"><i class="ph ph-receipt"></i><span>Cobranzas</span></a></li>
+    <li><a href="#" class="soon" aria-disabled="true" title="Próximamente"><i class="ph ph-sliders-horizontal"></i><span>WebAdmin</span></a></li>
+    <li class="sf-section"></li>
+    <li><a href="#historial" data-vista="historial"><i class="ph ph-clock-counter-clockwise"></i><span>Historial</span></a></li>
+  </ul>
+  <div class="sidebar-foot">
+    <a class="sidebar-link" href="https://github.com/alan2527/QA-Climbs" target="_blank" rel="noopener"><i class="ph ph-github-logo"></i>Ir al repositorio <i class="ph ph-arrow-square-out"></i></a>
+  </div>
+</aside>
+
+<div id="body">
+  <header class="admin-header-nav">
+    <div class="admin-breadcrumb-container">
+      <span class="breadcrumb-parent">Climbs · QA</span>
+      <span class="breadcrumb-current" id="titulo">Resumen</span>
+    </div>
+    <div class="admin-nav-right">
+      <button class="nav-icon-btn" id="theme" aria-label="Cambiar entre modo claro y oscuro"><i class="ph ph-sun"></i></button>
+      <a class="btn-primary" href="https://github.com/alan2527/QA-Climbs/actions/workflows/qa-e2e.yml" target="_blank" rel="noopener" title="Abre la corrida manual en GitHub">
+        <span class="btn-icon-wrapper"><i class="ph-bold ph-play"></i></span>Correr pruebas
+      </a>
+      <span class="qa-badge">QA</span>
+    </div>
+  </header>
+
+  <div id="app"><div class="loading">Cargando resultados…</div></div>
+</div>
+
+<script>
+(() => {
+  const AREA_DE_SUITE = { 'bloque-a': 'Tarifario', 'bloque-b': 'Reservas', 'bloque-c': 'Cobranzas', 'todas': 'Todas las pruebas' };
+  const DETALLES = 15;        // corridas leidas en detalle: alcanza para el historial de cada prueba
+  const FILAS_HISTORIAL = 10;
+  const ORDEN = { fail: 0, skip: 1, none: 2, ok: 3 };
+  const ETIQUETA = { ok: 'Funciona', fail: 'Falla', skip: 'No se ejecutó', none: 'Sin resultados' };
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const clave = (archivo, titulo) => `${archivo}::${titulo}`;
+  const p2 = (n) => String(n).padStart(2, '0');
+  const fecha = (iso) => { const d = new Date(iso); return `${p2(d.getDate())}-${p2(d.getMonth() + 1)}-${d.getFullYear()} ${p2(d.getHours())}:${p2(d.getMinutes())}`; };
+  function duracion(ms) {
+    if (ms == null) return '—';
+    const s = Math.round(ms / 1000);
+    if (s < 60) return `${Math.max(1, s)} s`;
+    const m = Math.floor(s / 60);
+    return m < 60 ? `${m} min ${p2(s % 60)} s` : `${Math.floor(m / 60)} h ${p2(m % 60)} min`;
+  }
+  function hace(iso) {
+    const min = Math.round((Date.now() - new Date(iso)) / 60000);
+    if (min < 60) return `hace ${Math.max(1, min)} min`;
+    const h = Math.round(min / 60);
+    return h < 36 ? `hace ${h} h` : `hace ${Math.round(h / 24)} días`;
+  }
+
+  // --- Tema: mismo mecanismo que el admin (clase dark en <html>) ---------------
+  const iconoTema = () => { $('theme').innerHTML = `<i class="ph ${document.documentElement.classList.contains('dark') ? 'ph-sun' : 'ph-moon'}"></i>`; };
+  $('theme').addEventListener('click', () => {
+    const dark = document.documentElement.classList.toggle('dark');
+    try { localStorage.setItem('tablero-tema', dark ? 'dark' : 'light'); } catch (e) { /* sin storage */ }
+    iconoTema();
+  });
+  iconoTema();
+
+  let soloProblemas = false;
+  try { soloProblemas = localStorage.getItem('tablero-solo-problemas') === '1'; } catch (e) { /* sin storage */ }
+
+  const json = async (url) => { const r = await fetch(url, { cache: 'no-store' }); if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.json(); };
+  let datos = null;
+
+  async function cargar() {
+    let catalogo, indice;
+    try {
+      [catalogo, indice] = await Promise.all([json('pruebas.json'), json('corridas.json')]);
+    } catch (e) {
+      $('app').innerHTML = `<div class="alert info"><i class="ph ph-info"></i><div>Todavía no hay corridas publicadas, o no se pudieron leer. El tablero se llena solo con la próxima corrida de la suite.</div></div>`;
+      return;
+    }
+    const corridas = indice.corridas ?? [];
+    const detalles = (await Promise.all(corridas.slice(0, DETALLES).map((c) => json(c.detalle).catch(() => null)))).filter(Boolean);
+    datos = preparar(catalogo, corridas, detalles);
+    pintar();
+  }
+
+  /**
+   * Estado visible de una prueba.
+   *
+   * Todo sale de las corridas publicadas, sin nada cargado a mano: si falla, el
+   * tablero dice si dejo de funcionar en la ultima corrida (en la anterior pasaba)
+   * o desde que corrida viene fallando.
+   */
+  function estadoVisible(res) {
+    if (!res) return 'none';
+    if (res.estado === 'fallo') return 'fail';
+    if (res.estado === 'omitida') return 'skip';
+    return 'ok'; // paso o inestable
+  }
+
+  function contarCorrida(det) {
+    const r = { ok: 0, fail: 0, skip: 0, prep: false };
+    for (const p of det.pruebas) {
+      if (p.area === 'preparacion') { if (p.estado === 'fallo') r.prep = true; continue; }
+      const e = estadoVisible(p);
+      r[e === 'none' ? 'skip' : e]++;
+    }
+    return r;
+  }
+
+  function preparar(catalogo, corridas, detalles) {
+
+    // Resultados reales de cada prueba, de la corrida mas nueva a la mas vieja.
+    // Una omitida cuenta solo si nunca hubo otro resultado.
+    const historial = new Map();
+    const omitidas = new Map();
+    for (const d of detalles) for (const p of d.pruebas) {
+      const k = clave(p.archivo, p.titulo);
+      const r = { ...p, corrida: d.corrida, fecha: d.fecha };
+      if (p.estado === 'omitida') { if (!omitidas.has(k)) omitidas.set(k, r); continue; }
+      if (!historial.has(k)) historial.set(k, []);
+      historial.get(k).push(r);
+    }
+
+    const areaDe = (a) => a.startsWith('bloque-a/') ? 'tarifario' : a.startsWith('bloque-b/') ? 'reservas' : a.startsWith('bloque-c/') ? 'cobranzas' : null;
+    const enCatalogo = new Set(catalogo.pruebas.map((p) => clave(p.archivo, p.titulo)));
+    const extras = [...historial.values()].map((h) => h[0])
+      .filter((p) => p.area !== 'preparacion' && !enCatalogo.has(clave(p.archivo, p.titulo)))
+      .map((p) => ({ archivo: p.archivo, titulo: p.titulo, nombre: p.titulo }));
+
+    const pruebas = [...catalogo.pruebas, ...extras].map((p) => {
+      const k = clave(p.archivo, p.titulo);
+      const h = historial.get(k) ?? [];
+      const res = h[0] ?? omitidas.get(k);
+      let racha = null;
+      if (res?.estado === 'fallo') {
+        // Cuantas corridas seguidas viene fallando, y si antes de eso pasaba.
+        let n = 0;
+        while (n < h.length && h[n].estado === 'fallo') n++;
+        racha = { corridas: n, desde: h[n - 1].corrida, antesPasaba: n < h.length };
+      }
+      return { ...p, area: areaDe(p.archivo), res, racha, vis: estadoVisible(res) };
+    }).filter((p) => p.area);
+
+    const areas = catalogo.areas.map((a) => {
+      const delArea = pruebas.filter((p) => p.area === a.id);
+      const n = (e) => delArea.filter((p) => p.vis === e).length;
+      return { ...a, pruebas: delArea, total: delArea.length, ok: n('ok'), fail: n('fail'), skip: n('skip') + n('none') };
+    });
+    const ultima = corridas[0];
+    const detUltima = detalles.find((d) => d.corrida === ultima?.corrida);
+    const prepFallo = !!detUltima?.pruebas.some((p) => p.area === 'preparacion' && p.estado === 'fallo');
+    return { corridas, detalles, pruebas, areas, ultima, prepFallo };
+  }
+
+  // --- Vistas: Resumen muestra todo; cada area y el historial, solo su tabla ----
+  const vistaActual = () => {
+    const v = location.hash.replace('#', '');
+    return ['tarifario', 'reservas', 'cobranzas', 'historial'].includes(v) ? v : 'resumen';
+  };
+  window.addEventListener('hashchange', () => { if (datos) { pintar(); scrollTo(0, 0); } });
+
+  function pintar() {
+    const vista = vistaActual();
+    const { areas } = datos;
+    document.querySelectorAll('.sf-menu a[data-vista]').forEach((l) => l.classList.toggle('current', l.dataset.vista === vista));
+    const area = areas.find((a) => a.id === vista);
+    $('titulo').textContent = area ? area.nombre : vista === 'historial' ? 'Historial' : 'Resumen';
+    document.title = `${$('titulo').textContent} · Tablero de pruebas · Climbs`;
+
+    // Contador de fallas del sidebar.
+    for (const a of areas) {
+      const link = document.querySelector(`.sf-menu a[data-vista="${a.id}"]`);
+      link.querySelector('.count')?.remove();
+      if (a.fail) link.insertAdjacentHTML('beforeend', `<span class="count" title="Fallan">${a.fail}</span>`);
+    }
+
+    let html;
+    if (vista === 'resumen') html = alertas() + resumen() + barra('Qué se prueba') + areas.map(tablaArea).join('') + historialHtml();
+    else if (area) html = alertas() + barra(ultimaDelArea(area)) + tablaArea(area);
+    else html = historialHtml();
+    $('app').innerHTML = html;
+
+    document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+      soloProblemas = b.dataset.f === 'problemas';
+      try { localStorage.setItem('tablero-solo-problemas', soloProblemas ? '1' : '0'); } catch (e) { /* sin storage */ }
+      pintar();
+    }));
+  }
+
+  function ultimaDelArea(a) {
+    const r = a.pruebas.map((p) => p.res).filter(Boolean).sort((x, y) => y.corrida - x.corrida)[0];
+    return r ? `Última corrida: #${r.corrida}, ${fecha(r.fecha)}` : 'Sin corridas todavía';
+  }
+
+  function alertas() {
+    const { prepFallo, ultima } = datos;
+    if (prepFallo) return `<div class="alert"><i class="ph ph-plug"></i><div><b>La última corrida no llegó a probar.</b> Falló el ingreso o faltan datos AUTO-QA en QA. Los resultados que se ven son de corridas anteriores.</div></div>`;
+    if (ultima?.estado === 'sin-resultados') return `<div class="alert"><i class="ph ph-plug"></i><div><b>La corrida #${ultima.corrida} terminó sin resultados.</b> Se cortó antes de las pruebas; el detalle está en GitHub.</div></div>`;
+    return '';
+  }
+
+  function resumen() {
+    const { pruebas, ultima } = datos;
+    const ok = pruebas.filter((p) => p.vis === 'ok').length;
+    const fallan = pruebas.filter((p) => p.vis === 'fail');
+    const dejaron = fallan.filter((p) => p.racha?.antesPasaba && p.racha.corridas === 1).length;
+    const siguen = fallan.length - dejaron;
+
+    let vClase = '', vIco = 'ph-check', vTit = 'Todas las pruebas funcionan', vSub = 'Ninguna falla en su última corrida.';
+    if (dejaron) {
+      vClase = 'fail'; vIco = 'ph-warning';
+      vTit = `${dejaron} prueba${dejaron > 1 ? 's' : ''} dej${dejaron > 1 ? 'aron' : 'ó'} de funcionar`;
+      vSub = 'Pasaban en la corrida anterior y ahora fallan. Conviene revisarlas.';
+    } else if (siguen) {
+      vClase = 'fail'; vIco = 'ph-warning';
+      vTit = `${siguen} prueba${siguen > 1 ? 's siguen' : ' sigue'} fallando`;
+      vSub = 'Ya fallaban en la corrida anterior: no hay fallas nuevas.';
+    }
+    if (!pruebas.some((p) => p.res)) { vClase = 'empty'; vIco = 'ph-hourglass'; vTit = 'Sin resultados'; vSub = 'Las corridas publicadas no traen pruebas.'; }
+
+    const stat = (k, v, d, cls = '') => `<div class="card-panel stat ${cls}"><span class="k">${k}</span><span class="v num">${v}</span><span class="d">${d}</span></div>`;
+    return `<section class="stats">
+      <div class="card-panel verdict ${vClase}"><div class="verdict-ico"><i class="ph-bold ${vIco}"></i></div>
+        <div><h2>${vTit}</h2><p>${vSub}</p>${ultima ? `<p>Última corrida #${ultima.corrida}, ${hace(ultima.fecha)}.</p>` : ''}</div></div>
+      ${stat('Funcionan', `${ok} <small>de ${pruebas.length}</small>`, 'según su última corrida')}
+      ${stat('Dejaron de funcionar', dejaron, 'pasaban en la corrida anterior', dejaron ? 'is-fail' : '')}
+      ${stat('Siguen fallando', siguen, 'ya fallaban en la corrida anterior', siguen ? 'is-known' : '')}
+      ${stat('Última corrida', ultima ? `#${ultima.corrida}` : '—', ultima ? `${esc(AREA_DE_SUITE[ultima.suite] ?? ultima.suite ?? '')} · ${duracion(ultima.duracionMs)}` : '')}
+    </section>`;
+  }
+
+  function barra(titulo) {
+    return `<div class="toolbar"><h2>${esc(titulo)}</h2>
+      <div class="seg" role="group" aria-label="Filtrar pruebas">
+        <button data-f="todas" aria-pressed="${!soloProblemas}">Todas</button>
+        <button data-f="problemas" aria-pressed="${soloProblemas}">Solo con problemas</button>
+      </div></div>`;
+  }
+
+  function detalle(p) {
+    const r = p.racha;
+    if (p.vis === 'fail') {
+      let tag;
+      if (r.antesPasaba && r.corridas === 1) tag = `<span class="admin-tag admin-tag-error">Dejó de funcionar en #${p.res.corrida}</span>`;
+      // Sin un resultado anterior que pasara, "desde" es la corrida mas vieja publicada: puede venir de antes.
+      else tag = `<span class="admin-tag admin-tag-warn" title="${r.antesPasaba ? `La última vez que pasó fue antes de #${r.desde}` : 'No pasó en ninguna de las corridas publicadas: puede venir fallando de antes'}">Falla desde #${r.desde}${r.antesPasaba ? '' : ' o antes'}</span>`;
+      return `${tag}${p.res?.error ? `<span class="why">${esc(p.res.error)}</span>` : ''}`;
+    }
+    if (p.vis === 'ok' && p.res?.estado === 'inestable') return '<span class="admin-tag admin-tag-info">Pasó al reintentar</span>';
+    if (p.vis === 'skip') return '<span class="admin-tag">No se ejecutó</span>';
+    if (p.vis === 'none') return '<span class="admin-tag">Sin resultados todavía</span>';
+    return '<span class="why">—</span>';
+  }
+
+  const leyenda = () => `<div class="legend"><span><i class="dot ok"></i>Funciona</span><span><i class="dot fail"></i>Falla</span><span><i class="dot skip"></i>Sin resultados</span></div>`;
+
+  function tablaArea(a) {
+    const t = a.total || 1;
+    const pct = (n) => `${(n / t * 100).toFixed(2)}%`;
+    const conTiempo = (p) => p.res && p.res.estado !== 'omitida';
+    const filas = a.pruebas
+      .filter((p) => !soloProblemas || p.vis === 'fail')
+      .sort((x, y) => ORDEN[x.vis] - ORDEN[y.vis])
+      .map((p) => `<tr>
+        <td><i class="dot ${p.vis}" title="${ETIQUETA[p.vis]}" aria-label="${ETIQUETA[p.vis]}"></i></td>
+        <td class="left strong" title="${esc(p.titulo)}">${esc(p.nombre)}</td>
+        <td class="left"><div class="detail">${detalle(p)}</div></td>
+        <td class="num">${conTiempo(p) ? duracion(p.res.duracionMs) : '—'}${p.res?.intentos > 1 ? `<br><span class="why">${p.res.intentos} intentos</span>` : ''}</td>
+        <td class="num">${p.res ? `#${p.res.corrida}` : '—'}</td>
+        <td class="num muted" title="${p.res ? fecha(p.res.fecha) : ''}">${p.res ? hace(p.res.fecha) : '—'}</td>
+      </tr>`).join('');
+    const vacio = soloProblemas ? 'Sin problemas en esta área.' : 'Sin pruebas.';
+    // Suma de lo que tardo cada prueba en su ultima corrida.
+    const total = a.pruebas.reduce((s, p) => s + (conTiempo(p) ? p.res.duracionMs ?? 0 : 0), 0);
+    return `<section class="card-panel">
+      <div class="area-head">
+        <div class="area-top">
+          <div><h3 class="card-header-title"><i class="ph ${esc(a.icono)}"></i>${esc(a.nombre)}</h3><p class="card-header-subtitle">${esc(a.descripcion)}</p></div>
+          <div class="area-score"><b class="num">${a.ok}</b> de ${a.total} funcionan${total ? `<br>${duracion(total)} en total` : ''}</div>
+        </div>
+        <div class="meter" aria-hidden="true"><i class="m-ok" style="width:${pct(a.ok)}"></i><i class="m-fail" style="width:${pct(a.fail)}"></i><i class="m-skip" style="width:${pct(a.skip)}"></i></div>
+      </div>
+      <div class="grid-wrap"><table class="tablestyle">
+        <thead><tr><th>Estado</th><th class="left">Prueba</th><th class="left">Detalle</th><th>Duración</th><th>Corrida</th><th>Cuándo</th></tr></thead>
+        <tbody>${filas || `<tr class="grid-empty"><td colspan="6">${vacio}</td></tr>`}</tbody>
+      </table></div>
+      <div class="grid-foot"><span>${a.total} pruebas</span>${leyenda()}</div>
+    </section>`;
+  }
+
+  function historialHtml() {
+    const { corridas, detalles } = datos;
+    const filas = corridas.slice(0, FILAS_HISTORIAL).map((c, i) => {
+      const det = detalles.find((d) => d.corrida === c.corrida);
+      let tag, cuenta;
+      if (det) {
+        const r = contarCorrida(det);
+        const total = r.ok + r.fail + r.skip;
+        if (c.estado === 'sin-resultados' || (r.prep && !r.ok && !r.fail)) tag = '<span class="admin-tag admin-tag-error">No llegó a probar</span>';
+        else if (r.fail) tag = `<span class="admin-tag admin-tag-error">${r.fail} falla${r.fail > 1 ? 'n' : ''}</span>`;
+        else tag = '<span class="admin-tag admin-tag-ok">Todo OK</span>';
+        cuenta = total ? `${r.ok} de ${total}` : '—';
+      } else {
+        const t = c.totales;
+        tag = c.estado === 'sin-fallas' ? '<span class="admin-tag admin-tag-ok">Sin fallas</span>'
+          : c.estado === 'con-fallas' ? `<span class="admin-tag">${t.fallo} fallan</span>` : '<span class="admin-tag admin-tag-error">Sin resultados</span>';
+        cuenta = t.total ? `${t.paso + t.inestable} de ${t.total}` : '—';
+      }
+      const que = `${esc(AREA_DE_SUITE[c.suite] ?? c.suite ?? '—')}${c.filtro ? ` <span class="admin-tag admin-tag-serie">${esc(c.filtro)}</span>` : ''}`;
+      const origen = c.evento === 'push' ? 'Automática' : c.evento === 'workflow_dispatch' ? 'Manual' : esc(c.evento ?? '—');
+      // Allure publica solo el reporte de la corrida mas reciente.
+      const informe = i === 0 && det?.enlaces?.allure ? `<a class="grid-action" href="${esc(det.enlaces.allure)}" target="_blank" rel="noopener" title="Informe con capturas"><i class="ph ph-file-text"></i></a>` : '';
+      const gh = det?.enlaces?.github ? `<a class="grid-action" href="${esc(det.enlaces.github)}" target="_blank" rel="noopener" title="Corrida en GitHub"><i class="ph ph-github-logo"></i></a>` : '';
+      return `<tr>
+        <td class="strong num">#${c.corrida}</td>
+        <td class="num">${fecha(c.fecha)}</td>
+        <td>${que}</td>
+        <td>${origen}</td>
+        <td>${tag}</td>
+        <td class="num">${cuenta}</td>
+        <td class="num">${duracion(c.duracionMs)}</td>
+        <td><span class="grid-actions">${informe}${gh}</span></td>
+      </tr>`;
+    }).join('');
+    return `<section class="card-panel">
+      <div class="card-header"><div><h3 class="card-header-title"><i class="ph ph-clock-counter-clockwise"></i>Últimas corridas</h3>
+        <p class="card-header-subtitle">El informe con capturas paso a paso queda publicado para la corrida más reciente.</p></div></div>
+      <div class="grid-wrap"><table class="tablestyle">
+        <thead><tr><th>Corrida</th><th>Fecha</th><th>Qué se corrió</th><th>Origen</th><th>Resultado</th><th>Funcionan</th><th>Duración</th><th>Ver</th></tr></thead>
+        <tbody>${filas || '<tr class="grid-empty"><td colspan="8">Sin corridas.</td></tr>'}</tbody>
+      </table></div>
+    </section>`;
+  }
+
+  cargar();
+})();
+</script>
+</body>
+</html>
