@@ -1,0 +1,9 @@
+{
+ "adultos": 1,
+ "menores": 1,
+ "masAdultos": false,
+ "menosAdultos": true,
+ "masMenores": true,
+ "menosMenores": false,
+ "aviso": "Capacidad máxima de la habitación alcanzada."
+}

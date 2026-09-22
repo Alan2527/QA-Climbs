@@ -1,0 +1,8 @@
+{
+  "moneda": "USD",
+  "ordenTotal": "6",
+  "ordenPendiente": "6",
+  "facturaTotal": "6",
+  "facturaPendiente": "6",
+  "montoPropuesto": ""
+}

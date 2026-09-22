@@ -1,0 +1,4 @@
+Orden: OP0000038096 (id 38096)
+Total: USD 6,00
+Factura a imputar despues: 0001-22184712
+File: AM-0000030024-01

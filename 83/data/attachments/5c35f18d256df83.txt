@@ -1,0 +1,5 @@
+PasajeroUno | RegresionBIEBDE | QA221841341 | Argentina | 01/03/1990 | -- | ADL
+PasajeroDos | RegresionBIEBDE | QA221841342 | Argentina | 02/03/1990 | -- | ADL
+PasajeroTres | RegresionBIEBDE | QA221841343 | Argentina | 03/03/1990 | -- | ADL
+PasajeroCuatro | RegresionBIEBDE | QA221841344 | Argentina | 04/03/1990 | -- | ADL
+PasajeroCinco | RegresionBIEBDE | QA221841345 | Argentina | 05/10/2018 | -- | CHD

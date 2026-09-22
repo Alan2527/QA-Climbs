@@ -1,0 +1,4 @@
+totales: 2500 | 3000
+tarifa de menor de la salida: 500
+politica de menores: {"freeMaxAge":0,"childMaxAge":10}
+menores con cargo: 1
