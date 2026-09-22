@@ -169,24 +169,35 @@ export function alinearVigencias(filas: string[][], hoyDeLasFilas: Date, hoy: Da
 }
 
 /**
- * Hace clic en un link del menu lateral del BO, abriendo su seccion solo si esta
- * cerrada.
+ * Hace clic en un link del menu lateral del BO, desplegando su seccion solo si esta
+ * plegada.
  *
- * Con la seccion cerrada, el link igual figura como visible, pero el clic lo
- * intercepta el encabezado de la seccion: por eso no sirve preguntar si se ve. Lo
- * que dice si esta abierta es la clase `open` del `li.menu-accordion`
- * (bo.base.css). Hasta el 2026-09-22 las pantallas del Bloque C probaban el clic 5
- * segundos y, si no respondia, le hacian clic a la seccion: en la corrida 79 la
- * seccion ya estaba abierta, ese clic la CERRO y el link quedo animandose ("not
- * stable") hasta vencer los 30 segundos.
+ * Con la seccion plegada el link igual figura como visible —tiene tamanio— pero el
+ * clic lo intercepta el `li` de la seccion, asi que preguntar por `isVisible()` no
+ * sirve. **Tampoco alcanza la clase `open`**: el propio BO no se guia por ella sino
+ * por la ALTURA del submenu (`main.js:357`, `subMenu.height()`), y una pantalla
+ * puede cargar con su seccion desplegada sin esa clase. Aca se usa ese mismo
+ * criterio.
+ *
+ * Los dos fallos que motivaron esto fueron de la navegacion, no del BO:
+ *   - corrida 79: la seccion estaba desplegada, el test le hizo clic igual, la
+ *     plego, y el link quedo animandose ("not stable") hasta los 30 segundos;
+ *   - corrida 83: la seccion estaba plegada pero sin la clase `open`, no se
+ *     desplego, y el clic lo intercepto el `li` de la seccion.
  */
-export async function clicEnMenuDelBO(item: Locator) {
-  const seccion = item.locator('xpath=ancestor::li[contains(@class,"menu-accordion")][1]');
-  if (await seccion.count()) {
-    const abierta = await seccion.first().evaluate((li) => li.classList.contains('open'));
-    if (!abierta) await seccion.first().locator('xpath=./a').first().click();
+export async function clicEnMenuDelBO(item: Locator) {
+  const seccion = item.locator('xpath=ancestor::li[contains(@class,"menu-accordion")][1]').first();
+  const desplegada = () => seccion.evaluate((li) => {
+    const sub = li.querySelector(':scope > ul.sub-menu') as HTMLElement | null;
+    return !!sub && sub.getBoundingClientRect().height > 0;
+  });
+
+  if (await seccion.count() && !(await desplegada())) {
+    await seccion.locator('xpath=./a').first().click();
+    // Se espera a que el submenu termine de desplegarse: mientras se desliza, el
+    // link se mueve y el clic no agarra.
+    await expect.poll(desplegada, { timeout: 15_000 }).toBe(true);
   }
-  // El clic espera solo a que el link deje de moverse mientras la seccion se abre.
   await item.click({ timeout: 30_000 });
 }
 
