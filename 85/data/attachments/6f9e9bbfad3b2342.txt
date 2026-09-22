@@ -1,0 +1,4 @@
+Orden: OP0000038103 (id 38103)
+Total: USD 6,00
+Factura a imputar despues: 0001-22202639
+File: AM-0000030040-01

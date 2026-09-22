@@ -1,0 +1,18 @@
+{
+  "proveedor": "GRUPO SUMMA",
+  "razonSocial": "GRUPO SUMMA SRL",
+  "documento": "30-71422246-1",
+  "medioDePago": "Efectivo",
+  "tipo": "Factura A",
+  "sucursal": "Argentina",
+  "moneda": "USD",
+  "monedaPorDefecto": "ARS",
+  "puntoDeVenta": "0001",
+  "numero": "22202421",
+  "plazoDePago": 30,
+  "comentario": "Factura de regresion automatica 20260922202421. No operar.",
+  "comentarioDeLaImputacion": "AUTO-QA 22202421",
+  "total": "6,00",
+  "fecha": "22/09/2026",
+  "file": "AM-0000030037-01"
+}

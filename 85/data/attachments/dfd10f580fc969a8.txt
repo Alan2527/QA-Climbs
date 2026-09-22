@@ -1,0 +1,5 @@
+File: AM-0000030042-01
+Factura de proveedor: 0001-22202814
+Orden de pago: OP0000038104 (id 38104)
+Caja: AUTO-QA NO TOCAR - CAJA USD
+Pagado: USD 6,00

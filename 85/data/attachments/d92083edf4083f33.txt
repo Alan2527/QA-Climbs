@@ -1,0 +1,2 @@
+Factura de proveedor: 0001-22202901 (id 89012), sin imputar
+Orden de pago: id 38105, sin aprobar

@@ -1,2 +1,0 @@
-en pantalla: ["AUTO-QA Gastronomía","AUTO-QA Nocturno"]
-de la base:  ["AUTO-QA Gastronomía","AUTO-QA Nocturno"]

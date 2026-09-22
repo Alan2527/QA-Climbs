@@ -1,0 +1,172 @@
+{
+  "corrida": 85,
+  "fecha": "2026-09-22T20:22:27.751Z",
+  "duracionMs": 417183.496,
+  "estado": "sin-fallas",
+  "suite": "bloque-c",
+  "filtro": null,
+  "evento": "workflow_dispatch",
+  "commit": "9494ed691df238ba8ea272a045f9a56b9da4f4a8",
+  "enlaces": {
+    "allure": "https://alan2527.github.io/QA-Climbs/85/",
+    "github": "https://github.com/Alan2527/QA-Climbs/actions/runs/35779651188"
+  },
+  "totales": {
+    "total": 11,
+    "paso": 11,
+    "fallo": 0,
+    "inestable": 0,
+    "omitida": 0
+  },
+  "areas": {
+    "cobranzas": {
+      "total": 9,
+      "paso": 9,
+      "fallo": 0,
+      "inestable": 0,
+      "omitida": 0
+    },
+    "preparacion": {
+      "total": 2,
+      "paso": 2,
+      "fallo": 0,
+      "inestable": 0,
+      "omitida": 0
+    }
+  },
+  "erroresGlobales": [],
+  "pruebas": [
+    {
+      "area": "preparacion",
+      "archivo": "auth.setup.ts",
+      "linea": 10,
+      "grupo": "",
+      "titulo": "Login en el front de QA",
+      "proyecto": "Login",
+      "estado": "paso",
+      "duracionMs": 3306,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "preparacion",
+      "archivo": "precondiciones.setup.ts",
+      "linea": 80,
+      "grupo": "",
+      "titulo": "Precondiciones: los datos AUTO-QA estan en QA",
+      "proyecto": "Precondiciones - Bloque C",
+      "estado": "paso",
+      "duracionMs": 6084,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "cobranzas",
+      "archivo": "bloque-c/caja-diaria.spec.ts",
+      "linea": 52,
+      "grupo": "Cobranzas",
+      "titulo": "Caja diaria: recibe el pago y el cobro del mismo file y cuadra",
+      "proyecto": "Climbs - Bloque C: Cobranzas",
+      "estado": "paso",
+      "duracionMs": 69621,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "cobranzas",
+      "archivo": "bloque-c/factura-cliente.spec.ts",
+      "linea": 52,
+      "grupo": "Cobranzas",
+      "titulo": "Factura al cliente: se emite sobre el file y toma sus conceptos",
+      "proyecto": "Climbs - Bloque C: Cobranzas",
+      "estado": "paso",
+      "duracionMs": 29817,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "cobranzas",
+      "archivo": "bloque-c/factura-proveedor.spec.ts",
+      "linea": 52,
+      "grupo": "Cobranzas",
+      "titulo": "Factura de proveedor: se carga sobre el file y se imputa al item",
+      "proyecto": "Climbs - Bloque C: Cobranzas",
+      "estado": "paso",
+      "duracionMs": 39505,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "cobranzas",
+      "archivo": "bloque-c/liquidacion.spec.ts",
+      "linea": 33,
+      "grupo": "Cobranzas — liquidacion",
+      "titulo": "Liquidacion: se arma desde el file, guarda lo editado y se regenera",
+      "proyecto": "Climbs - Bloque C: Cobranzas",
+      "estado": "paso",
+      "duracionMs": 31584,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "cobranzas",
+      "archivo": "bloque-c/no-asignados.spec.ts",
+      "linea": 52,
+      "grupo": "Cobranzas — bandejas de no asignados",
+      "titulo": "No asignados: el item y la factura figuran pendientes y salen al imputar",
+      "proyecto": "Climbs - Bloque C: Cobranzas",
+      "estado": "paso",
+      "duracionMs": 53918,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "cobranzas",
+      "archivo": "bloque-c/no-asignados.spec.ts",
+      "linea": 147,
+      "grupo": "Cobranzas — bandejas de no asignados",
+      "titulo": "No asignados: la orden de pago aprobada figura sin imputar y sale al imputarla",
+      "proyecto": "Climbs - Bloque C: Cobranzas",
+      "estado": "paso",
+      "duracionMs": 69832,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "cobranzas",
+      "archivo": "bloque-c/orden-de-cobro.spec.ts",
+      "linea": 52,
+      "grupo": "Cobranzas",
+      "titulo": "Orden de cobro: cobra el comprobante del cliente en la caja de regresion",
+      "proyecto": "Climbs - Bloque C: Cobranzas",
+      "estado": "paso",
+      "duracionMs": 37792,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "cobranzas",
+      "archivo": "bloque-c/orden-de-pago.spec.ts",
+      "linea": 52,
+      "grupo": "Cobranzas",
+      "titulo": "Orden de pago: cancela la factura del proveedor desde la caja de regresion",
+      "proyecto": "Climbs - Bloque C: Cobranzas",
+      "estado": "paso",
+      "duracionMs": 46566,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "cobranzas",
+      "archivo": "bloque-c/validaciones-bo.spec.ts",
+      "linea": 52,
+      "grupo": "Cobranzas",
+      "titulo": "Validaciones: el BO rechaza lo que no debe permitir",
+      "proyecto": "Climbs - Bloque C: Cobranzas",
+      "estado": "paso",
+      "duracionMs": 24977,
+      "intentos": 1,
+      "error": null
+    }
+  ]
+}
