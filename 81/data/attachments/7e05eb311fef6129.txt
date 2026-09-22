@@ -1,0 +1,3 @@
+pasos: Availability | Passengers | Summary
+mes del calendario: Octubre 2026
+aviso de habitaciones: Select a departure date to set up your rooms.

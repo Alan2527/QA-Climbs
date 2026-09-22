@@ -1,0 +1,26 @@
+{
+  "servicio": "AUTO-QA NO TOCAR - Tigre y Delta",
+  "terminoDeBusqueda": "Tigre y Delta",
+  "modalidad": "Regular",
+  "fecha": "29/09/2026",
+  "referencia": "AUTO-QA 20260922151558",
+  "observaciones": "Reserva de regresion automatica 20260922151558. No operar.",
+  "detalleDelItem": "Vuelo de llegada AR1234 20260922151558",
+  "cantidadPax": 2,
+  "pasajeros": [
+    {
+      "nombre": "PasajeroUno",
+      "apellido": "RegresionBFBFFI",
+      "pasaporte": "QA221515581",
+      "nacimiento": "01/03/1990",
+      "nacionalidad": "Argentina"
+    },
+    {
+      "nombre": "PasajeroDos",
+      "apellido": "RegresionBFBFFI",
+      "pasaporte": "QA221515582",
+      "nacimiento": "02/03/1990",
+      "nacionalidad": "Argentina"
+    }
+  ]
+}

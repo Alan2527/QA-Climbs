@@ -1,0 +1,3 @@
+proyecto: Precondiciones - Bloque A
+tarifario: paquetes, excursiones, hoteles, traslados, cenaShow, cruceros, ofertas
+series: no

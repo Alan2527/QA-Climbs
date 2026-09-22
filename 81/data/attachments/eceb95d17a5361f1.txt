@@ -1,0 +1,5 @@
+item: AUTO-QA NO TOCAR - Tigre y Delta
+
+cart.page.title: Order summary
+cart.saveQuote: Save quote
+cart.continue: Continue
