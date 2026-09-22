@@ -2,7 +2,34 @@
  * Logica del monitoreo, sin nada de Cloudflare: se prueba en Node con un fetch
  * y un reloj falsos (test/monitor.test.mjs).
  */
-import { FALLAS_PARA_AVISAR, REPETIR_AVISO_MIN, TIMEOUT_MS } from './sitios.js';
+import { FALLAS_PARA_AVISAR, REPETIR_AVISO_MIN, TIMEOUT_MS, MAX_BYTES_A_LEER } from './sitios.js';
+
+/**
+ * Busca un texto en el cuerpo de la respuesta leyendolo de a partes, y corta apenas
+ * lo encuentra o al llegar a `max` bytes. Asi no se decodifica la pagina entera:
+ * con muchos sitios, eso es lo que consume el tiempo de procesador del plan gratis.
+ */
+export async function cuerpoContiene(respuesta, texto, max = MAX_BYTES_A_LEER) {
+  if (!respuesta.body) return (await respuesta.text()).includes(texto);
+  const lector = respuesta.body.getReader();
+  const decodificador = new TextDecoder();
+  let leido = '';
+  let bytes = 0;
+  try {
+    while (bytes < max) {
+      const { done, value } = await lector.read();
+      if (done) break;
+      bytes += value.byteLength;
+      leido += decodificador.decode(value, { stream: true });
+      if (leido.includes(texto)) return true;
+      // Solo hace falta guardar la cola, por si el texto quedo partido entre dos partes.
+      leido = leido.slice(-texto.length);
+    }
+    return false;
+  } finally {
+    lector.cancel().catch(() => {});
+  }
+}
 
 /** Consulta un sitio. Nunca tira: cualquier error es un sitio caido con su motivo. */
 export async function chequear(sitio, fetchImpl = fetch) {
@@ -14,13 +41,14 @@ export async function chequear(sitio, fetchImpl = fetch) {
       headers: { 'User-Agent': 'AMV-Monitoreo/1.0 (+Climbs QA)' },
     });
     const ms = Date.now() - inicio;
-    if (r.status >= 400) return { ok: false, status: r.status, ms, motivo: `respondió ${r.status}` };
-    if (sitio.contiene) {
-      const cuerpo = await r.text();
-      if (!cuerpo.includes(sitio.contiene)) {
-        return { ok: false, status: r.status, ms, motivo: 'respondió, pero sin la pantalla de ingreso' };
-      }
+    if (r.status >= 400) {
+      r.body?.cancel().catch(() => {});
+      return { ok: false, status: r.status, ms, motivo: `respondió ${r.status}` };
     }
+    if (sitio.contiene && !(await cuerpoContiene(r, sitio.contiene))) {
+      return { ok: false, status: r.status, ms, motivo: 'respondió, pero sin el contenido esperado' };
+    }
+    if (!sitio.contiene) r.body?.cancel().catch(() => {});
     return { ok: true, status: r.status, ms };
   } catch (e) {
     const ms = Date.now() - inicio;

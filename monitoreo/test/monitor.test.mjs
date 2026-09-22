@@ -1,7 +1,7 @@
 // node --test monitoreo/test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chequear, evaluar, cambioRelevante, mensajeDeAvisos, mensajeDiario, duracion } from '../src/monitor.js';
+import { chequear, cuerpoContiene, evaluar, cambioRelevante, mensajeDeAvisos, mensajeDiario, duracion } from '../src/monitor.js';
 import { SITIOS } from '../src/sitios.js';
 
 const MIN = 60000;
@@ -59,7 +59,7 @@ test('chequear: 200 con el login, 200 sin el login, 500, error de red y timeout'
   const sitio = { url: 'https://x/', contiene: 'txtPassword' };
   const resp = (status, body) => async () => new Response(body, { status });
   assert.equal((await chequear(sitio, resp(200, '<input id="txtPassword">'))).ok, true);
-  assert.match((await chequear(sitio, resp(200, 'Sitio en mantenimiento'))).motivo, /sin la pantalla de ingreso/);
+  assert.match((await chequear(sitio, resp(200, 'Sitio en mantenimiento'))).motivo, /sin el contenido esperado/);
   assert.match((await chequear(sitio, resp(500, 'error'))).motivo, /respondió 500/);
   assert.match((await chequear(sitio, async () => { throw new TypeError('fetch failed'); })).motivo, /no se pudo conectar/);
   const timeout = async () => { const e = new Error('t'); e.name = 'TimeoutError'; throw e; };
@@ -67,14 +67,37 @@ test('chequear: 200 con el login, 200 sin el login, 500, error de red y timeout'
 });
 
 test('mensajes de Teams', () => {
-  const m = mensajeDeAvisos([{ tipo: 'cayo', id: 'portal', motivo: 'respondió 503' }], SITIOS, T0);
+  const m = mensajeDeAvisos([{ tipo: 'cayo', id: 'amv-portal', motivo: 'respondió 503' }], SITIOS, T0);
   assert.equal(m.attachments[0].contentType, 'application/vnd.microsoft.card.adaptive');
-  assert.match(JSON.stringify(m), /Portal online se cayó/);
+  assert.match(JSON.stringify(m), /AMV · Portal se cayó/);
   assert.equal(mensajeDeAvisos([], SITIOS, T0), null);
-  const d = mensajeDiario({ portal: { caido: false, ultimoMs: 900 } }, SITIOS, T0);
+  const d = mensajeDiario({ 'amv-portal': { caido: false, ultimoMs: 900 } }, SITIOS, T0);
   assert.match(JSON.stringify(d), /Monitoreo activo/);
   // Solo aparecen los sitios activos: un sitio desactivado no va al resumen.
-  const soloPortal = SITIOS.map((s) => ({ ...s, activo: s.id === 'portal' }));
+  const soloPortal = SITIOS.map((s) => ({ ...s, activo: s.id === 'amv-portal' }));
   assert.doesNotMatch(JSON.stringify(mensajeDiario({}, soloPortal, T0)), /BackOffice/);
   assert.equal(duracion(135), '2 h 15 min');
+});
+
+test('la lista por cliente arma un chequeo por direccion, sin repetidos', () => {
+  const activos = SITIOS.filter((s) => s.activo);
+  assert.equal(activos.length, 18);
+  assert.equal(new Set(SITIOS.map((s) => s.id)).size, SITIOS.length);
+  const porId = Object.fromEntries(SITIOS.map((s) => [s.id, s]));
+  assert.equal(porId['amv-portal'].url, 'https://amv.travel/login.aspx');
+  assert.equal(porId['kinich-sherpa'].url, 'https://sherpa.kinich.com/');
+  assert.equal(porId['gps-api'].url, 'https://api.gps-travel.com.ar/location/getlanguages');
+  assert.equal(porId['amv-apiIa'].url, 'https://api.net.amv.travel/health');
+  assert.equal(porId['climbs-api'].activo, false);
+  for (const s of activos) assert.ok(s.contiene, `${s.id} tiene que exigir un contenido`);
+});
+
+test('cuerpoContiene: encuentra el texto partido entre dos partes y respeta el maximo', async () => {
+  const enPartes = (...partes) => new Response(new ReadableStream({
+    start(c) { for (const p of partes) c.enqueue(new TextEncoder().encode(p)); c.close(); },
+  }));
+  assert.equal(await cuerpoContiene(enPartes('<input id="txtPass', 'word">'), 'txtPassword'), true);
+  assert.equal(await cuerpoContiene(enPartes('nada', 'por aca'), 'txtPassword'), false);
+  // Mas alla del maximo no se busca.
+  assert.equal(await cuerpoContiene(enPartes('x'.repeat(100), 'txtPassword'), 'txtPassword', 50), false);
 });

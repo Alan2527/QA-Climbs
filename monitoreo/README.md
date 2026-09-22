@@ -11,6 +11,26 @@ el formulario (`txtPassword`). Un 200 con una página de error cuenta como caíd
 Qué se vigila y con qué criterio: `src/sitios.js`. El portal se chequea en `/login.aspx` y no en `/online/`, que en producción redirige a `/home/` y no trae el formulario en el HTML. La API está declarada pero
 desactivada hasta tener un endpoint liviano confirmado por el dev.
 
+## Sumar un cliente o un sitio
+
+Todo se declara en `src/sitios.js`:
+
+- **Un cliente nuevo** es una entrada más en `CLIENTES`, con sus direcciones:
+
+  ```js
+  { id: 'nuevo', nombre: 'Cliente Nuevo', portal: 'https://portal.nuevo.com',
+    sherpa: 'https://sherpa.nuevo.com', api: 'https://api.nuevo.com' },
+  ```
+
+  Cada dirección arma sola su chequeo: el portal en `/login.aspx`, el BackOffice en
+  su raíz y la API en `/location/getlanguages`, con el contenido que tienen que traer.
+- **Un sitio que no sigue ese patrón** (un sitio público, otra API) va en `OTROS`,
+  con su dirección y el texto que tiene que traer la respuesta.
+- `activo: false` lo deja declarado sin vigilar.
+
+Antes de sumarlo, probar la dirección a mano y confirmar que el texto esperado
+aparece. Después `npm test` y desplegar.
+
 ## Desplegarlo por primera vez
 
 1. Crear la cuenta gratis en https://dash.cloudflare.com/sign-up con el mail laboral
