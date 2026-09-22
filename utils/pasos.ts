@@ -168,6 +168,28 @@ export function alinearVigencias(filas: string[][], hoyDeLasFilas: Date, hoy: Da
   return salida;
 }
 
+/**
+ * Hace clic en un link del menu lateral del BO, abriendo su seccion solo si esta
+ * cerrada.
+ *
+ * Con la seccion cerrada, el link igual figura como visible, pero el clic lo
+ * intercepta el encabezado de la seccion: por eso no sirve preguntar si se ve. Lo
+ * que dice si esta abierta es la clase `open` del `li.menu-accordion`
+ * (bo.base.css). Hasta el 2026-09-22 las pantallas del Bloque C probaban el clic 5
+ * segundos y, si no respondia, le hacian clic a la seccion: en la corrida 79 la
+ * seccion ya estaba abierta, ese clic la CERRO y el link quedo animandose ("not
+ * stable") hasta vencer los 30 segundos.
+ */
+export async function clicEnMenuDelBO(item: Locator) {
+  const seccion = item.locator('xpath=ancestor::li[contains(@class,"menu-accordion")][1]');
+  if (await seccion.count()) {
+    const abierta = await seccion.first().evaluate((li) => li.classList.contains('open'));
+    if (!abierta) await seccion.first().locator('xpath=./a').first().click();
+  }
+  // El clic espera solo a que el link deje de moverse mientras la seccion se abre.
+  await item.click({ timeout: 30_000 });
+}
+
 /** Fecha de busqueda estandar de la suite: hoy + 7 dias. */
 export function fechaDeBusqueda(diasExtra = 7): Date {
   const d = new Date();

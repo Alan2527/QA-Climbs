@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { esperarFinDeCarga } from '../utils/pasos';
+import { esperarFinDeCarga, clicEnMenuDelBO } from '../utils/pasos';
 
 /**
  * Factura al cliente: el tercer eslabon de la cadena de cobranzas.
@@ -74,17 +74,9 @@ export class FacturaClientePage {
     const item = this.page.locator(enlace).filter({ hasText: 'Nuevo Compr' }).first();
 
     // El acordeon deja el item con tamano aunque este colapsado: `isVisible()`
-    // devuelve true y el clic lo intercepta el encabezado "Facturacion". En vez
-    // de adivinar en que estado esta el menu, se intenta el clic y, si lo tapan,
-    // se abre el padre y se reintenta. Sirve tanto viniendo de una pantalla que
-    // dejo el menu abierto como de una que lo dejo cerrado.
-    const padre = item.locator('xpath=ancestor::li[contains(@class,"menu-accordion")][1]/a').first();
-    try {
-      await item.click({ timeout: 5_000 });
-    } catch {
-      await padre.click();
-      await item.click({ timeout: 30_000 });
-    }
+    // devuelve true y el clic lo intercepta el encabezado "Facturacion".
+    // La seccion del menu se abre solo si esta cerrada: ver clicEnMenuDelBO en utils/pasos.
+    await clicEnMenuDelBO(item);
     await this.page.waitForURL(/newinvoice/i, { timeout: 60_000 });
     await this.page.waitForLoadState('domcontentloaded');
     await esperarFinDeCarga(this.page);

@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { esperarFinDeCarga } from '../utils/pasos';
+import { esperarFinDeCarga, clicEnMenuDelBO } from '../utils/pasos';
 
 /**
  * Orden de cobro: el cuarto eslabon de la cadena de cobranzas.
@@ -91,20 +91,13 @@ export class OrdenDeCobroPage {
    * Entra a la bandeja por el menu lateral.
    *
    * El acordeon deja el item con tamano aunque este colapsado, asi que preguntar
-   * por `isVisible()` no sirve: se intenta el clic y, si lo tapa el encabezado,
-   * se abre el padre y se reintenta.
+   * por `isVisible()` no sirve: la seccion se abre solo si esta cerrada (ver
+   * clicEnMenuDelBO en utils/pasos).
    */
   async irABandejaDeOrdenes() {
     const enlace = "a[href$='administration/chargeorders']";
     const item = this.page.locator(enlace).first();
-    const padre = item.locator('xpath=ancestor::li[contains(@class,"menu-accordion")][1]/a').first();
-
-    try {
-      await item.click({ timeout: 5_000 });
-    } catch {
-      await padre.click();
-      await item.click({ timeout: 30_000 });
-    }
+    await clicEnMenuDelBO(item);
     await this.page.waitForURL(/chargeorders/i, { timeout: 60_000 });
     await this.page.waitForLoadState('domcontentloaded');
   }

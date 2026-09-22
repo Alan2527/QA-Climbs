@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { esperarFinDeCarga } from '../utils/pasos';
+import { esperarFinDeCarga, clicEnMenuDelBO } from '../utils/pasos';
 
 /**
  * Orden de pago: el segundo eslabon de la cadena de cobranzas.
@@ -101,14 +101,7 @@ export class OrdenDePagoPage {
   async irABandejaDeOrdenes() {
     const enlace = "a[href$='administration/payorders']";
     const item = this.page.locator(enlace).first();
-    const padre = item.locator('xpath=ancestor::li[contains(@class,"menu-accordion")][1]/a').first();
-
-    try {
-      await item.click({ timeout: 5_000 });
-    } catch {
-      await padre.click();
-      await item.click({ timeout: 30_000 });
-    }
+    await clicEnMenuDelBO(item);
     await this.page.waitForURL(/payorders/i, { timeout: 60_000 });
     await this.page.waitForLoadState('domcontentloaded');
   }

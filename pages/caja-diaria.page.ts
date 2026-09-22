@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { esperarFinDeCarga } from '../utils/pasos';
+import { esperarFinDeCarga, clicEnMenuDelBO } from '../utils/pasos';
 
 /**
  * Caja diaria: el quinto y ultimo eslabon de la cadena de cobranzas.
@@ -51,18 +51,11 @@ export class CajaDiariaPage {
   readonly btnPreCierre = '#btnReview';
   readonly btnCierreDefinitivo = '#lnkClose';
 
-  /** Entra a la bandeja por el menu, abriendo el padre solo si el clic se traba. */
+  /** Entra a la bandeja por el menu (Administracion > Movimientos > Gastos & Mov.), con clicEnMenuDelBO. */
   async irABandejaDeCajas() {
     const enlace = "a[href$='administration/movements/daily-expenses']";
     const item = this.page.locator(enlace).first();
-    const padre = item.locator('xpath=ancestor::li[contains(@class,"menu-accordion")][1]/a').first();
-
-    try {
-      await item.click({ timeout: 5_000 });
-    } catch {
-      await padre.click();
-      await item.click({ timeout: 30_000 });
-    }
+    await clicEnMenuDelBO(item);
     await this.page.waitForURL(/daily-expenses/i, { timeout: 60_000 });
     await this.page.waitForLoadState('domcontentloaded');
     await esperarFinDeCarga(this.page);
