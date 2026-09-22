@@ -1,0 +1,9 @@
+Total de venta que vio la persona: USD 860
+  (WholesalerBookItem.TotalRate, y la columna V. Markup del detalle)
+Neto que llevan el historial, la bandeja y el file: USD 430
+  (WholesalerBookItem.NetTotalCost redondeado hacia arriba)
+
+El precio de venta no queda guardado en el file: se calcula al vuelo solo
+para mostrarlo en el detalle. Y el file toma su markup del Market de la
+agencia, no de la reserva, asi que tampoco se puede recomponer desde ahi.
+Queda como consulta para producto: es una decision de negocio.
