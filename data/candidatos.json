@@ -15,6 +15,8 @@
   "_prefijo": "AUTO-QA NO TOCAR - ",
   "tarifario": {
     "paquetes": {
+      "alinearVigencias": true,
+      "_alinearVigencias": "Igual que la oferta: la tabla viene en temporadas con precio propio y cada vez que termina una cambia la primera fila. El 2026-09-21 fallo por la ventana hasta el 19/09. Ver utils/pasos.ts, alinearVigencias.",
       "tab": "a-tours",
       "container": "tours-container",
       "id": 5059,

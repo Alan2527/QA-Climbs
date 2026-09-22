@@ -73,7 +73,8 @@ test('mensajes de Teams', () => {
   assert.equal(mensajeDeAvisos([], SITIOS, T0), null);
   const d = mensajeDiario({ portal: { caido: false, ultimoMs: 900 } }, SITIOS, T0);
   assert.match(JSON.stringify(d), /Monitoreo activo/);
-  // La API esta desactivada: no aparece en el resumen.
-  assert.doesNotMatch(JSON.stringify(d), /API/);
+  // Solo aparecen los sitios activos: un sitio desactivado no va al resumen.
+  const soloPortal = SITIOS.map((s) => ({ ...s, activo: s.id === 'portal' }));
+  assert.doesNotMatch(JSON.stringify(mensajeDiario({}, soloPortal, T0)), /BackOffice/);
   assert.equal(duracion(135), '2 h 15 min');
 });

@@ -40,9 +40,13 @@ export const SITIOS = [
     nombre: 'API',
     // Falta la consulta liviana: la raiz responde 403 y las rutas del codigo dan 404
     // en QA. Se activa cuando el dev confirme que endpoint usar.
-    url: 'https://api.amv.travel/',
-    contiene: null,
-    activo: false,
+    // La API del proyecto (Whole.Api), la que usa el portal para el tarifario y las
+    // reservas. getlanguages es de solo lectura, sin login, y lee de la base: si
+    // responde con la lista de idiomas, la aplicacion y su base estan arriba.
+    // Verificado el 2026-09-21: 200 con 4 idiomas en QA y en produccion.
+    url: 'https://api.amv.travel/location/getlanguages',
+    contiene: '<WholesalerLanguage>',
+    activo: true,
   },
 ];
 
