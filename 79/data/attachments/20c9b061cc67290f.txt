@@ -1,2 +1,0 @@
-Factura de proveedor: 0001-22125358 (id 88983), sin imputar
-Orden de pago: id 38086, sin aprobar

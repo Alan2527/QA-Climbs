@@ -1,5 +1,0 @@
-{
-  "nombre": "MULTIVIAJES ARGENTINA SRL",
-  "documento": "",
-  "condicion": "Resp. Inscripto"
-}

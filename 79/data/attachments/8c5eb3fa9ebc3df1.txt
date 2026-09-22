@@ -1,5 +1,0 @@
-PasajeroUno | RegresionBCEDFD | QA221243531 | Argentina | 01/03/1990 | -- | ADL
-PasajeroDos | RegresionBCEDFD | QA221243532 | Argentina | 02/03/1990 | -- | ADL
-PasajeroTres | RegresionBCEDFD | QA221243533 | Argentina | 03/03/1990 | -- | ADL
-PasajeroCuatro | RegresionBCEDFD | QA221243534 | Argentina | 04/03/1990 | -- | ADL
-PasajeroCinco | RegresionBCEDFD | QA221243535 | Argentina | 05/10/2018 | -- | CHD

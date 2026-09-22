@@ -1,2 +1,0 @@
-2027-09-20: esperado 3, en QA 3
-2027-09-27: esperado 0, en QA 0
