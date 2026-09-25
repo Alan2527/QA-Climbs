@@ -1,5 +1,0 @@
-PasajeroUno | RegresionBFBHAB | QA221517011 | Argentina | 01/03/1990 | -- | ADL
-PasajeroDos | RegresionBFBHAB | QA221517012 | Argentina | 02/03/1990 | -- | ADL
-PasajeroTres | RegresionBFBHAB | QA221517013 | Argentina | 03/03/1990 | -- | ADL
-PasajeroCuatro | RegresionBFBHAB | QA221517014 | Argentina | 04/03/1990 | -- | ADL
-PasajeroCinco | RegresionBFBHAB | QA221517015 | Argentina | 05/10/2018 | -- | CHD

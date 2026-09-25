@@ -1,6 +1,40 @@
 {
-  "actualizado": "2026-09-22T20:29:35.717Z",
+  "actualizado": "2026-09-25T12:55:18.660Z",
   "corridas": [
+    {
+      "corrida": 86,
+      "fecha": "2026-09-25T12:43:45.043Z",
+      "duracionMs": 661869.005,
+      "estado": "con-fallas",
+      "suite": "bloque-b",
+      "filtro": null,
+      "evento": "workflow_dispatch",
+      "commit": "9494ed691df238ba8ea272a045f9a56b9da4f4a8",
+      "totales": {
+        "total": 16,
+        "paso": 9,
+        "fallo": 7,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "reservas": {
+          "total": 14,
+          "paso": 7,
+          "fallo": 7,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/86.json"
+    },
     {
       "corrida": 85,
       "fecha": "2026-09-22T20:22:27.751Z",

@@ -1,2 +1,0 @@
-PasajeroUno | RegresionBFBGDD | QA221516331 | Argentina | 01/03/1990 | -- | ADL
-PasajeroDos | RegresionBFBGDD | QA221516332 | Argentina | 02/03/1990 | -- | ADL

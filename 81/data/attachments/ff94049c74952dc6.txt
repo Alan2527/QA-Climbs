@@ -1,5 +1,0 @@
-File: AM-0000030013-01
-Factura de proveedor: 0001-22152445
-Orden de pago: OP0000038093 (id 38093)
-Caja: AUTO-QA NO TOCAR - CAJA USD
-Pagado: USD 6,00

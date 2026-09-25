@@ -1,8 +1,0 @@
-{
-  "moneda": "USD",
-  "ordenTotal": "10",
-  "ordenPendiente": "10",
-  "comprobanteTotal": "10",
-  "comprobantePendiente": "10",
-  "montoPropuesto": ""
-}

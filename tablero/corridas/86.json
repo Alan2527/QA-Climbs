@@ -1,0 +1,232 @@
+{
+  "corrida": 86,
+  "fecha": "2026-09-25T12:43:45.043Z",
+  "duracionMs": 661869.005,
+  "estado": "con-fallas",
+  "suite": "bloque-b",
+  "filtro": null,
+  "evento": "workflow_dispatch",
+  "commit": "9494ed691df238ba8ea272a045f9a56b9da4f4a8",
+  "enlaces": {
+    "allure": "https://alan2527.github.io/QA-Climbs/86/",
+    "github": "https://github.com/Alan2527/QA-Climbs/actions/runs/36136395116"
+  },
+  "totales": {
+    "total": 16,
+    "paso": 9,
+    "fallo": 7,
+    "inestable": 0,
+    "omitida": 0
+  },
+  "areas": {
+    "reservas": {
+      "total": 14,
+      "paso": 7,
+      "fallo": 7,
+      "inestable": 0,
+      "omitida": 0
+    },
+    "preparacion": {
+      "total": 2,
+      "paso": 2,
+      "fallo": 0,
+      "inestable": 0,
+      "omitida": 0
+    }
+  },
+  "erroresGlobales": [],
+  "pruebas": [
+    {
+      "area": "preparacion",
+      "archivo": "auth.setup.ts",
+      "linea": 10,
+      "grupo": "",
+      "titulo": "Login en el front de QA",
+      "proyecto": "Login",
+      "estado": "paso",
+      "duracionMs": 2982,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "preparacion",
+      "archivo": "precondiciones.setup.ts",
+      "linea": 80,
+      "grupo": "",
+      "titulo": "Precondiciones: los datos AUTO-QA estan en QA",
+      "proyecto": "Precondiciones - Bloque B",
+      "estado": "paso",
+      "duracionMs": 19885,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/anulacion.spec.ts",
+      "linea": 291,
+      "grupo": "Reservas — anulacion",
+      "titulo": "Servicio: una reserva emitida se puede cancelar y el portal lo refleja",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "paso",
+      "duracionMs": 28027,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/anulacion.spec.ts",
+      "linea": 350,
+      "grupo": "Reservas — anulacion",
+      "titulo": "Hotel: una reserva emitida se puede cancelar y el portal lo refleja",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "fallo",
+      "duracionMs": 69097,
+      "intentos": 1,
+      "error": "Error: El listado tiene que ofrecer el hotel 5003"
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/anulacion.spec.ts",
+      "linea": 413,
+      "grupo": "Reservas — anulacion",
+      "titulo": "Multidestino: una reserva emitida se puede cancelar y el portal lo refleja",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "fallo",
+      "duracionMs": 39273,
+      "intentos": 1,
+      "error": "Error: El armado tiene que quedar con la fecha de inicio elegida"
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/anulacion.spec.ts",
+      "linea": 457,
+      "grupo": "Reservas — anulacion",
+      "titulo": "Serie: una reserva emitida se puede cancelar y el portal lo refleja",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "paso",
+      "duracionMs": 30000,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/multiidioma-reservas.spec.ts",
+      "linea": 82,
+      "grupo": "Reservas — multiidioma",
+      "titulo": "Carrito y checkout: el servicio se muestra en el idioma elegido",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "fallo",
+      "duracionMs": 27064,
+      "intentos": 1,
+      "error": "Error: En Inglés el carrito tiene que mostrar el nombre de ese idioma, el que tiene cargado ServiceDetail"
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/multiidioma-reservas.spec.ts",
+      "linea": 211,
+      "grupo": "Reservas — multiidioma",
+      "titulo": "Multidestino: armado, detalle y carrito se muestran en el idioma elegido",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "fallo",
+      "duracionMs": 61992,
+      "intentos": 1,
+      "error": "TimeoutError: locator.click: Timeout 30000ms exceeded."
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/reservas-circuitos.spec.ts",
+      "linea": 30,
+      "grupo": "Reservas",
+      "titulo": "Oferta: la reserva emitida conserva los datos en el BackOffice",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "fallo",
+      "duracionMs": 41652,
+      "intentos": 1,
+      "error": "Error: El armado tiene que quedar con la fecha de inicio elegida"
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/reservas-circuitos.spec.ts",
+      "linea": 114,
+      "grupo": "Reservas",
+      "titulo": "Multidestino: la reserva emitida conserva los datos en el BackOffice",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "fallo",
+      "duracionMs": 41241,
+      "intentos": 1,
+      "error": "Error: El armado tiene que quedar con la fecha de inicio elegida"
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/reservas-clasico.spec.ts",
+      "linea": 32,
+      "grupo": "Reservas",
+      "titulo": "Servicio: la reserva emitida conserva los datos en el BackOffice",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "paso",
+      "duracionMs": 59604,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/reservas-clasico.spec.ts",
+      "linea": 239,
+      "grupo": "Reservas",
+      "titulo": "Hotel: la reserva emitida conserva los datos en el BackOffice",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "paso",
+      "duracionMs": 30631,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/reservas-series.spec.ts",
+      "linea": 76,
+      "grupo": "Reservas",
+      "titulo": "Serie: la reserva emitida conserva los datos en el BackOffice",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "fallo",
+      "duracionMs": 61690,
+      "intentos": 1,
+      "error": "Error: La reserva BO00025316 tiene que estar en la bandeja Online"
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/reservas-series.spec.ts",
+      "linea": 490,
+      "grupo": "Reservas",
+      "titulo": "Serie: el asistente no deja avanzar con datos incompletos",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "paso",
+      "duracionMs": 93733,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/reservas-series.spec.ts",
+      "linea": 870,
+      "grupo": "Reservas",
+      "titulo": "Serie: las pantallas se muestran en el idioma elegido",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "paso",
+      "duracionMs": 15402,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "reservas",
+      "archivo": "bloque-b/validaciones.spec.ts",
+      "linea": 37,
+      "grupo": "Reservas — validaciones",
+      "titulo": "Checkout: el portal no deja emitir una reserva incompleta",
+      "proyecto": "Climbs - Bloque B: Reservas",
+      "estado": "paso",
+      "duracionMs": 16473,
+      "intentos": 1,
+      "error": null
+    }
+  ]
+}

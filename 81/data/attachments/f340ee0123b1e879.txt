@@ -1,8 +1,0 @@
-{
-  "moneda": "USD",
-  "facturaTotal": "6",
-  "facturaPendiente": "6",
-  "servicioTotal": "6",
-  "servicioPendiente": "6",
-  "montoPropuesto": ""
-}

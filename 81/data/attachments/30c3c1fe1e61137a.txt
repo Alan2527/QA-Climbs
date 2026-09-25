@@ -1,2 +1,0 @@
-Factura de proveedor: 0001-22152529 (id 88995), sin imputar
-Orden de pago: id 38094, sin aprobar

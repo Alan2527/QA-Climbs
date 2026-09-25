@@ -1,5 +1,0 @@
-Reserva: BO00025270
-File: AM-0000030008-01 (id 33222)
-Factura de proveedor: 0001-22152116 (id 88991)
-Proveedor: GRUPO SUMMA SRL
-Total imputado: USD 6,00
