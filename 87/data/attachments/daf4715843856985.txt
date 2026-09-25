@@ -1,0 +1,6 @@
+File: AM-0000030051-01
+Factura de proveedor: 0001-25173735
+Orden de pago: OP0000038108 (costo 6)
+Comprobante al cliente: CC00010-00000000
+Orden de cobro: OC0000020193 (venta 10)
+Utilidad: 4

@@ -1,0 +1,2 @@
+Factura de proveedor: 0001-25174357 (id 89018), sin imputar
+Orden de pago: id 38111, sin aprobar

@@ -1,0 +1,3 @@
+Habitación 1 · Doble · 2 adultos | Habitación 2 · Doble · 2 adultos · 1 menor
+Habitacion 1: ADULTO 1 | ADULTO 2
+Habitacion 2: ADULTO 1 | ADULTO 2 | MENOR 3 (8 AÑOS)

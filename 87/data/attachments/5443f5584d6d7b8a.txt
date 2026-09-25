@@ -1,0 +1,7 @@
+Reserva: BO00025363
+File: AM-0000030058-01 (id 33272)
+Servicio: AUTO-QA NO TOCAR - Tigre y Delta
+Pasajero: PasajeroUno RegresionBHEDBB
+Cliente: MULTIVIAJES ARGENTINA SRL
+Costo del item: USD 6
+Venta del item: USD 10

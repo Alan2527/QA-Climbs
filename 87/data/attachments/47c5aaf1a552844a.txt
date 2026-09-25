@@ -1,0 +1,8 @@
+titulo de la card: AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia
+pastillas: ["6 días / 5 noches"]
+
+BUENOS AIRES » USHUAIA
+AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia6 días / 5 noches
+Paquete de datos fijos para pruebas automatizadas. No modificar.Ver detalle
+Ver Tarifario
+Cotizar y reservar

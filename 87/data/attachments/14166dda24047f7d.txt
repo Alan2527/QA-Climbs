@@ -1,0 +1,4 @@
+Orden: OP0000038109 (id 38109)
+Total: USD 6,00
+Factura a imputar despues: 0001-25174142
+File: AM-0000030056-01
