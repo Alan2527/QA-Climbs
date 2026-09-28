@@ -1,2 +1,0 @@
-en pantalla: ["AUTO-QA Nocturno"]
-de la base:  ["AUTO-QA Nocturno"]
