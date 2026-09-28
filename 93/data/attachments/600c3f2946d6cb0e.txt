@@ -1,0 +1,8 @@
+item: AUTO-QA NO TOCAR - Tigre y Delta
+
+releaseNotes.button: Novedades
+cart.total.title: RESUMEN DE LA RESERVA
+cart.pax.single: Datos del pasajero
+cart.pax.hint: Tal cual figura en el pasaporte
+cart.pax.passportExp: VENCIMIENTO DEL PASAPORTE
+contact.subtitle: Le respondemos por email a la dirección que indique.

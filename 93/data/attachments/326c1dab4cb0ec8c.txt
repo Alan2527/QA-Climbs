@@ -1,0 +1,7 @@
+item: AUTO-QA NO TOCAR - Tigre y Delta
+
+releaseNotes.button: Novedades
+cart.page.title: Resumen de la compra
+cart.saveQuote: Guardar cotización
+cart.continue: Continuar
+contact.subtitle: Le respondemos por email a la dirección que indique.

@@ -1,0 +1,1 @@
+En la habitación 1, la fecha de nacimiento ingresada corresponde a 36 años, pero la edad elegida fue «8 años». Verificá la fecha o la edad seleccionada.

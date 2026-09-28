@@ -1,0 +1,8 @@
+item: AUTO-QA NO TOCAR - Tigre y Delta
+
+releaseNotes.button: What's new
+cart.total.title: BOOKING SUMMARY
+cart.pax.single: Passenger details
+cart.pax.hint: Exactly as shown on the passport
+cart.pax.passportExp: PASSPORT EXPIRATION DATE
+contact.subtitle: We will reply by email to the address you provide.

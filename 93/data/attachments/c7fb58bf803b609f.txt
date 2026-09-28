@@ -1,0 +1,1 @@
+× Cambiar categoría Al cambiar la categoría de hotelería se reiniciará la selección: se perderán las habitaciones y pasajeros ya cargados. ¿Querés continuar? Cancelar Sí, reiniciar
