@@ -1,8 +1,0 @@
-{
-  "moneda": "USD",
-  "inicial": "0",
-  "ingreso": "10",
-  "salida": "-6",
-  "balance": "4",
-  "final": "4"
-}

@@ -1,1 +1,0 @@
-El monto total no puede ser igual a 0

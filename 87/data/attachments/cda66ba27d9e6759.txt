@@ -1,5 +1,0 @@
-{
-  "razonSocial": "GRUPO SUMMA SRL",
-  "documento": "30-71422246-1",
-  "medioDePago": "Efectivo"
-}

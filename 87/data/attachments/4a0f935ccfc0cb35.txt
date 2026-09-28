@@ -1,3 +1,0 @@
-item: AUTO-QA NO TOCAR - Tigre y Delta
-
-cart.total.title: RESUMO DA RESERVA
