@@ -1,0 +1,1 @@
+[{"values":["QA"],"name":"Entorno"},{"values":["https://qa.amv.travel"],"name":"URL_Front"},{"values":["https://qa.bo.amv.travel"],"name":"URL_BackOffice"},{"values":["Playwright + Allure"],"name":"Framework"}]

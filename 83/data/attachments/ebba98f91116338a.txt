@@ -1,5 +1,0 @@
-EN LA BASE (completa, 64 car):
-Paquete de datos fijos para pruebas automatizadas. No modificar.
-
-EN LA CARD (recortada, 63 car):
-Paquete de datos fijos para pruebas automatizadas. No modificar.

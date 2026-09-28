@@ -1,8 +1,0 @@
-fuente: BO_HotelSupplier + BO_Supplier + BO_Operator por HotelID, Published = 1 y Deleted = 0, ordenado por DisplayOrder
-columnas: importancia | proveedor | operador | observacion
-
-ESPERADO (1):
-1 | PARK HYATT BUE |  | IMPORT DEFAULT
-
-EN PANTALLA (1):
-1 | PARK HYATT BUE |  | IMPORT DEFAULT

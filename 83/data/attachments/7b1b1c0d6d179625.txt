@@ -1,3 +1,0 @@
-proyecto: Precondiciones - Bloque B
-tarifario: paquetes, excursiones, hoteles, ofertas
-series: si

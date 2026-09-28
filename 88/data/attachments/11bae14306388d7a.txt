@@ -1,0 +1,4 @@
+tarifario / paquetes: no se pudo verificar en la pestania a-tours filtrando por Buenos Aires (locator.click: Timeout 30000ms exceeded.)
+tarifario / excursiones: no se pudo verificar en la pestania a-excursions filtrando por Buenos Aires (locator.click: Timeout 30000ms exceeded.)
+tarifario / hoteles: no se pudo verificar en la pestania a-hotels filtrando por Buenos Aires (locator.click: Timeout 30000ms exceeded.)
+tarifario / ofertas: no se pudo verificar en la pestania a-opportunities filtrando por Ushuaia (locator.click: Timeout 30000ms exceeded.)

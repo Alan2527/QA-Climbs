@@ -1,3 +1,0 @@
-proyecto: Precondiciones - Bloque C
-tarifario: excursiones
-series: no

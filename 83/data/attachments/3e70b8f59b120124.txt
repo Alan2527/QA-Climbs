@@ -1,4 +1,0 @@
-observaciones destacadas: []
-mas observaciones: null
-tooltips (0): []
-tag: "RECOMENDADO"

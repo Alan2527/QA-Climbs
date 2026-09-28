@@ -1,2 +1,0 @@
-esperadas: description, technical, calendar, amenities, policies
-en pantalla: description, technical, calendar, amenities, policies
