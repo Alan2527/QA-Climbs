@@ -848,7 +848,8 @@
           "capacidad": 3
         }
       ],
-      "salidas": 61,
+      "salidas": 41,
+      "_fuenteSalidas": "CruiseDeparture del crucero 14, recargada el 2026-09-28: una salida por cada DateTo futuro de sus tarifas. El deploy de la US 4517 la habia dejado vacia (antes tenia 61).",
       "tabKey": "cruise",
       "paramDeepLink": null,
       "cityIdBusqueda": 5010,
@@ -862,8 +863,7 @@
       },
       "botonTarifario": {
         "textoInicial": "Ver Tarifario",
-        "textoDesplegado": "Cerrar Tarifario",
-        "_hallazgoConocido": "Hoy el boton no cambia a Cerrar Tarifario: Cruceros no tiene CruiseTariffDetailControl.ascx, que es el que inyecta el boton con el recurso Advisor.Tariff.Service.Hide. Verificado en QA y en la rama preprod. El paso se deja escrito como corresponde y falla hasta que lo corrijan."
+        "textoDesplegado": "Cerrar Tarifario"
       },
       "elementos": {
         "imagen": true,

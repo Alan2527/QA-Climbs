@@ -1057,14 +1057,15 @@ test.describe('Tarifario', () => {
   // Las cabinas no figuran en la card del listado: se ven al abrir el detalle
   // ("Ver Tarifario"). Esa validacion queda para el test de detalle.
   //
-  // Cruceros arrastra dos defectos de la aplicacion y el test los muestra a los
-  // dos en la misma corrida, sin dar ninguno por esperado:
-  //   - el boton no pasa a "Cerrar Tarifario": no existe CruiseTariffDetailControl.ascx
-  //   - el modal "Ver detalle" no abre: el onclick tiene las comillas mal cerradas
-  //     (Online/Module/CruiseTariffControl.ascx, linea 48), lo que lo deja como
-  //     JavaScript invalido. Presente tambien en la rama preprod.
-  // Queda en rojo hasta que se corrijan: el paso no se puede ejecutar tal como
-  // esta escrito, y eso es el hallazgo.
+  // Cruceros arrastraba dos defectos de la aplicacion, los dos corregidos en QA al
+  // 28/09/2026: el boton no pasaba a "Cerrar Tarifario" y el modal "Ver detalle" no
+  // abria por un onclick con las comillas mal cerradas. Los pasos siguen exigiendo
+  // las dos cosas.
+  //
+  // Las tarifas solo se ven si estan asociadas a una salida (`CruiseDepartureID`,
+  // WholesalerRateService.GetCruiseRatesReport). El deploy de la US 4517 dejo
+  // `CruiseDeparture` vacia; el 28/09 se recargaron las 41 salidas del crucero 14,
+  // una por cada `DateTo` de sus tarifas.
   test('Cruceros: trae tarifas y muestra el crucero esperado', async ({ page }) => {
     const t = await validarItem(page, T.cruceros as Config, 'Cruceros');
     await validarImportes(page, t, 'cruceros', T.cruceros);
