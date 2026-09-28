@@ -1548,6 +1548,18 @@ que lo cubra: el criterio es que se lea bien, como en las demas pestanias.
 Lo marca en rojo el test de Paquetes, en el paso que exige que el explorador se abra
 con el nombre del paquete de la card.
 
+**Sigue corregido (verificado el 2026-09-28).** El 28/09 el test volvio a marcarlo, pero
+era la lectura del test y no la pantalla: desde el deploy del 26/09 el explorador muestra
+el nombre y, al lado, la duracion como pastilla aparte (`openTariffExplorer` agrega un
+`.tariff-category-tag` con lo que encuentra en la card), y `innerText` junta las dos cosas
+sin espacio. En la captura se lee bien. El paso ahora lee el nombre sin las pastillas, lo
+exige igual a `nombreEnLaCard` y, en Paquetes, exige la pastilla `pastillaDelTitulo`.
+
+El mismo dia se recapturaron las lineas base de Excursiones y Paquetes: la cotizacion del
+pais 10 (`CurrencyExchange` 509), la que usa pablo1, paso de 10.000 a 1.000, y todo lo que
+esta en pesos subio (la excursion 5 y, dentro del paquete, esa misma excursion). Las
+tarifas no cambiaron. Bloque A: 14 de 14 en verde.
+
 ## Lo que queda por hacer
 
 ### Auditoría de cobertura de la pantalla (2026-09-01)

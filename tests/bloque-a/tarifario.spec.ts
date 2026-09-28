@@ -900,10 +900,29 @@ test.describe('Tarifario', () => {
         ).toContain(cfg.botonTarifario.textoInicial);
         await expect(page.locator('#tariffExplorerModal'), 'El explorador de tarifas tiene que estar abierto')
           .toBeVisible();
-        const titulo = (await page.locator('#tariffExplorerTitle').innerText()).replace(/\s+/g, ' ').trim();
-        await adjuntarTexto('Titulo del explorador', titulo);
-        expect(titulo, 'El explorador tiene que abrirse con el nombre del paquete de la card')
-          .toContain(cfg.nombre);
+        // El titulo es el nombre y, al lado, una pastilla aparte (`.tariff-category-tag`):
+        // la categoria en Hoteles, la duracion en Paquetes. `innerText` junta las dos
+        // cosas sin espacio ("...Ushuaia6 dias / 5 noches") aunque en pantalla se vean
+        // separadas, asi que el nombre se lee sin las pastillas y cada cosa se compara
+        // por su lado.
+        const $titulo = page.locator('#tariffExplorerTitle');
+        const nombreEnTitulo = await $titulo.evaluate((el) => {
+          const copia = el.cloneNode(true) as HTMLElement;
+          copia.querySelectorAll('.tariff-category-tag').forEach((x) => x.remove());
+          return (copia.textContent ?? '').replace(/\s+/g, ' ').trim();
+        });
+        const pastillas = (await $titulo.locator('.tariff-category-tag').allInnerTexts())
+          .map((x) => x.replace(/\s+/g, ' ').trim());
+        await adjuntarTexto('Titulo del explorador',
+          'nombre:    ' + nombreEnTitulo + SALTO + 'pastillas: ' + (pastillas.join(' | ') || '(ninguna)'));
+        const esperado = (cfg as any).nombreEnLaCard ?? cfg.nombre;
+        expect(nombreEnTitulo, 'El explorador tiene que abrirse con el nombre del item de la card')
+          .toBe(esperado);
+        const pastillaEsperada = (cfg as any).pastillaDelTitulo as string | undefined;
+        if (pastillaEsperada) {
+          expect(pastillas, `Al lado del nombre tiene que ir la pastilla "${pastillaEsperada}", como en la card`)
+            .toEqual([pastillaEsperada]);
+        }
       });
       return tarifario;
     }
