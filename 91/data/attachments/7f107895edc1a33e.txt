@@ -1,0 +1,2 @@
+en pantalla: ["AUTO-QA Gastronomía"]
+de la base:  ["AUTO-QA Gastronomía"]

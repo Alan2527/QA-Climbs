@@ -1,3 +1,0 @@
-pasos: Disponibilidad | Pasajeros | Resumen
-mes del calendario: Octubre 2026
-aviso de habitaciones: Seleccioná una fecha de salida para configurar tus habitaciones.
