@@ -215,10 +215,11 @@ test.describe('Tarifario — multiidioma del encabezado', () => {
       },
       {
         clave: 'paquetes',
-        // Desde el rediseno 4763 la card saca la duracion del nombre y muestra las noches
-        // en su propio tag (NewTourTariffControl, StripDuration y FormatNights).
+        // Desde el rediseno 4763 la card saca la duracion del nombre y la muestra en su
+        // propio tag (NewTourTariffControl, StripDuration y FormatDuration). Desde el
+        // deploy del 2026-09-26 el tag trae dias y noches; antes, solo noches.
         recortaDuracion: true,
-        tagNoches: { ES: '5 noches', EN: '5 nights', PT: '5 noites' } as Record<string, string> | null,
+        tagNoches: { ES: '6 días / 5 noches', EN: '6 days / 5 nights', PT: '6 dias / 5 noites' } as Record<string, string> | null,
         tab: 'a-tours',
         container: 'tours-container',
         ciudad: 'Buenos Aires',

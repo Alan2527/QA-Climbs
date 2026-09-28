@@ -22,8 +22,8 @@
       "id": 5059,
       "nombre": "AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia (6 días / 5 noches)",
       "nombreEnLaCard": "AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia",
-      "pastillaDelTitulo": "5 noches",
-      "_fuenteTitulo": "Rediseno c9f4074b: DisplayTitle = Name cortado en el primer parentesis (StripDuration) y NightsLabel = noches del paquete (FormatNights).",
+      "pastillaDelTitulo": "6 días / 5 noches",
+      "_fuenteTitulo": "DisplayTitle = Name cortado en el primer parentesis (StripDuration). La pastilla la arma FormatDuration (NewTourTariffControl.ascx.cs): desde el deploy del 2026-09-26 muestra dias y noches, antes solo noches.",
       "noches": 5,
       "vigenteHasta": "2031-12-31",
       "ciudades": [
