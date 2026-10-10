@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { esperarFinDeCarga } from '../utils/pasos';
+import { codigoDeReserva, elegirNacionalidad, esperarFinDeCarga } from '../utils/pasos';
 import { Pasajero } from './carrito.page';
 
 /**
@@ -131,7 +131,7 @@ export class CarritoCustomToursPage {
     await campo('txtSurname').fill(pax.apellido);
     await campo('txtPassport').fill(pax.pasaporte);
     await campo('txtBirthday').fill(pax.nacimiento);
-    await campo('txtNationality').fill(pax.nacionalidad);
+    await elegirNacionalidad(this.page, prefijo, pax.nacionalidad);
   }
 
   async completarDatosDeLaReserva(referencia: string, observaciones: string) {
@@ -176,6 +176,7 @@ export class CarritoCustomToursPage {
     const codigo = this.page
       .locator("#tabCustomTour a[href*='BookingHistoryDetail.aspx?book=']").first();
     await expect(codigo).toBeVisible({ timeout: 60_000 });
-    return (await codigo.innerText()).trim();
+    // El enlace envuelve la fila entera del historial: el codigo es su primera linea.
+    return codigoDeReserva(await codigo.locator('.bh-row__code').innerText());
   }
 }

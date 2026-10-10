@@ -419,7 +419,7 @@ test.describe('Reservas', () => {
       expect(codigo, 'El historial tiene que mostrar el codigo de la reserva emitida')
         .toMatch(/^BO\d{8}$/);
 
-      const filaHistorial = page.locator('#tabCustomTour tr').filter({ hasText: codigo }).first();
+      const filaHistorial = page.locator('#tabCustomTour a.bh-row').filter({ hasText: codigo }).first();
       const deLaFila = ((await filaHistorial.innerText()).match(/[A-Z]{3}\s*\d[\d.,]*/g) ?? []);
       capturarDelPortal('historial (total)', deLaFila.at(-1) ?? '');
       await adjuntarTexto('Importes de la fila del historial', deLaFila.join(' | '));

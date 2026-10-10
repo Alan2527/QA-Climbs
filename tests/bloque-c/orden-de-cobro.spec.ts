@@ -9,7 +9,7 @@ import { FacturaClientePage } from '../../pages/factura-cliente.page';
 import { OrdenDeCobroPage } from '../../pages/orden-de-cobro.page';
 import { CajaDiariaPage } from '../../pages/caja-diaria.page';
 import {
-  paso, adjuntarTexto, esperarFinDeCarga, formatearFecha,
+  paso, adjuntarTexto, esperarFinDeCarga, formatearFecha, numeroDelFile,
   reiniciarNumeracionDePasos, conResaltado, importeANumero,
 } from '../../utils/pasos';
 import {
@@ -359,7 +359,7 @@ test.describe('Cobranzas', () => {
         expect(Number(fileEnLaBandeja),
           `La bandeja tiene que mostrar el file del comprobante que se cobro ` +
           `(${precondicion.fileCode}). Muestra: ${texto}`)
-          .toBe(Number(precondicion.fileCode.match(/\d{6,}/)?.[0] ?? -1));
+          .toBe(Number(numeroDelFile(precondicion.fileCode) || -1));
       });
 
       const soloImporte = /^-?([A-Z]{3}\s*)?\d[\d.,]*$/;

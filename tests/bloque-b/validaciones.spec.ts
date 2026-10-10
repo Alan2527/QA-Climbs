@@ -52,12 +52,38 @@ test.describe('Reservas — validaciones', () => {
       referencia: `AUTO-QA ${sello}`,
       observaciones: `Validaciones de regresion automatica ${sello}. No operar.`,
       cantidadPax: 0,
-      avisoDeCamposEnRojo: 'Se deben completar los campos en rojo',
-      avisoDeCantidad: 'La cantidad de pasajeros ingresada es menor a los pasajeros cargados',
+      // Textos de ValidateInputs (CheckOut.aspx.cs) desde el deploy del 2026-09-26,
+      // que cambio los tres mensajes y los tradujo.
+      avisoDeCamposEnRojo: 'Revisá los datos de los pasajeros: hay campos incompletos o con errores, marcados en rojo',
+      avisoDeCantidad: 'La cantidad de pasajeros es menor a los pasajeros cargados',
+      avisoDeCantidadVacia: 'Completá la cantidad de pasajeros',
     };
 
-    /** El aviso de error del checkout, que se pinta en un alert-danger. */
-    const aviso = page.locator('.alert-danger').first();
+    /**
+     * El aviso de error del checkout.
+     *
+     * Hasta el 2026-09-26 era un `.alert-danger` que quedaba en la pantalla. Ahora
+     * el servidor llama a `showAlert` (assets/js/side-alert.js), que lo muestra como
+     * notificacion lateral de alertify y **la cierra a los 5 segundos**: se espera la
+     * que trae el texto y se la lee en ese momento, no despues.
+     */
+    const avisos = page.locator('.alertify-notifier .ajs-message.ajs-error');
+    const esperarAviso = async (texto: string, etiqueta: string, noDebeDecir?: string): Promise<string> => {
+      const elAviso = avisos.filter({ hasText: texto }).last();
+      let leido = '';
+      await conResaltado(page, avisos.last(), etiqueta, async () => {
+        await expect(elAviso, `El portal tiene que avisar "${texto}"`).toBeVisible({ timeout: 30_000 });
+        leido = (await elAviso.innerText()).replace(/\s+/g, ' ').trim();
+      });
+      await adjuntarTexto(etiqueta, leido || '(no aparecio)');
+      // Si el paso tiene un unico motivo de rechazo, el aviso no puede traer otro:
+      // asi se vio que "Pasajero1" tambien se rechazaba por el numero en el nombre.
+      if (noDebeDecir) {
+        expect(leido, `El aviso tiene que ser solo por "${texto}", sin "${noDebeDecir}"`)
+          .not.toContain(noDebeDecir);
+      }
+      return leido;
+    };
 
     /** Confirma y exige que la reserva **no** se emita. */
     const intentarConfirmar = async () => {
@@ -144,10 +170,7 @@ test.describe('Reservas — validaciones', () => {
       await apellido.fill('');
       await intentarConfirmar();
 
-      await conResaltado(page, aviso, 'Aviso por campo vacio', async () => {
-        await expect(aviso, `El portal tiene que avisar "${datos.avisoDeCamposEnRojo}"`)
-          .toContainText(datos.avisoDeCamposEnRojo, { timeout: 30_000 });
-      });
+      await esperarAviso(datos.avisoDeCamposEnRojo, 'Aviso por campo vacio');
 
       // El aviso no alcanza: la pantalla tiene que senalar cual es el campo.
       const marcado = page.locator("[id*='lvPassengersData'][id$='_txtSurname'].border-danger").first();
@@ -155,12 +178,11 @@ test.describe('Reservas — validaciones', () => {
         await expect(marcado, 'El apellido vacio tiene que quedar marcado en rojo')
           .toBeVisible({ timeout: 30_000 });
       });
-      await adjuntarTexto('Aviso por campo vacio', (await aviso.innerText()).replace(/\s+/g, ' ').trim());
     });
 
     await paso(page, 'Intentar confirmar con menos pasajeros que los cargados', async () => {
       await carrito.completarPasajero(0, {
-        nombre: 'Pasajero1',
+        nombre: 'PasajeroUno',
         apellido: `Regresion${selloEnLetras(sello.slice(-6))}`,
         pasaporte: `QA${sello.slice(-8)}1`,
         nacimiento: '01/03/1990',
@@ -171,21 +193,14 @@ test.describe('Reservas — validaciones', () => {
       await page.locator(carrito.campoCantidadPax).first().fill(String(datos.cantidadPax - 1));
       await intentarConfirmar();
 
-      await conResaltado(page, aviso, 'Aviso por cantidad menor', async () => {
-        await expect(aviso, `El portal tiene que avisar "${datos.avisoDeCantidad}"`)
-          .toContainText(datos.avisoDeCantidad, { timeout: 30_000 });
-      });
-      await adjuntarTexto('Aviso por cantidad menor', (await aviso.innerText()).replace(/\s+/g, ' ').trim());
+      await esperarAviso(datos.avisoDeCantidad, 'Aviso por cantidad menor', datos.avisoDeCamposEnRojo);
     });
 
     await paso(page, 'Intentar confirmar con la cantidad de pasajeros vacia', async () => {
       await page.locator(carrito.campoCantidadPax).first().fill('');
       await intentarConfirmar();
 
-      await conResaltado(page, aviso, 'Aviso por cantidad vacia', async () => {
-        await expect(aviso, `El portal tiene que avisar "${datos.avisoDeCamposEnRojo}"`)
-          .toContainText(datos.avisoDeCamposEnRojo, { timeout: 30_000 });
-      });
+      await esperarAviso(datos.avisoDeCantidadVacia, 'Aviso por cantidad vacia', datos.avisoDeCamposEnRojo);
 
       const marcado = page.locator(`${carrito.campoCantidadPax}.border-danger`).first();
       await conResaltado(page, page.locator(carrito.campoCantidadPax).first(), 'Cantidad marcada en rojo', async () => {

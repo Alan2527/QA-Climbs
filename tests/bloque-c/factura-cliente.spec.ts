@@ -9,7 +9,7 @@ import { FacturaClientePage } from '../../pages/factura-cliente.page';
 import { OrdenDeCobroPage } from '../../pages/orden-de-cobro.page';
 import { CajaDiariaPage } from '../../pages/caja-diaria.page';
 import {
-  paso, adjuntarTexto, esperarFinDeCarga, formatearFecha,
+  paso, adjuntarTexto, esperarFinDeCarga, formatearFecha, numeroDelFile,
   reiniciarNumeracionDePasos, conResaltado, importeANumero,
 } from '../../utils/pasos';
 import {
@@ -65,7 +65,7 @@ test.describe('Cobranzas', () => {
     // El buscador de files filtra por el cliente elegido, y la grilla muestra el
     // numero sin el prefijo ni el sufijo del codigo que se ve en el file. Se
     // busca por el grupo de digitos, que es lo unico comun a las dos formas.
-    const digitosDelFile = precondicion.fileCode.match(/\d{6,}/)?.[0] ?? '';
+    const digitosDelFile = numeroDelFile(precondicion.fileCode);
     expect(
       digitosDelFile,
       `No se pudo extraer el numero del file de su codigo (${precondicion.fileCode})`,

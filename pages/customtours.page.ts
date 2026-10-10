@@ -80,8 +80,26 @@ export class CustomToursPage {
    * persona y el widget puede reescribir el campo.
    */
   async configurarViaje(fecha: Date, pax: number, dobles: number) {
-    await this.page.locator(this.campoFecha).click();
-    await this.page.locator('.datepicker-days td.day:not(.old):not(.new)')
+    // El calendario abre en el mes de la fecha que ya tiene el campo (hoy, al
+    // entrar). Hay que avanzar hasta el mes buscado antes de elegir el dia: hasta
+    // el 2026-10-10 se elegia el dia en el mes que estuviera abierto, y cuando la
+    // fecha caia en el mes siguiente quedaba un mes antes (el 05/10 salia 05/09,
+    // ya vencido, y el armado no dejaba reservar).
+    const campo = this.page.locator(this.campoFecha);
+    const actual = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec((await campo.inputValue()).trim());
+    const desde = actual ? new Date(+actual[3], +actual[2] - 1, 1) : new Date();
+    const meses = (fecha.getFullYear() - desde.getFullYear()) * 12 + (fecha.getMonth() - desde.getMonth());
+
+    await campo.click();
+    const dias = this.page.locator('.datepicker-days');
+    await expect(dias, 'Tiene que abrirse el calendario del armado').toBeVisible();
+    for (let i = 0; i < meses; i++) {
+      await dias.locator('th.next').click();
+    }
+    for (let i = 0; i > meses; i--) {
+      await dias.locator('th.prev').click();
+    }
+    await dias.locator('td.day:not(.old):not(.new)')
       .filter({ hasText: new RegExp(`^${fecha.getDate()}$`) }).first().click();
 
     await this.page.locator(this.comboPax).selectOption(String(pax));

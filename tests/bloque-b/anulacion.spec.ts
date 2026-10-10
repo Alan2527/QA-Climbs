@@ -68,7 +68,7 @@ test.describe('Reservas — anulacion', () => {
    * activa vive en display:none.
    */
   async function filaDelHistorial(page: Page, solapa: string, codigo: string) {
-    const fila = () => page.locator(`${solapa} tr`)
+    const fila = () => page.locator(`${solapa} a.bh-row`)
       .filter({ hasText: codigo }).filter({ visible: true }).first();
 
     // Primero, activar la solapa del riel: despues de cancelar, el historial abre

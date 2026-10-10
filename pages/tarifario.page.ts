@@ -547,9 +547,13 @@ export class TarifarioPage {
     const boton = this.locatorBotonVerDetalle(container);
     await expect(boton).toBeVisible({ timeout: 30_000 });
 
+    // Desde la 4517 del 2026-10-02 ("Unificacion visual de popups tarifario") el
+    // boton es un enlace de Bootstrap, `<a href="#modal-x" data-toggle="modal">`,
+    // y ya no lleva onclick. Se acepta cualquiera de las dos formas.
+    const href = (await boton.getAttribute('href')) ?? '';
     const onclick = (await boton.getAttribute('onclick')) ?? '';
-    const id = onclick.match(/#(modal-[A-Za-z0-9-]+)/)?.[1];
-    if (!id) throw new Error(`El boton "Ver detalle" no apunta a ningun modal: ${onclick}`);
+    const id = href.match(/^#([A-Za-z][\w-]*)$/)?.[1] ?? onclick.match(/#(modal-[A-Za-z0-9-]+)/)?.[1];
+    if (!id) throw new Error(`El boton "Ver detalle" no apunta a ningun modal: href="${href}" onclick="${onclick}"`);
 
     await boton.click();
     const modal = this.page.locator(`#${id}`);
@@ -753,6 +757,34 @@ export class TarifarioPage {
     return this.contenedor(container).locator('.tariff-op-tooltip').evaluateAll((els) =>
       els.map((e) => (e as HTMLElement).innerText.replace(/\s+/g, ' ').trim()).filter(Boolean),
     );
+  }
+
+  /**
+   * Amenities destacadas de la card (ServiceAmenity.IsPriority = 1), cada una con
+   * su tooltip.
+   *
+   * Desde el 2026-10-06 (`28b1b6db`, "Fix Incluye y no incluye, comodidades de
+   * webadmin y observaciones") ya no son items de la barra: RenderPriorityAmenities
+   * (ServiceTariffControl.ascx.cs) dibuja un `.tariff-amenity` aparte por cada una,
+   * con el estado ("Incluye" / "No incluye"), el nombre y la observacion en
+   * `.tariff-amenity-tip-status`, `-name` y `-note`.
+   */
+  async amenitiesDestacadas(container: string): Promise<{ estado: string; nombre: string; nota: string }[]> {
+    return this.contenedor(container).locator('.tariff-amenity').evaluateAll((els) =>
+      els.map((e) => {
+        const leer = (sel: string) =>
+          ((e.querySelector(sel) as HTMLElement | null)?.textContent ?? '').replace(/\s+/g, ' ').trim();
+        return {
+          estado: leer('.tariff-amenity-tip-status'),
+          nombre: leer('.tariff-amenity-tip-name'),
+          nota: leer('.tariff-amenity-tip-note'),
+        };
+      }));
+  }
+
+  /** La amenity destacada que ocupa esa posicion, para resaltarla si no coincide. */
+  locatorAmenityDestacada(container: string, indice: number): Locator {
+    return this.contenedor(container).locator('.tariff-amenity').nth(indice);
   }
 
   /**

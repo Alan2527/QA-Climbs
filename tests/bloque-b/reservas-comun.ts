@@ -5,7 +5,7 @@ import { InicioPage } from '../../pages/inicio.page';
 import { CustomToursPage } from '../../pages/customtours.page';
 import { CarritoCustomToursPage } from '../../pages/carrito-customtours.page';
 import {
-paso, adjuntarTexto, esperarFinDeCarga, importeANumero, formatearFecha, conResaltado, selloEnLetras,
+paso, adjuntarTexto, esperarFinDeCarga, importeANumero, numeroDelPortal, formatearFecha, conResaltado, selloEnLetras,
 } from '../../utils/pasos';
 
 /**
@@ -52,13 +52,15 @@ export const importe = (texto: string): { moneda: string; valor: number | null }
  * Con un solo parser, "USD 2,024" se leeria como 2,024 en vez de 2024. No se
  * habia notado en los flujos de servicio y hotel porque ahi los importes son
  * de tres cifras y no llevan separador.
+ *
+ * El 2026-10-10 el portal ya escribia el punto de miles ("USD 2.578") y este
+ * lector lo tomaba como decimal: la oferta sumaba 2,024 + 558 = 560,02. Ahora usa
+ * `numeroDelPortal`, que acepta los dos formatos.
  */
 export const importeDelPortal = (texto: string): { moneda: string; valor: number | null } => {
   const limpio = (texto || '').replace(/\s+/g, ' ').trim();
   const moneda = limpio.match(/[A-Z]{3}/)?.[0] ?? '';
-  const numero = limpio.replace(/[^\d.,-]/g, '').replace(/,/g, '');
-  const valor = Number(numero);
-  return { moneda, valor: numero !== '' && Number.isFinite(valor) ? valor : null };
+  return { moneda, valor: numeroDelPortal(limpio) };
 };
 
 /**
@@ -101,7 +103,7 @@ export async function completarCheckoutYEmitir(opciones: {
       .toMatch(/^BO\d{8}$/);
 
     // Total con el que quedo registrada la reserva, en la fila del historial.
-    const filaHistorial = page.locator('#tabBooking tr').filter({ hasText: codigo }).first();
+    const filaHistorial = page.locator('#tabBooking a.bh-row').filter({ hasText: codigo }).first();
     const importesDeLaFila = ((await filaHistorial.innerText()).match(/[A-Z]{3}\s*\d[\d.,]*/g) ?? []);
     capturar('historial (total)', importesDeLaFila.at(-1) ?? '');
     await adjuntarTexto('Importes de la fila del historial', importesDeLaFila.join(' | '));
@@ -179,10 +181,11 @@ export async function verificarEnElBackOffice(opciones: {
   let sumaDeLosItems = 0;
   await paso(page, 'Abrir el detalle de la reserva en el portal y verificar los comentarios', async () => {
     // Se ubica la reserva por su codigo y no por la solapa: las de servicios
-    // y hoteles viven en "Reservas" y las de circuitos en "Reservas
-    // circuitos", asi que buscar en una sola no serviria para los cuatro.
-    await page.locator(`a[href*='BookingHistoryDetail.aspx?book=']`)
-      .filter({ hasText: codigo }).first().click();
+    // y hoteles viven en "Carrito de compras", las de oferta y multidestino en
+    // "Multidestino" y, desde el 2026-09-30 (`df13cf91`), las de serie en una
+    // solapa propia, "Series". Las solapas son enlaces del servidor (`?tab=`): si
+    // la reserva no esta en la que quedo abierta se la busca en las tres.
+    await abrirReservaDelHistorial(page, codigo);
     await page.waitForURL(/bookinghistorydetail/i, { timeout: 60_000 });
     await esperarFinDeCarga(page);
 
@@ -722,10 +725,31 @@ export async function armarCircuitoYEmitir(opciones: {
     expect(codigo, 'El historial tiene que mostrar el codigo de la reserva emitida')
       .toMatch(/^BO\d{8}$/);
 
-    const filaHistorial = page.locator('tr').filter({ hasText: codigo }).first();
+    const filaHistorial = page.locator('#tabCustomTour a.bh-row').filter({ hasText: codigo }).first();
     const deLaFila = ((await filaHistorial.innerText()).match(/[A-Z]{3}\s*\d[\d.,]*/g) ?? []);
     capturarDelPortal('historial (total)', deLaFila.at(-1) ?? '');
     await adjuntarTexto('Importes de la fila del historial', deLaFila.join(' | '));
   });
   return codigo;
+}
+
+/**
+ * Abre el detalle de una reserva desde el historial, buscandola en sus tres
+ * solapas: primero en la que este abierta y despues en "Carrito de compras",
+ * "Multidestino" y "Series" (BookingHistory.aspx, `?tab=booking|customTour|serie`).
+ */
+export async function abrirReservaDelHistorial(page: Page, codigo: string) {
+  const enlace = page.locator(`a.bh-row[href*='BookingHistoryDetail.aspx?book=']`)
+    .filter({ hasText: codigo }).first();
+  const solapas = ['', 'booking', 'customTour', 'serie'];
+  for (const solapa of solapas) {
+    if (solapa) {
+      await page.goto(`/online/BookingHistory.aspx?tab=${solapa}`);
+      await esperarFinDeCarga(page);
+    }
+    if (await enlace.isVisible()) break;
+  }
+  await expect(enlace, `La reserva ${codigo} tiene que figurar en alguna solapa del historial`)
+    .toBeVisible({ timeout: 30_000 });
+  await enlace.click();
 }

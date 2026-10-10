@@ -4,7 +4,7 @@ import { FacturaProveedorPage } from '../../pages/factura-proveedor.page';
 import { NoAsignadosPage } from '../../pages/no-asignados.page';
 import { OrdenDePagoPage } from '../../pages/orden-de-pago.page';
 import {
-  paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado, formatearFecha,
+  paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado, formatearFecha, numeroDelFile,
 } from '../../utils/pasos';
 import {
   SALTO, CAJA_DE_REGRESION, aFormatoBO, importe, reservarServicioYGenerarFile,
@@ -65,7 +65,7 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
     // La bandeja de items muestra el numero del file sin prefijo ni ceros ni
     // sufijo (FILE NUMBER 29898 para AM-0000029898-01, UnassignedItems/Default.aspx:195):
     // buscando el codigo completo, la grilla contesta "Sin resultados".
-    const numeroDeFile = String(Number(pre.fileCode.match(/\d{6,}/)?.[0] ?? '0'));
+    const numeroDeFile = String(Number(numeroDelFile(pre.fileCode) || '0'));
     let idDeLaFactura = '';
 
     await paso(page, 'El item del file recien generado figura en la bandeja de items no asignados', async () => {

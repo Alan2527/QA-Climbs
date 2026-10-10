@@ -154,7 +154,9 @@ export function alinearVigencias(filas: string[][], hoyDeLasFilas: Date, hoy: Da
 
   const salida: string[][] = [];
   for (const fila of filas) {
-    const m = /^(\S+) - (\S+)$/.exec(fila[0] ?? '');
+    // Hoteles le agrega a la vigencia la operatividad en la misma celda
+    // ("01/10/2026 - 27/12/2026 Todos los dias"): lo que sigue a las fechas se conserva.
+    const m = /^(\S+) - (\S+)(.*)$/.exec(fila[0] ?? '');
     const desde = m ? leer(m[1]) : null;
     const hasta = m ? leer(m[2]) : null;
     if (!desde || !hasta) { salida.push(fila); continue; }
@@ -163,9 +165,51 @@ export function alinearVigencias(filas: string[][], hoyDeLasFilas: Date, hoy: Da
     const h = hasta > finD ? finD : hasta;
     const inicio = d.getTime() === hoyD.getTime() ? '<HOY>' : escribir(d);
     const fin = h.getTime() === finD.getTime() ? '<FIN>' : escribir(h);
-    salida.push([`${inicio} - ${fin}`, ...fila.slice(1)]);
+    salida.push([`${inicio} - ${fin}${m![3]}`, ...fila.slice(1)]);
   }
   return salida;
+}
+
+/**
+ * Alinea la linea base de un crucero con lo que se ve hoy, salteando las salidas
+ * que ya pasaron.
+ *
+ * El tarifario de Cruceros muestra una tabla por salida y **ninguna dice de que
+ * fecha es** (CruiseTariffControl.ascx no dibuja el nombre de la salida): no se
+ * puede alinear por fecha como `alinearVigencias`. Cuando una salida pasa, su
+ * tabla deja de aparecer y la primera pasa a ser la siguiente; el 2026-10-10 la
+ * linea base del 2026-09-21 fallo porque la salida del 01/10 ya no estaba.
+ *
+ * Se busca cuantas tablas del principio de la linea base faltan en pantalla (`k`)
+ * y se devuelve la linea base sin ellas. Las que siguen se comparan tal cual, asi
+ * que un precio distinto o una salida que falta en el medio siguen fallando. Si
+ * ningun corrimiento hace coincidir las dos, se devuelve la linea base entera y la
+ * comparacion muestra la diferencia real.
+ */
+export function alinearSalidas(esperado: string[][], actual: string[][]): string[][] {
+  if (!esperado.length || !actual.length) return esperado;
+  const encabezado = esperado[0].join(' | ');
+  const enBloques = (filas: string[][]) => {
+    const bloques: string[][][] = [];
+    for (const fila of filas) {
+      if (fila.join(' | ') === encabezado || !bloques.length) bloques.push([fila]);
+      else bloques[bloques.length - 1].push(fila);
+    }
+    return bloques;
+  };
+  const igual = (a: string[][], b: string[][]) =>
+    a.length === b.length && a.every((f, i) =>
+      sinSeparadorDeMiles(f.join(' | ')) === sinSeparadorDeMiles(b[i].join(' | ')));
+
+  const E = enBloques(esperado);
+  const A = enBloques(actual);
+  for (let k = 0; k < E.length; k++) {
+    const comun = Math.min(A.length, E.length - k);
+    let coincide = comun > 0;
+    for (let i = 0; i < comun && coincide; i++) coincide = igual(A[i], E[k + i]);
+    if (coincide) return E.slice(k).flat();
+  }
+  return esperado;
 }
 
 /**
@@ -353,4 +397,115 @@ export async function conResaltado(
  */
 export function selloEnLetras(sello: string): string {
   return sello.replace(/\d/g, (d) => 'ABCDEFGHIJ'[Number(d)]);
+}
+
+/**
+ * Codigo de una reserva tal como lo muestra el portal.
+ *
+ * Desde el rediseno del historial (deploy del 2026-09-26) el enlace de cada
+ * reserva envuelve la fila entera: su texto trae el codigo y, debajo, la fecha,
+ * el pasajero, la agencia, el estado y el importe. El codigo es la primera
+ * linea. Desde el 2026-09-30 el prefijo sale de la sucursal del file
+ * (`BO_Branch.FilePrefix`), asi que no se fija "BO": se exige un prefijo de
+ * letras y el numero.
+ */
+export function codigoDeReserva(texto: string): string {
+  const primera = (texto || '').split(/\r?\n/).map((l) => l.trim()).find(Boolean) ?? '';
+  expect(primera, 'El codigo de la reserva tiene que ser un prefijo de letras y un numero')
+    .toMatch(/^[A-Z]+\d+$/);
+  return primera;
+}
+
+/**
+ * Numero de un importe del portal, venga con coma o con punto de miles.
+ *
+ * Hasta el 2026-09-28 el portal escribia "USD 2,578" y "M 0.50"; el 2026-10-10
+ * escribe "USD 2.578" y "M 0,50". No se ato a ninguno de los dos:
+ *   - con punto y coma a la vez, el que va ultimo es el decimal;
+ *   - con uno solo, si cada grupo que separa tiene exactamente 3 cifras es de
+ *     miles ("2.578", "10.139", "2,578"); si no, es decimal ("0,50", "0.50").
+ * Un importe de tres cifras exactas despues del separador se lee como miles: el
+ * portal no muestra tres decimales.
+ */
+export function numeroDelPortal(texto: string): number | null {
+  const limpio = (texto || '').replace(/[^\d.,-]/g, '');
+  if (!/\d/.test(limpio)) return null;
+  let entero = limpio;
+  let decimales = '';
+  const ultimoPunto = limpio.lastIndexOf('.');
+  const ultimaComa = limpio.lastIndexOf(',');
+  if (ultimoPunto >= 0 && ultimaComa >= 0) {
+    const corte = Math.max(ultimoPunto, ultimaComa);
+    entero = limpio.slice(0, corte);
+    decimales = limpio.slice(corte + 1);
+  } else if (ultimoPunto >= 0 || ultimaComa >= 0) {
+    const sep = ultimoPunto >= 0 ? '.' : ',';
+    const partes = limpio.split(sep);
+    const sonMiles = partes.slice(1).every((p) => p.length === 3);
+    if (!sonMiles) {
+      entero = partes.slice(0, -1).join('');
+      decimales = partes[partes.length - 1];
+    }
+  }
+  const valor = Number(entero.replace(/[.,]/g, '') + (decimales ? '.' + decimales : ''));
+  return Number.isFinite(valor) ? valor : null;
+}
+
+/**
+ * Saca los separadores de miles de los importes de un texto, para comparar una
+ * fila de pantalla contra la linea base sin depender del formato del dia:
+ * "USD 4,870" y "USD 4.870" quedan los dos "USD 4870". Solo toca grupos de
+ * exactamente 3 cifras pegados a otra cifra, asi que las fechas (01/10/2026) y
+ * los decimales ("0,50") no cambian.
+ */
+export function sinSeparadorDeMiles(texto: string): string {
+  let previo: string;
+  let actual = texto;
+  do {
+    previo = actual;
+    actual = actual.replace(/(\d)[.,](\d{3})(?!\d)/g, '$1$2');
+  } while (actual !== previo);
+  return actual;
+}
+
+/**
+ * Nacionalidad de un pasajero, en el checkout o en el carrito del multidestino.
+ *
+ * Desde el deploy del 2026-09-26 la nacionalidad del checkout es un desplegable
+ * (`ddNationality`, CheckOut.aspx:251) y no un campo de texto. Lo dibuja TomSelect
+ * (`initializeTomSelect`, js/main.js), que esconde el `<select>` y pone su control
+ * al lado; con mas de 15 paises trae buscador. Se elige como una persona: se abre,
+ * se escribe el pais y se hace clic en la opcion. El carrito del multidestino
+ * (TourPassangerControl.ascx) usa el mismo control.
+ */
+export async function elegirNacionalidad(page: Page, prefijo: string, pais: string) {
+  const select = page.locator(`#${prefijo}_ddNationality`);
+  const combo = page.locator(`#${prefijo}_ddNationality + .ts-wrapper`);
+  await combo.locator('.ts-control').click();
+  const buscador = combo.locator('.ts-control input');
+  if (await buscador.count()) {
+    await buscador.fill(pais);
+  }
+  // TomSelect marca cada opcion con role="option": el nombre exacto evita que
+  // "Argentina" agarre otro pais que la contenga.
+  const opcion = combo.locator('.ts-dropdown').getByRole('option', { name: pais, exact: true }).first();
+  await expect(opcion, `La nacionalidad tiene que ofrecer ${pais}`).toBeVisible({ timeout: 15_000 });
+  await opcion.click();
+  await expect.poll(
+    () => select.evaluate((s) => (s as HTMLSelectElement).selectedOptions[0]?.text.trim() ?? ''),
+    { message: `La nacionalidad tiene que quedar en ${pais}` },
+  ).toBe(pais);
+}
+
+/**
+ * Numero de un file a partir de su codigo, tal como lo muestran las grillas del BO.
+ *
+ * Desde el 2026-09-30 (`df13cf91`) el prefijo del codigo sale de la sucursal del
+ * file (`BO_Branch.FilePrefix`): el 2026-10-10 los files se veian "AMV-AR-30103",
+ * con cinco cifras, y el test buscaba un grupo de seis o mas. El numero es el
+ * ultimo grupo de cifras del codigo, tenga el prefijo que tenga.
+ */
+export function numeroDelFile(codigo: string): string {
+  const grupos = (codigo || '').match(/[0-9]+/g) ?? [];
+  return grupos.length ? grupos[grupos.length - 1] : '';
 }

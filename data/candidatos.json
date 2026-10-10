@@ -386,7 +386,8 @@
             "IMPORT DEFAULT"
           ]
         ]
-      }
+      },
+      "alinearVigencias": true
     },
     "traslados": {
       "tab": "a-transfers",
@@ -921,7 +922,8 @@
           "▪ Anteojos de sol.",
           "▪ Protector solar"
         ]
-      }
+      },
+      "alinearSalidas": true
     },
     "ofertas": {
       "alinearVigencias": true,

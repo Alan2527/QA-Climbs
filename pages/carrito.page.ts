@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { esperarFinDeCarga } from '../utils/pasos';
+import { adjuntarTexto, codigoDeReserva, elegirNacionalidad, esperarFinDeCarga } from '../utils/pasos';
 
 /** Datos de un pasajero tal como se cargan en el checkout. */
 export type Pasajero = {
@@ -126,18 +126,26 @@ export class CarritoPage {
    * siguiente y se emitiria dentro de la reserva.
    */
   async vaciar() {
-    // Se mira primero el contador del encabezado, como haria una persona: si
-    // esta en cero no hay nada que limpiar y no hay por que entrar al carrito.
-    // Ademas, con el carrito vacio el icono no navega a la pantalla.
-    if (await this.paxEnElCarrito() === 0) return;
-
-    await this.irAlCarrito();
+    // **No se decide por el contador del encabezado.** Desde el deploy del
+    // 2026-09-26 ese numero lo escribe UserStatusControl.js cuando llegan los items,
+    // despues de cargar la pagina: leido antes esta vacio, se tomaba como 0 y se
+    // salia sin vaciar. El 2026-10-10 asi quedo un Tigre y Delta de un test anterior,
+    // el siguiente agrego otro y el file de la liquidacion salio con el servicio
+    // duplicado. Se entra derecho a la pantalla del carrito y se miran sus filas.
+    await this.page.goto('/online/ShoppingCartPage.aspx');
+    await esperarFinDeCarga(this.page);
+    // Con el carrito vacio la pantalla redirige al inicio y no hay filas.
     if (await this.page.locator(this.filas).count() === 0) return;
     // "Limpiar Carrito" vacia por API y redirige al inicio
     // (ShoppingCartPage.aspx.cs:209 y :220), asi que no se queda en el carrito.
     await this.page.locator(this.btnLimpiar).first().click();
     await esperarFinDeCarga(this.page);
-    await expect.poll(() => this.paxEnElCarrito(), { timeout: 30_000 }).toBe(0);
+    // Se confirma en la pantalla del carrito y no con el contador, que vacio
+    // tambien "da" 0.
+    await this.page.goto('/online/ShoppingCartPage.aspx');
+    await esperarFinDeCarga(this.page);
+    await expect(this.page.locator(this.filas), 'Despues de limpiarlo, el carrito no puede tener items')
+      .toHaveCount(0, { timeout: 30_000 });
   }
 
   filaDelCarrito(nombre: string): Locator {
@@ -176,6 +184,15 @@ export class CarritoPage {
    * bajar de un pasajero.
    */
   async asegurarPasajeros(cantidad: number) {
+    // Desde el deploy del 2026-09-26 el "+" se esconde cuando las fichas llegan a la
+    // Cantidad de PAX (`coSyncAddPax`, CheckOut.aspx): con el campo en 1 no hay boton
+    // para agregar el segundo pasajero. Se carga primero la cantidad, como haria una
+    // persona que va a sumar pasajeros; `completarDatosDeLaReserva` la vuelve a escribir.
+    const campoCantidad = this.page.locator(this.campoCantidadPax).first();
+    if ((Number(await campoCantidad.inputValue()) || 0) < cantidad) {
+      await campoCantidad.fill(String(cantidad));
+    }
+
     // Tope de intentos: si el boton dejara de agregar, el error tiene que ser
     // "no se pudieron cargar los pasajeros" y no un test colgado.
     for (let intento = 0; await this.pasajerosCargables() < cantidad; intento++) {
@@ -218,7 +235,7 @@ export class CarritoPage {
     await campo('txtSurname').fill(pax.apellido);
     await campo('txtPassport').fill(pax.pasaporte);
     await campo('txtBirthday').fill(pax.nacimiento);
-    await campo('txtNationality').fill(pax.nacionalidad);
+    await elegirNacionalidad(this.page, prefijo, pax.nacionalidad);
   }
 
   async completarDatosDeLaReserva(cantidadPax: number, referencia: string, observaciones: string) {
@@ -241,7 +258,28 @@ export class CarritoPage {
    */
   async confirmarReserva(): Promise<string> {
     await this.page.locator(this.btnConfirmar).first().click();
-    await this.page.waitForURL(/bookinghistory/i, { timeout: 120_000 });
+
+    // Desde el deploy del 2026-09-26 el checkout ya no redirige: el servidor llama a
+    // `preloaderPassportDone` (OnlineHelper.BookDoneScript, assets/js/preloader.js),
+    // que estampa "Reserva generada" con el codigo y ofrece "Ver reserva" e "Ir a mis
+    // reservas". Si el i18n no cargo, el mismo script redirige al historial como
+    // antes, asi que se espera cualquiera de las dos salidas.
+    const sello = this.page.locator('.wpreloader__stamp--done small').first();
+    const enHistorial = () => /bookinghistory/i.test(this.page.url());
+    await expect.poll(async () => enHistorial() || await sello.isVisible(), {
+      message: 'Al confirmar tiene que aparecer "Reserva generada" o abrirse el historial',
+      timeout: 120_000,
+    }).toBe(true);
+
+    let delSello = '';
+    if (!enHistorial()) {
+      delSello = codigoDeReserva(await sello.innerText());
+      await adjuntarTexto('Codigo del sello "Reserva generada"', delSello);
+      // "Ir a mis reservas" es el boton sin `--primary`; "Ver reserva" abre el detalle.
+      await this.page.locator('.wpreloader__actions a.wpreloader__btn:not(.wpreloader__btn--primary)')
+        .first().click();
+      await this.page.waitForURL(/bookinghistory/i, { timeout: 120_000 });
+    }
     await esperarFinDeCarga(this.page);
 
     // El historial tiene dos solapas, "Reservas" y "Reservas circuitos", y cual
@@ -250,9 +288,10 @@ export class CarritoPage {
     const solapa = this.page.locator("a[href='#tabBooking']").first();
     if (await solapa.count()) await solapa.click();
 
-    const codigo = this.page
-      .locator("#tabBooking a[href*='BookingHistoryDetail.aspx?book=']").first();
-    await expect(codigo).toBeVisible({ timeout: 60_000 });
-    return (await codigo.innerText()).trim();
+    const enlaces = this.page.locator("#tabBooking a[href*='BookingHistoryDetail.aspx?book=']");
+    const fila = delSello ? enlaces.filter({ hasText: delSello }).first() : enlaces.first();
+    await expect(fila, 'El historial tiene que mostrar la reserva recien generada')
+      .toBeVisible({ timeout: 60_000 });
+    return codigoDeReserva(await fila.locator('.bh-row__code').innerText());
   }
 }

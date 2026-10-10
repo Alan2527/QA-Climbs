@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { esperarFinDeCarga } from '../utils/pasos';
+import { codigoDeReserva, esperarFinDeCarga } from '../utils/pasos';
 import { Pasajero } from './carrito.page';
 
 /**
@@ -731,6 +731,7 @@ export class SeriePage {
       .locator("#tabCustomTour a[href*='BookingHistoryDetail.aspx?book=']").first();
     await expect(codigo, 'El historial tiene que mostrar la reserva de la serie recien emitida')
       .toBeVisible({ timeout: 60_000 });
-    return (await codigo.innerText()).trim();
+    // El enlace envuelve la fila entera del historial: el codigo es su primera linea.
+    return codigoDeReserva(await codigo.locator('.bh-row__code').innerText());
   }
 }

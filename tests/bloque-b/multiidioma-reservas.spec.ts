@@ -129,6 +129,19 @@ test.describe('Reservas — multiidioma', () => {
 
         // Cambiar el idioma no puede vaciar el carrito: esta atado a la sesion,
         // no al idioma.
+        //
+        // Si el contador no da 1 se adjunta que hay en el carrito antes de fallar:
+        // el 2026-10-10 marco 2 y el numero solo no decia si era el mismo servicio
+        // dos veces, un item que habia quedado de antes u otra cosa.
+        const enIcono = await carrito.paxEnElCarrito();
+        if (enIcono !== 1) {
+          await carrito.irAlCarrito();
+          const items = await page.locator(`${carrito.filas} .ct-row__name`).allInnerTexts();
+          await adjuntarTexto(`Carrito con ${enIcono} items al pasar a ${idioma.nombre}`,
+            items.map((x, i) => `${i + 1}. ${x.replace(/\s+/g, ' ').trim()}`).join(SALTO) || '(sin filas)');
+          await page.goto('/online/');
+          await esperarFinDeCarga(page);
+        }
         await expect.poll(() => carrito.paxEnElCarrito(), {
           timeout: 30_000,
           message: `El carrito tiene que conservar el item al pasar a ${idioma.nombre}`,

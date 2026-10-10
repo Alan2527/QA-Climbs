@@ -9,7 +9,7 @@ import { FacturaClientePage } from '../../pages/factura-cliente.page';
 import { OrdenDeCobroPage } from '../../pages/orden-de-cobro.page';
 import { CajaDiariaPage } from '../../pages/caja-diaria.page';
 import {
-  paso, adjuntarTexto, esperarFinDeCarga, formatearFecha,
+  paso, adjuntarTexto, esperarFinDeCarga, formatearFecha, numeroDelFile,
   reiniciarNumeracionDePasos, conResaltado, importeANumero,
 } from '../../utils/pasos';
 import {
@@ -171,7 +171,7 @@ export async function armarFacturaAlCliente(
   total: number;
 }> {
   const factura = new FacturaClientePage(page);
-  const digitosDelFile = precondicion.fileCode.match(/\d{6,}/)?.[0] ?? '';
+  const digitosDelFile = numeroDelFile(precondicion.fileCode);
 
   let comprobante = '';
   let total = 0;

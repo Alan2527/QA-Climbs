@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import { TarifarioPage } from '../../pages/tarifario.page';
 import {
   paso, adjuntarTexto, precioMostrado, importeANumero, resaltarYCapturar,
-  reiniciarNumeracionDePasos, conResaltado, alinearVigencias,
+  reiniciarNumeracionDePasos, conResaltado, alinearVigencias, alinearSalidas, sinSeparadorDeMiles,
 } from '../../utils/pasos';
 import candidatos from '../../data/candidatos.json';
 import lineaBase from '../../data/importes-lineabase.json';
@@ -588,27 +588,52 @@ test.describe('Tarifario', () => {
 
         // Los tooltips de amenities destacadas: nombre y observacion, exactos y
         // sin que sobre ninguno. Solo aparecen las de ServiceAmenity.IsPriority = 1.
+        //
+        // Desde el 2026-10-06 no viven en la barra sino aparte (`.tariff-amenity`), y
+        // el tooltip agrega si la amenity esta incluida o no. Ver amenitiesDestacadas.
         const destacadas: { nombre: string; descripcion: string }[] = card.tooltipsAmenities ?? [];
         if (destacadas.length) {
-          const enPantalla = barra
-            .filter((x) => !x.esCalendario && x.titulo && x.titulo !== 'Idiomas')
-            .map((x) => `${x.titulo} -- ${x.items.join(' ')}`.trim());
+          const amenities = await t.amenitiesDestacadas(cfg.container);
+          await adjuntarTexto('Amenities destacadas en pantalla',
+            amenities.map((a) => `${a.estado} | ${a.nombre} -- ${a.nota}`).join(SALTO) || '(ninguna)');
+
+          const enPantalla = amenities.map((a) => `${a.nombre} -- ${a.nota}`.trim());
           const deLaBase = destacadas.map((a) =>
             `${a.nombre} -- ${a.descripcion}`.trim());
 
           // Se resalta el primer tooltip de amenity que no este en la base, en vez
-          // de la barra entera: con cinco tooltips marcados habia que mirarlos
-          // todos para encontrar cual era el que no coincidia.
+          // de la zona entera: con cinco tooltips marcados habia que mirarlos todos
+          // para encontrar cual era el que no coincidia.
           const esperadosNorm = deLaBase.map(norm);
-          const iMalo = barra.findIndex((x) =>
-            !x.esCalendario && x.titulo && x.titulo !== 'Idiomas' &&
-            !esperadosNorm.includes(norm(`${x.titulo} -- ${x.items.join(' ')}`.trim())));
+          const iMalo = enPantalla.findIndex((x) => !esperadosNorm.includes(norm(x)));
+          const zonaAmenity = iMalo >= 0 ? t.locatorAmenityDestacada(cfg.container, iMalo) : zonaBarra;
 
-          await conResaltado(page, zonaItem(iMalo), 'un tooltip de amenity no coincide', () => {
+          await conResaltado(page, zonaAmenity, 'un tooltip de amenity no coincide', () => {
             expect(enPantalla.map(norm).sort(),
               'Los tooltips de amenities destacadas tienen que coincidir con la base',
             ).toEqual(esperadosNorm.sort());
           });
+
+          // El estado del tooltip tiene que ser el de la ficha: la base dice que
+          // incluye y que no (fichaDetalle.incluye / noIncluye del candidato).
+          const incluye = new Set(((cfg as any).fichaDetalle?.incluye ?? []).map((a: any) => norm(a.nombre)));
+          const noIncluye = new Set(((cfg as any).fichaDetalle?.noIncluye ?? []).map((a: any) => norm(a.nombre)));
+          if (incluye.size || noIncluye.size) {
+            const iEstadoMalo = amenities.findIndex((a) => {
+              const n = norm(a.nombre);
+              const esperaIncluida = incluye.has(n) ? true : noIncluye.has(n) ? false : null;
+              if (esperaIncluida === null) return false;
+              return esperaIncluida !== !/^no\b/i.test(a.estado);
+            });
+            await conResaltado(page,
+              iEstadoMalo >= 0 ? t.locatorAmenityDestacada(cfg.container, iEstadoMalo) : zonaBarra,
+              'el estado de una amenity no coincide', () => {
+                expect(iEstadoMalo,
+                  'Cada amenity destacada tiene que decir "Incluye" o "No incluye" segun la base' +
+                  (iEstadoMalo >= 0 ? `: ${amenities[iEstadoMalo].nombre} dice "${amenities[iEstadoMalo].estado}"` : ''),
+                ).toBe(-1);
+              });
+          }
         }
 
         // El resumen de temporada no puede nombrar un mes que la base no opera.
@@ -731,6 +756,18 @@ test.describe('Tarifario', () => {
     await paso(page, 'Los importes coinciden con la linea base', async () => {
       const actual = await t.capturarTarifas(cfg.container);
 
+      // En Hoteles la clave de cada tabla es el rotulo de la categoria, que trae su
+      // precio "desde" ("King Deluxe .. Desde USD 430 por persona(base doble)"). Ese
+      // minimo se recalcula solo cuando vence la ventana mas barata (el 2026-10-10
+      // ya decia USD 500) y la tabla dejaba de encontrarse aunque sus precios no
+      // cambiaran. Se saca de la clave; los precios se comparan fila por fila igual.
+      const sinPrecioDesde = (x: { porIdioma: Record<string, string[][]> }) => {
+        x.porIdioma = Object.fromEntries(Object.entries(x.porIdioma).map(([clave, filas]) =>
+          [clave.replace(/\s+Desde\s+[A-Z]{3}\s*[\d.,]+[^·]*/, ' '), filas]));
+      };
+      sinPrecioDesde(esperado);
+      sinPrecioDesde(actual);
+
       // Tarifario por temporadas (la oferta): las dos tablas se llevan al tramo que
       // va de hoy al fin de lo que conocia la linea base, para que una ventana que
       // termina no haga fallar el test. Ver alinearVigencias en utils/pasos.
@@ -748,6 +785,16 @@ test.describe('Tarifario', () => {
           expect(esperado.porIdioma[idioma].length,
             `La linea base de la solapa "${idioma}" ya no cubre ninguna vigencia vigente: recapturarla con npm run lineabase`,
           ).toBeGreaterThan(1);
+        }
+      }
+
+      // Cruceros: una tabla por salida y ninguna dice de que fecha es. Se saltean
+      // las salidas de la linea base que ya pasaron. Ver alinearSalidas en utils/pasos.
+      if (cfg.alinearSalidas) {
+        for (const idioma of Object.keys(esperado.porIdioma)) {
+          if (actual.porIdioma[idioma]) {
+            esperado.porIdioma[idioma] = alinearSalidas(esperado.porIdioma[idioma], actual.porIdioma[idioma]);
+          }
         }
       }
 
@@ -773,10 +820,14 @@ test.describe('Tarifario', () => {
 
         // Se compara fila por fila para poder senalar cual difiere, en vez de
         // decir "cambiaron los importes" sin precisar donde.
+        //
+        // Los importes se comparan sin separador de miles: el 2026-10-10 el portal
+        // paso de "USD 4,870" a "USD 4.870" sin que cambiara ninguna tarifa, y la
+        // linea base no tiene por que depender del formato del dia.
         const maximo = Math.max(filasEsperadas.length, filasActuales.length);
         for (let i = 0; i < maximo; i++) {
-          const esp = filasEsperadas[i] ? filasEsperadas[i].join(' | ') : '(no existe)';
-          const act = filasActuales[i] ? filasActuales[i].join(' | ') : '(no existe)';
+          const esp = filasEsperadas[i] ? sinSeparadorDeMiles(filasEsperadas[i].join(' | ')) : '(no existe)';
+          const act = filasActuales[i] ? sinSeparadorDeMiles(filasActuales[i].join(' | ')) : '(no existe)';
           if (esp !== act) {
             // Al capturar se recorrieron todas las solapas: hay que volver a la
             // que fallo para que la captura muestre el dato correcto.
