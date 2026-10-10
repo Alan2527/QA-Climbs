@@ -81,10 +81,31 @@ export class BackOfficePage {
    * muestra el numero del file sin prefijo ni ceros.
    */
   fila(codigo: string): Locator {
-    const numero = String(Number(codigo.replace(/\D/g, '')));
-    return this.page.locator(this.grilla)
-      .filter({ hasText: new RegExp(`\\b(${codigo}|${numero})\\b`) })
+    return this.page.locator(`${this.grilla}, ${this.grillaSeries}`)
+      .filter({ hasText: this.patronDeReserva(codigo) })
       .first();
+  }
+
+  /**
+   * Desde el 2026-09-24 (4648) la bandeja separa las series: Online excluye las
+   * reservas de serie (`!isSerie`, Files/Inbox.aspx.cs) y las lista en su solapa,
+   * `#tabSeries` / `#tblInboxSeries`, con las mismas columnas. Si la reserva esta
+   * ahi, se abre esa solapa antes de mirar la fila.
+   */
+  readonly grillaSeries = '#tblInboxSeries tbody tr';
+
+  async mostrarReserva(codigo: string) {
+    const enSeries = this.page.locator(this.grillaSeries).filter({ hasText: this.patronDeReserva(codigo) });
+    if (await enSeries.count()) {
+      await this.page.locator("a[href='#tabSeries']").first().click();
+      await expect(enSeries.first(), `La reserva ${codigo} tiene que verse en la solapa Series`)
+        .toBeVisible({ timeout: 15_000 });
+    }
+  }
+
+  private patronDeReserva(codigo: string): RegExp {
+    const numero = String(Number(codigo.replace(/\D/g, '')));
+    return new RegExp(`\\b(${codigo}|${numero})\\b`);
   }
 
   /** Celdas de esa fila, en el orden de la grilla. */

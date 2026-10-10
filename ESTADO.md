@@ -73,6 +73,25 @@ Documento de traspaso. Última actualización: **2026-09-15**.
 > hay que restaurar y los hallazgos abiertos que explican por qué la suite no está
 > toda en verde.
 
+## ⚠️ Para retomar — 2026-10-10
+
+Suite adaptada a los cambios del front del 26/09 al 08/10 y probada contra QA en local: **29 de 35 en verde** (Tarifario 11/12, Reservas 12/14, Cobranzas 6/9). Commit `41d79a9` con la mayor parte; el resto queda en el commit siguiente.
+
+**Los 6 rojos que quedan, todos explicados:**
+
+| Test | Motivo | Que falta |
+|---|---|---|
+| Cena Show (Tarifario) | El recargo por idioma en ingles paso de USD 152 a USD 167 (152 x 1,10); en espanol sigue en 137. El 28/09 entro la 4739 | Cruzarlo con la US 4739 |
+| Serie: se puede cancelar (Reservas) | Desde el 30/09 (`df13cf91`) el portal oculta Cancelar en las series (`!IsSerie`, BookingHistoryDetail.aspx.cs) | Decision de producto: si es lo buscado, el test pasa a exigir que no se pueda |
+| Carrito y checkout multiidioma (Reservas) | **Hallazgo 8, abierto**: en ingles y portugues el carrito muestra "Tigre y Delta" | Rojo correcto |
+| Caja diaria, Factura al cliente, Orden de cobro (Cobranzas) | Desde el 06/10 (4839, `996add83`) una factura al cliente que es carta se **emite al guardar** y va a Cartas emitidas (`NewInvoice.aspx.cs:554`); los tests la esperan pendiente de emision | Decision: si es lo buscado, rearmar el flujo para tomar el comprobante de Cartas emitidas |
+
+**Lo que cambio en el front y ya esta adaptado:** nacionalidad como desplegable (TomSelect), el "+" de pasajeros atado a la Cantidad de PAX, el modal "Reserva generada" en vez de redirigir, el aviso de error como notificacion de 5 segundos con textos nuevos, nombres con numeros rechazados, el historial como `a.bh-row` con solapas por URL (`?tab=booking|customTour|serie`), la solapa Series en la bandeja del BO, el punto de miles en los importes, "Ver detalle" por `href`, las amenities destacadas en `.tariff-amenity`, el prefijo del file por sucursal y el calendario del armado que no cruzaba de mes.
+
+**Trampa encontrada: la suite tiene que correr con 1 worker.** Comparte el usuario pablo1 y el carrito es del usuario, no de la sesion: con 2 workers dos tests se pisaban el carrito (reserva 25432 con dos Tigre y Delta, contadores en 2, el file de la liquidacion duplicado). `playwright.config.ts` ya fija `workers: 1`.
+
+**Datos de QA de los que depende la suite:** `CurrencyExchange` 509 (pais 10) en 1.000; el crucero 14 con las 41 salidas recargadas el 28/09.
+
 ## ⚠️ Para retomar — 2026-09-21
 
 - **Deploy del 15 al 17/09 (4763 y 4648) ya adaptado y subido.** Bloque A: 8 en verde y 1 en rojo (Paquetes, hallazgo 11). Bloque B en verde salvo los hallazgos 10 y 8 y los textos sin traducir de la US 4613. Bloque C entero en verde. Los rojos son defectos ya reportados.

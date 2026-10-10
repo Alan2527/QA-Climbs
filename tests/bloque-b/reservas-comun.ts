@@ -223,8 +223,10 @@ export async function verificarEnElBackOffice(opciones: {
   });
 
   await paso(page, 'Ubicar la reserva en la bandeja y comparar la fila', async () => {
+    // Las de serie viven en su propia solapa desde el 2026-09-24: ver mostrarReserva.
+    await bo.mostrarReserva(codigo);
     const fila = bo.fila(codigo);
-    await expect(fila, `La reserva ${codigo} tiene que estar en la bandeja Online`).toBeVisible();
+    await expect(fila, `La reserva ${codigo} tiene que estar en la bandeja de reservas`).toBeVisible();
 
     const texto = (await fila.innerText()).replace(/\s+/g, ' ');
     if (!sinReferenciaNiComentario) {

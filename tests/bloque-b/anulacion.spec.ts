@@ -75,13 +75,19 @@ test.describe('Reservas — anulacion', () => {
     // en la de Multidestino y la del carrito de compras queda oculta, asi que sus
     // filas —y su paginado— no cuentan como visibles. Antes se clickeaba el link
     // sin esperar a que el panel se mostrara.
-    const link = page.locator(`a[href='${solapa}']`).first();
-    if (await link.count() && !(await page.locator(solapa).isVisible())) {
-      await link.click();
+    //
+    // Desde el 2026-09-30 (`df13cf91`) las solapas ya no se abren con `#tabBooking`:
+    // son enlaces del servidor (`BookingHistory.aspx?tab=booking|customTour|serie`),
+    // y Multidestino y Series comparten el panel `#tabCustomTour`. Se entra por la
+    // direccion de la solapa; para ese panel se prueban las dos.
+    const direcciones = solapa === '#tabBooking' ? ['booking'] : ['customTour', 'serie'];
+    for (const tab of direcciones) {
+      if (await page.locator(solapa).isVisible() && await fila().count()) break;
+      await page.goto(`/online/BookingHistory.aspx?tab=${tab}`);
       await esperarFinDeCarga(page);
-      await expect(page.locator(solapa), `La solapa ${solapa} del historial tiene que abrirse`)
-        .toBeVisible({ timeout: 30_000 });
     }
+    await expect(page.locator(solapa), `La solapa ${solapa} del historial tiene que abrirse`)
+      .toBeVisible({ timeout: 30_000 });
 
     if (await fila().count()) return fila();
 

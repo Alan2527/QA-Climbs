@@ -15,7 +15,12 @@ export default defineConfig({
   testDir: './tests',
   // Los flujos E2E tocan datos reales: sin paralelismo dentro de un mismo archivo.
   fullyParallel: false,
-  workers: process.env.CI ? 1 : 2,
+  // **Un solo worker siempre**, tambien local. Todos los tests usan el mismo
+  // usuario (pablo1) y el carrito es del usuario, no de la sesion: con 2 workers,
+  // dos archivos que reservan corren a la vez y se pisan el carrito. El 2026-10-10
+  // asi salio una reserva con dos Tigre y Delta (25432, uno de cada test) y varios
+  // contadores en 2. En el CI ya era 1.
+  workers: 1,
   forbidOnly: !!process.env.CI,
   /**
    * **Cero reintentos por defecto.**
