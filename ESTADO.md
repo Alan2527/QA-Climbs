@@ -90,6 +90,8 @@ Suite adaptada a los cambios del front del 26/09 al 08/10 y probada contra QA en
 
 **Trampa encontrada: la suite tiene que correr con 1 worker.** Comparte el usuario pablo1 y el carrito es del usuario, no de la sesion: con 2 workers dos tests se pisaban el carrito (reserva 25432 con dos Tigre y Delta, contadores en 2, el file de la liquidacion duplicado). `playwright.config.ts` ya fija `workers: 1`.
 
+**Markups por tipo (nuevo, 2026-10-10):** `tests/bloque-a/markups.spec.ts`, 2 tests en verde contra QA y contraprueba hecha (con el markup equivocado falla). Usa datos propios: mercado 37 (0,80 hoteles / 0,60 servicios), agencia 6334 (padre 1, sin Domain) y usuario 15813 `autoqa.markups` (CustomMarkup 1,00, dolares). Credenciales en `AMV_MARKUP_USER` / `AMV_MARKUP_PASS` (.env y secrets).
+
 **Datos de QA de los que depende la suite:** `CurrencyExchange` 509 (pais 10) en 1.000; el crucero 14 con las 41 salidas recargadas el 28/09.
 
 ## ⚠️ Para retomar — 2026-09-21

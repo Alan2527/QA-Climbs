@@ -1056,5 +1056,28 @@
   "_datosCongelados": {
     "fecha": "2026-08-31",
     "fuente": "Consulta directa a qa.dbo tras cargar imagenes, amenities y tooltips"
+  },
+  "markups": {
+    "_nota": "Usuario y agencia propios para validar los markups por tipo (US 4770/4798). Creados el 2026-10-10 en QA, no se comparten con otros tests: el mercado 37 tiene un markup distinto por tipo para que un cruce entre hoteles y servicios se note.",
+    "usuario": {
+      "webUserId": 15813,
+      "userName": "autoqa.markups",
+      "customMarkup": 1.0,
+      "currencyId": 1,
+      "_credenciales": "AMV_MARKUP_USER / AMV_MARKUP_PASS en el .env y en los secrets"
+    },
+    "agencia": {
+      "id": 6334,
+      "nombre": "AUTO-QA NO TOCAR - Markups",
+      "parentAgencyId": 1,
+      "_sinDomain": "Sin Domain no hereda el markup de la agencia padre (AgencyManager.GetFullMarkup)."
+    },
+    "mercado": {
+      "id": 37,
+      "nombre": "AUTO-QA NO TOCAR - Markups",
+      "hotelMarkup": 0.8,
+      "serviceMarkup": 0.6
+    },
+    "_formula": "Precio = techo(tarifa / markup del tipo / CustomMarkup). Se compara contra lo que ve pablo1 (CustomMarkup 0,50, agencia 1 sin markup) sobre el mismo item: precio nuevo = precio de pablo1 x 0,50 / markup del tipo, con margen de 1 por el redondeo hacia arriba."
   }
 }

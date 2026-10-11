@@ -78,6 +78,8 @@ jobs:
           AMV_PASS: ${{ secrets.AMV_PASS }}
           BO_USER: ${{ secrets.BO_USER }}
           BO_PASS: ${{ secrets.BO_PASS }}
+          AMV_MARKUP_USER: ${{ secrets.AMV_MARKUP_USER }}
+          AMV_MARKUP_PASS: ${{ secrets.AMV_MARKUP_PASS }}
           SUITE: ${{ github.event.inputs.suite || 'bloque-a' }}
           FILTRO: ${{ github.event.inputs.filtro }}
         run: |
