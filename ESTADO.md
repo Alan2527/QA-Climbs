@@ -81,7 +81,7 @@ Suite adaptada a los cambios del front del 26/09 al 08/10 y probada contra QA en
 
 | Test | Motivo | Que falta |
 |---|---|---|
-| Cena Show (Tarifario) | El recargo por idioma en ingles paso de USD 152 a USD 167 (152 x 1,10); en espanol sigue en 137. El 28/09 entro la 4739 | Cruzarlo con la US 4739 |
+| Cena Show (Tarifario) | Resuelto el 12/10: el recargo por idioma en ingles paso de USD 152 a USD 167 porque desde el 01/10 el recargo fijo lleva el markup de servicios (Task 4798 de la US 4770, commit `7252745` del API). No era la 4739. Linea base actualizada a 167 | — |
 | Serie: se puede cancelar (Reservas) | Desde el 30/09 (`df13cf91`) el portal oculta Cancelar en las series (`!IsSerie`, BookingHistoryDetail.aspx.cs) | Decision de producto: si es lo buscado, el test pasa a exigir que no se pueda |
 | Carrito y checkout multiidioma (Reservas) | **Hallazgo 8, abierto**: en ingles y portugues el carrito muestra "Tigre y Delta" | Rojo correcto |
 | Caja diaria, Factura al cliente, Orden de cobro (Cobranzas) | Desde el 06/10 (4839, `996add83`) una factura al cliente que es carta se **emite al guardar** y va a Cartas emitidas (`NewInvoice.aspx.cs:554`); los tests la esperan pendiente de emision | Decision: si es lo buscado, rearmar el flujo para tomar el comprobante de Cartas emitidas |
