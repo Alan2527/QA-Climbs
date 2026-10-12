@@ -18,6 +18,12 @@
       "nombre": "Cobranzas",
       "icono": "ph-receipt",
       "descripcion": "Que el circuito de pagos y cobros del file cierre en la caja del día."
+    },
+    {
+      "id": "webadmin",
+      "nombre": "WebAdmin",
+      "icono": "ph-sliders-horizontal",
+      "descripcion": "Que lo que se configura en el WebAdmin llegue bien a los precios del portal."
     }
   ],
   "pruebas": [
@@ -195,6 +201,26 @@
       "archivo": "bloque-c/no-asignados.spec.ts",
       "titulo": "No asignados: la orden de pago aprobada figura sin imputar y sale al imputarla",
       "nombre": "Pendientes de asignar: órdenes de pago"
+    },
+    {
+      "archivo": "bloque-a/markups.spec.ts",
+      "titulo": "Hoteles: aplica el markup de hoteles del mercado",
+      "nombre": "Markup de hoteles"
+    },
+    {
+      "archivo": "bloque-a/markups.spec.ts",
+      "titulo": "Servicios: aplica el markup de servicios del mercado",
+      "nombre": "Markup de servicios"
+    },
+    {
+      "archivo": "webadmin/markups-mercado.spec.ts",
+      "titulo": "Mercado: cambiar el markup de hoteles mueve solo los precios de hoteles",
+      "nombre": "Markup del mercado"
+    },
+    {
+      "archivo": "webadmin/markups-mercado.spec.ts",
+      "titulo": "Agencia: el markup propio de servicios gana sobre el del mercado y al vaciarlo vuelve al mercado",
+      "nombre": "Markup propio de la agencia"
     }
   ]
 }

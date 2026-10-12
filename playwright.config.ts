@@ -132,6 +132,14 @@ export default defineConfig({
       dependencies: ['Precondiciones - Bloque B'],
     },
     {
+      // Escribe en el WebAdmin (solo sobre datos AUTO-QA propios) y verifica en el
+      // portal: sin reintentos, igual que los bloques que emiten.
+      name: 'Climbs - WebAdmin',
+      testDir: './tests/webadmin',
+      use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
+      dependencies: ['Precondiciones - Bloque A'],
+    },
+    {
       name: 'Climbs - Bloque C: Cobranzas',
       testDir: './tests/bloque-c',
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },

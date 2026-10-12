@@ -43,6 +43,7 @@ function areaDe(archivo) {
   if (archivo.startsWith('bloque-a/')) return 'tarifario';
   if (archivo.startsWith('bloque-b/')) return 'reservas';
   if (archivo.startsWith('bloque-c/')) return 'cobranzas';
+  if (archivo.startsWith('webadmin/')) return 'webadmin';
   // Login y precondiciones: no son pruebas de negocio, pero si fallan el resto no corre.
   return 'preparacion';
 }
@@ -126,7 +127,7 @@ else if (deNegocio.total === 0) estado = 'sin-resultados';
 else estado = 'sin-fallas';
 
 const areas = {};
-for (const area of ['tarifario', 'reservas', 'cobranzas', 'preparacion']) {
+for (const area of ['tarifario', 'reservas', 'cobranzas', 'webadmin', 'preparacion']) {
   const delArea = pruebas.filter((p) => p.area === area);
   if (delArea.length) areas[area] = contar(delArea);
 }

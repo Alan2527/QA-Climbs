@@ -92,6 +92,8 @@ Suite adaptada a los cambios del front del 26/09 al 08/10 y probada contra QA en
 
 **Markups por tipo (nuevo, 2026-10-10):** `tests/bloque-a/markups.spec.ts`, 2 tests en verde contra QA y contraprueba hecha (con el markup equivocado falla). Usa datos propios: mercado 37 (0,80 hoteles / 0,60 servicios), agencia 6334 (padre 1, sin Domain) y usuario 15813 `autoqa.markups` (CustomMarkup 1,00, dolares). Credenciales en `AMV_MARKUP_USER` / `AMV_MARKUP_PASS` (.env y secrets).
 
+**WebAdmin (nuevo, 12/10):** `tests/webadmin/markups-mercado.spec.ts`, proyecto `Climbs - WebAdmin` (suite `webadmin` en el workflow). Cambia desde el WebAdmin el markup de hoteles del mercado 37 y el markup propio de servicios de la agencia 6334, y verifica en el portal con `autoqa.markups` que el precio sigue la proporcion y que el otro tipo no se mueve. Restaura en `finally`. 2 en verde contra QA. Es el primero de los flujos sensibles del WebAdmin propuestos; los de tarifas de habitacion esperan que `rooms/detail.aspx` deje de dar 500 (falta la tabla `RoomMinStay` de la 4870).
+
 **Datos de QA de los que depende la suite:** `CurrencyExchange` 509 (pais 10) en 1.000; el crucero 14 con las 41 salidas recargadas el 28/09.
 
 ## ⚠️ Para retomar — 2026-09-21

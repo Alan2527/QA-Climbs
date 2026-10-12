@@ -14,6 +14,7 @@ on:
           - bloque-a
           - bloque-b
           - bloque-c
+          - webadmin
           - todas
       filtro:
         description: 'Opcional: acota dentro de la suite elegida. Ej: -g "Ofertas"'
@@ -87,6 +88,7 @@ jobs:
             bloque-a) RUTA="tests/bloque-a" ;;
             bloque-b) RUTA="tests/bloque-b" ;;
             bloque-c) RUTA="tests/bloque-c" ;;
+            webadmin) RUTA="tests/webadmin" ;;
             todas)    RUTA="tests" ;;
             *) echo "Suite desconocida: $SUITE"; exit 1 ;;
           esac

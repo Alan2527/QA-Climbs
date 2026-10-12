@@ -1,7 +1,7 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { TarifarioPage } from '../../pages/tarifario.page';
-import { LoginPage } from '../../pages/login.page';
-import { paso, adjuntarTexto, reiniciarNumeracionDePasos, numeroDelPortal } from '../../utils/pasos';
+import { paso, adjuntarTexto, reiniciarNumeracionDePasos } from '../../utils/pasos';
+import { abrirSesionDeMarkups, tarifasDe, porTarifa, compararPrecios, ItemDelTarifario as Item } from '../../utils/markups';
 import candidatos from '../../data/candidatos.json';
 
 const T = candidatos.tarifario;
@@ -33,24 +33,7 @@ test.describe('Markups por tipo de producto', () => {
   let pagina: Page;
 
   test.beforeAll(async ({ browser, baseURL }) => {
-    const usuario = process.env.AMV_MARKUP_USER;
-    const password = process.env.AMV_MARKUP_PASS;
-    expect(usuario, 'Falta AMV_MARKUP_USER en el entorno').toBeTruthy();
-    expect(password, 'Falta AMV_MARKUP_PASS en el entorno').toBeTruthy();
-
-    // Contexto propio y sin la sesion de pablo1: los dos usuarios tienen que estar
-    // logueados a la vez para mirar el mismo item.
-    contexto = await browser.newContext({
-      baseURL,
-      viewport: { width: 1920, height: 1080 },
-      ignoreHTTPSErrors: true,
-      storageState: { cookies: [], origins: [] },
-    });
-    pagina = await contexto.newPage();
-    const login = new LoginPage(pagina);
-    await login.ingresar(usuario!, password!);
-    await login.validarSesionIniciada();
-    await login.cerrarAvisosDelPortal();
+    ({ contexto, pagina } = await abrirSesionDeMarkups(browser, baseURL));
   });
 
   test.afterAll(async () => {
@@ -60,44 +43,6 @@ test.describe('Markups por tipo de producto', () => {
   test.beforeEach(() => {
     reiniciarNumeracionDePasos();
   });
-
-  type Item = { tab: string; container: string; nombre: string; terminoBusqueda: string };
-
-  /** Recorre el tarifario hasta el item y devuelve las filas de su tabla de tarifas. */
-  async function tarifasDe(page: Page, item: Item): Promise<string[][]> {
-    const t = new TarifarioPage(page);
-    await page.goto('/online/');
-    await t.irDesdeElMenu();
-    await t.seleccionarPais('Argentina');
-    await t.seleccionarCiudad('Buenos Aires');
-    await t.buscar();
-    await t.abrirPestania(item.tab, item.container);
-    await t.buscarPorNombre(item.terminoBusqueda, item.nombre);
-    await t.verTarifario(item.container);
-    const filas = await t.leerTablaTarifas(item.container);
-    await t.cerrarExplorador();
-    return filas;
-  }
-
-  /**
-   * Tabla -> precio por celda. Los hoteles traen un precio por columna (SGL, DBL,
-   * TPL) y los servicios uno por fila: se toma cada celda con importe y se la
-   * identifica por las celdas sin importe de su fila (fechas, tipo, pax) mas su
-   * posicion, asi se empareja la misma tarifa en los dos usuarios.
-   */
-  function porTarifa(filas: string[][]): Map<string, number> {
-    const conImporte = (c: string) => /(USD|ARS|\$)\s*[0-9]/.test(c);
-    const mapa = new Map<string, number>();
-    for (const f of filas) {
-      const fila = f.filter((c) => !conImporte(c)).join(' | ');
-      f.forEach((celda, i) => {
-        if (!conImporte(celda)) return;
-        const precio = numeroDelPortal(celda);
-        if (precio !== null) mapa.set(`${fila} | columna ${i + 1}`, precio);
-      });
-    }
-    return mapa;
-  }
 
   async function validarMarkup(page: Page, item: Item, titulo: string, markupDelTipo: number) {
     let referencia = new Map<string, number>();
@@ -126,16 +71,7 @@ test.describe('Markups por tipo de producto', () => {
       // pablo1 ve techo(x / markupPablo); el usuario nuevo, techo(x / markupDelTipo / CustomMarkup).
       // De un precio p de pablo1, x esta en ((p-1) * markupPablo, p * markupPablo].
       const divisor = markupDelTipo * M.usuario.customMarkup;
-      const lineas: string[] = [];
-      const fuera: string[] = [];
-      for (const [clave, p] of referencia) {
-        const q = conMarkup.get(clave);
-        const minimo = Math.ceil(((p - 1) * markupPablo) / divisor) - 1;
-        const maximo = Math.ceil((p * markupPablo) / divisor) + 1;
-        const ok = q !== undefined && q >= minimo && q <= maximo;
-        lineas.push(`${ok ? 'OK  ' : 'MAL '} ${clave}  ->  pablo1 ${p}  /  esperado ${minimo}..${maximo}  /  obtenido ${q ?? 'sin fila'}`);
-        if (!ok) fuera.push(clave);
-      }
+      const { lineas, fuera } = compararPrecios(referencia, conMarkup, markupPablo, divisor);
       await adjuntarTexto('Comparacion por tarifa',
         `precio esperado = precio de pablo1 x ${markupPablo} / ${divisor}` + SALTO + SALTO + lineas.join(SALTO));
 
