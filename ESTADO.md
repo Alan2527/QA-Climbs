@@ -1305,6 +1305,8 @@ aplicación.
 
 ### 5. El tarifario no respeta `Published` en las tablas de detalle
 
+> **Descartado el 2026-10-13: no es hallazgo.** El WebAdmin no tiene ningun control para ese `Published` (Services/Detail.aspx.cs guarda nombre y texto por idioma y no lo toca), y en QA 19.439 de los 19.937 detalles de servicios que no son AUTO-QA estan en `Published = 0`. Si el portal respetara la marca, desapareceria la descripcion de casi todos los servicios: es un campo sin uso. Lo de abajo queda como antecedente.
+
 Cena Show y Traslados tienen `ServiceDetail.Published = 0` en los tres idiomas y
 sin embargo el texto se muestra en pantalla.
 
@@ -1436,6 +1438,8 @@ el rojo hasta que se corrija.
 
 
 ### 8. Carrito y checkout muestran el servicio en español con el sitio en inglés o portugués
+
+> **Causa encontrada el 2026-10-13.** El carrito y el checkout piden los items a `booking/getcurrentshoppingcart`, que arma el nombre del servicio con `service2.Name`, el nombre base en espanol (`WholesalerBookService.cs:725` del API, rama qa): nunca usa la traduccion. El detalle de la reserva y los mails usan otro endpoint (`getitemsbybook`, `WholesalerBookingService.cs:818-822`) que si toma `ServiceDetail.Name` del idioma de la web con fallback al nombre base. Lo de abajo citaba ese segundo endpoint como si fuera el del carrito. No tiene que ver con el idioma del servicio (US 4739): ese solo se usa para la etiqueta del idioma. Ninguna US define el idioma del carrito: va como consulta, con la US 4429 (nombre en el idioma de la web en el PDF de cotizaciones) como antecedente. Reproducido a mano por Alan el 13/10 en ingles y portugues.
 
 Con el encabezado en EN o PT, la fila del carrito (`ShoppingCartPage.aspx`) y la
 del checkout (`CheckOut.aspx`) muestran **"AUTO-QA NO TOCAR - Tigre y Delta"**. El

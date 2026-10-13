@@ -336,7 +336,7 @@ export class TarifarioPage {
    */
   async markupActivo(): Promise<number | null> {
     const texto = await this.page.locator('body').innerText();
-    const m = texto.match(/M\s*([0-9]+[.,][0-9]+)/);
+    const m = texto.match(/\bM\s*([0-9]+[.,][0-9]+)/);
     return m ? Number(m[1].replace(',', '.')) : null;
   }
 
