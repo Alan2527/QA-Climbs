@@ -5,7 +5,6 @@ import { HotelPage } from '../../pages/hotel.page';
 import { CarritoPage, Pasajero } from '../../pages/carrito.page';
 import { CustomToursPage } from '../../pages/customtours.page';
 import { CarritoCustomToursPage } from '../../pages/carrito-customtours.page';
-import { SeriePage } from '../../pages/serie.page';
 import {
   paso, adjuntarTexto, esperarFinDeCarga, fechaDeBusqueda, formatearFecha,
   reiniciarNumeracionDePasos, conResaltado, selloEnLetras,
@@ -460,72 +459,8 @@ test.describe('Reservas — anulacion', () => {
     await cancelarYVerificar(page, { codigo, solapa: '#tabCustomTour', referencia, conHoteleria: true });
   });
 
-  test('Serie: una reserva emitida se puede cancelar y el portal lo refleja', async ({ page }) => {
-    test.setTimeout(600_000);
-
-    const serie = new SeriePage(page);
-    const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
-
-    const SERIE = {
-      nombre: 'AUTO-QA NO TOCAR - Serie de regresion',
-      circuito: 'AUTO-QA NO TOCAR - Serie: Buenos Aires (3 dias / 2 noches)',
-      categoria: 'Primera',
-    };
-
-    let codigo = '';
-    let clave = '';
-    let cupoAntes = 0;
-
-    await paso(page, 'Reservar una salida de la serie y emitirla', async () => {
-      await serie.abrirListado();
-      await serie.abrirSerie(SERIE.nombre);
-      await serie.abrirCircuito(SERIE.circuito);
-      await serie.elegirCategoria(SERIE.categoria);
-
-      const elegida = await serie.elegirPrimeraSalida();
-      clave = elegida.clave;
-      cupoAntes = (await serie.datosDelCalendario()).cupos[clave] ?? 0;
-      await adjuntarTexto('Salida elegida y cupo antes de reservar',
-        `${elegida.fecha} (${clave}), cupo ${cupoAntes}`);
-
-      await serie.configurarOcupacion({ adultos: 2 });
-      await serie.agregarHabitacion();
-      await serie.siguiente();
-
-      const pasajeros = pasajerosDe(2, sello);
-      for (const [i, pax] of pasajeros.entries()) await serie.completarPasajero(0, i, pax);
-      await serie.siguiente();
-      await serie.aceptarTerminos();
-
-      codigo = await serie.confirmarReserva();
-      expect(codigo, 'El historial tiene que mostrar el codigo de la reserva emitida')
-        .toMatch(/^BO\d{8}$/);
-      await adjuntarTexto('Reserva emitida para anular', codigo);
-    });
-
-    // La serie no ofrece donde cargar una referencia: la reserva viaja con
-    // Reference en blanco, asi que no se le exige al historial.
-    await cancelarYVerificar(page, { codigo, solapa: '#tabCustomTour', conHoteleria: true });
-
-    await paso(page, 'Dejar registrado que pasa con el cupo al cancelar', async () => {
-      // **No se exige nada**: ninguna historia define si cancelar tiene que
-      // devolver el cupo a la serie. Se mide y se adjunta, que es lo que hace
-      // falta para llevarselo a producto y para saber cuanto cupo consume de
-      // verdad cada corrida.
-      await serie.abrirListado();
-      await serie.abrirSerie(SERIE.nombre);
-      await serie.abrirCircuito(SERIE.circuito);
-      await serie.elegirCategoria(SERIE.categoria);
-
-      const cupoDespues = (await serie.datosDelCalendario()).cupos[clave] ?? 0;
-      await adjuntarTexto('Cupo de la salida antes y despues de cancelar',
-        [`salida: ${clave}`,
-         `antes de reservar: ${cupoAntes}`,
-         `despues de reservar y cancelar: ${cupoDespues}`,
-         cupoDespues === cupoAntes
-           ? 'La cancelacion devolvio el cupo.'
-           : `La cancelacion NO devolvio el cupo: quedan ${cupoAntes - cupoDespues} unidades ` +
-             'menos. Es dato para producto, no un resultado esperado.'].join(String.fromCharCode(10)));
-    });
-  });
+  // Serie: no tiene caso de anulacion. Desde el 30/09 (commit df13cf91 del WEB) el
+  // detalle de una reserva de Serie no ofrece "Cancelar reserva", y Nicolas Angulo
+  // confirmo el 13/10/2026 que es a proposito: por ahora las Series no se cancelan
+  // desde el portal. La reserva de Serie sigue cubierta en reservas-series.spec.ts.
 });

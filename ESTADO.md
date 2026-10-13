@@ -96,6 +96,8 @@ Suite adaptada a los cambios del front del 26/09 al 08/10 y probada contra QA en
 
 **WebAdmin, extension de tarifas (13/10):** `tests/webadmin/extender-tarifas.spec.ts` sobre la habitacion 18371: genera el tarifario, extiende el corte base de enero 2031 un 10% a marzo (110/66/55, "10%", tooltip con el origen), de marzo otro 10% a mayo ("21%"), verifica el aviso de pisar tarifas y el tope de 100. Repetible: pisa sus propios rangos. Las fechas del modal son flatpickr: se cargan con `_flatpickr.setDate`, tipearlas no alcanza.
 
+**WebAdmin, 13/10 (6 tests, 8 de 9 en verde):** carga de tarifas + Generar Tarifario (agosto 2031, alterna dos juegos), cupo y publicacion (con cupo 'Todas disponibles', cupo 0 pasa a 'N noches a requerir', despublicada no se ofrece; el cupo solo se carga con 'Tiene freesale'), extension masiva (solo el hotel 15422, guardas de seleccion, limpia el tramo 16/08-30/09/2031) y tipo de cambio manual. **Rojo correcto:** tipo de cambio: al desactivar la cotizacion manual de la agencia el portal la sigue aplicando (la fila queda con Deleted=1 y `CurrencyExchangeManager.GetCurrencyByIdSelect` del API no filtra Deleted). El test restaura la manual en 1.000 antes de apagarla, asi no rompe el de markups. **Baja:** se saco 'Serie: una reserva emitida se puede cancelar': las Series no se cancelan desde el portal por decision de producto (13/10). Los avisos del WebAdmin se van solos: se leen con un sondeo despues del clic (`clicConAviso`). Borrar un tramo sin tarifas no muestra aviso.
+
 **Datos de QA de los que depende la suite:** `CurrencyExchange` 509 (pais 10) en 1.000; el crucero 14 con las 41 salidas recargadas el 28/09.
 
 ## ⚠️ Para retomar — 2026-09-21

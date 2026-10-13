@@ -1096,6 +1096,17 @@
       "hasta": "31/03/2031",
       "porcentaje": 10
     },
+    "hotelNombre": "AUTO-QA NO TOCAR - WebAdmin Extension de tarifas",
+    "terminoBusqueda": "WebAdmin Extension",
+    "cargaManual": {
+      "_nota": "Por habitacion, como se cargan en Gestion de Tarifas: tipos 1 Single, 2 Doble, 3 Triple, 20 Menores. El test alterna entre los dos juegos para que el cambio se note aunque corra dos veces seguidas.",
+      "desde": "01/08/2031",
+      "hasta": "15/08/2031",
+      "juegos": [
+        { "1": 200, "2": 300, "3": 360, "20": 0 },
+        { "1": 240, "2": 360, "3": 450, "20": 0 }
+      ]
+    },
     "segundaExtension": {
       "desde": "01/05/2031",
       "hasta": "31/05/2031",

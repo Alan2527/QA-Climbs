@@ -107,6 +107,29 @@ export class HotelPage {
    * dos lo muestra, se lo lleva ahi con los desplegables — que es lo que hace una
    * persona.
    */
+  /**
+   * Deja exactamente esa cantidad de habitaciones y adultos, sumando o restando
+   * desde lo que haya. El portal recuerda la busqueda anterior de la sesion, asi
+   * que en la segunda busqueda del mismo test `cargarViajeros` sumaria de mas.
+   */
+  async fijarViajeros(habitaciones: number, adultos: number) {
+    await this.page.locator(this.btnViajeros).first().click();
+    await expect(this.page.locator(`${this.panelViajeros}.is-open`)).toHaveCount(1);
+    const boton = (campo: string, signo: '+' | '-') =>
+      this.page
+        .locator(`span.pq-step[onclick*="'${campo}'"], span.quantityModify[onclick*="'${campo}'"]`)
+        .filter({ hasText: signo === '+' ? '+' : /^[-−–]$/ })
+        .first();
+    for (const [campo, objetivo] of [['rooms', habitaciones], ['adults', adultos]] as const) {
+      for (let i = 0; i < 20; i++) {
+        const actual = Number(await this.page.locator(`#${campo}`).inputValue());
+        if (actual === objetivo) break;
+        await boton(campo, actual < objetivo ? '+' : '-').click();
+      }
+      await expect(this.page.locator(`#${campo}`)).toHaveValue(String(objetivo));
+    }
+  }
+
   async elegirFechas(entrada: Date, salida: Date) {
     await this.page.locator(this.campoFechas).click();
     const picker = this.page.locator('.daterangepicker:visible').first();

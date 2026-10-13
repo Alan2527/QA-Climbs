@@ -143,11 +143,6 @@
       "nombre": "Cancelar un multidestino"
     },
     {
-      "archivo": "bloque-b/anulacion.spec.ts",
-      "titulo": "Serie: una reserva emitida se puede cancelar y el portal lo refleja",
-      "nombre": "Cancelar una serie"
-    },
-    {
       "archivo": "bloque-b/multiidioma-reservas.spec.ts",
       "titulo": "Carrito y checkout: el servicio se muestra en el idioma elegido",
       "nombre": "Carrito en otro idioma"
@@ -226,6 +221,26 @@
       "archivo": "webadmin/extender-tarifas.spec.ts",
       "titulo": "Extender un corte con incremento crea las tarifas del rango y se puede volver a extender",
       "nombre": "Extender tarifas de habitación"
+    },
+    {
+      "archivo": "webadmin/cargar-tarifas.spec.ts",
+      "titulo": "Lo que se carga en Gestion de Tarifas llega al Tarifario al generarlo y al precio del portal",
+      "nombre": "Carga de tarifas de habitación"
+    },
+    {
+      "archivo": "webadmin/cupo-y-publicacion.spec.ts",
+      "titulo": "Con cupo se vende disponible, sin cupo pasa a requerir y despublicada no se ofrece",
+      "nombre": "Cupo y publicación de habitación"
+    },
+    {
+      "archivo": "webadmin/tipo-de-cambio.spec.ts",
+      "titulo": "Una cotizacion manual cambia el precio de lo que esta en pesos y al desactivarla vuelve a la del pais",
+      "nombre": "Tipo de cambio manual por agencia"
+    },
+    {
+      "archivo": "webadmin/extension-masiva.spec.ts",
+      "titulo": "Extender el ultimo corte de un solo hotel crea las tarifas hasta la fecha pedida",
+      "nombre": "Extensión masiva de tarifas"
     }
   ]
 }

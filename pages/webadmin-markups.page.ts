@@ -83,6 +83,50 @@ export class WebAdminMarkupsPage {
     };
   }
 
+  // Tipo de cambio manual de la agencia (USD): sin tildar usa el del pais.
+  private readonly cambioManual = '[id$="AgencyTabContainer_pnlDetails_cbManualExchangeRate"]';
+  private readonly cambioGeneral = '[id$="AgencyTabContainer_pnlDetails_ctrlExchangeGeneral_txtValue"]';
+  private readonly cambioOportunidad = '[id$="AgencyTabContainer_pnlDetails_ctrlExchangeOpportunity_txtValue"]';
+
+  async tipoDeCambioDeLaAgencia(): Promise<{ manual: boolean; general: number | null; oportunidad: number | null }> {
+    return {
+      manual: await this.page.locator(this.cambioManual).isChecked(),
+      general: WebAdminMarkupsPage.leer(await this.page.locator(this.cambioGeneral).inputValue()),
+      oportunidad: WebAdminMarkupsPage.leer(await this.page.locator(this.cambioOportunidad).inputValue()),
+    };
+  }
+
+  /**
+   * Tilda o destilda el tipo de cambio manual y, si queda tildado, carga los dos
+   * valores (general y oportunidades). Destildarlo no borra la fila: la marca como
+   * borrada (`Deleted`), y la agencia vuelve a usar la cotizacion de su pais.
+   */
+  async guardarTipoDeCambio(id: number, manual: boolean, valor?: number) {
+    await this.abrirAgencia(id);
+    const check = this.page.locator(this.cambioManual);
+    if ((await check.isChecked()) !== manual) await check.click();
+    await expect(check).toBeChecked({ checked: manual });
+    if (manual && valor !== undefined) {
+      const texto = valor.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      await this.page.locator(this.cambioGeneral).fill(texto);
+      await this.page.locator(this.cambioOportunidad).fill(texto);
+      await this.page.locator(this.cambioOportunidad).blur();
+    }
+    await Promise.all([this.page.waitForLoadState('load'), this.page.locator(this.agenciaGuardar).click()]);
+    await esperarFinDeCarga(this.page);
+    const continuar = this.page.locator(this.continuarAgenciaSimilar);
+    if (await continuar.isVisible().catch(() => false)) {
+      await Promise.all([this.page.waitForLoadState('load'), continuar.click()]);
+      await esperarFinDeCarga(this.page);
+    }
+    await this.abrirAgencia(id);
+    const guardado = await this.tipoDeCambioDeLaAgencia();
+    expect(guardado.manual, `El tipo de cambio manual tiene que quedar ${manual ? 'tildado' : 'destildado'}`).toBe(manual);
+    if (manual && valor !== undefined) {
+      expect(guardado.general, 'El tipo de cambio general tiene que quedar guardado').toBe(valor);
+    }
+  }
+
   /** `null` deja el campo vacio: la agencia sigue al mercado en ese tipo. */
   async guardarAgencia(id: number, hotel: number | null, servicio: number | null) {
     await this.abrirAgencia(id);

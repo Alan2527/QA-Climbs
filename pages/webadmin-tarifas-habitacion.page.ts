@@ -26,6 +26,27 @@ export class WebAdminTarifasHabitacionPage {
   readonly errorDelModal = '#extendRatesError';
   readonly grillaTarifario = '[id$="ctrlRoomTarrifCutControl_gvwRates"]';
 
+  /**
+   * Presiona `boton` y devuelve el aviso que muestra la pantalla al volver del
+   * PostBack. El aviso se va solo a los pocos segundos: se lo empieza a buscar antes
+   * del clic, no despues de esperar la recarga.
+   */
+  private async clicConAviso(boton: Locator, aviso: RegExp, que: string): Promise<string> {
+    await boton.click();
+    // Se consulta cada 300 ms en vez de esperar la recarga: el PostBack recarga la
+    // pagina (una espera en el navegador se cortaria) y el aviso se va solo.
+    let texto: string | null = null;
+    const limite = Date.now() + 120_000;
+    while (!texto && Date.now() < limite) {
+      const cuerpo = await this.page.locator('body').innerText({ timeout: 2_000 }).catch(() => '');
+      texto = cuerpo.match(new RegExp(aviso.source, 'i'))?.[0] ?? null;
+      if (!texto) await this.page.waitForTimeout(300);
+    }
+    expect(texto, que).not.toBeNull();
+    await esperarFinDeCarga(this.page);
+    return texto!.trim();
+  }
+
   async abrir(room: number, solapa: 'pnlRoomRates' | 'pnlTariffs') {
     await this.page.goto(`/administration/rooms/detail.aspx?room=${room}&TabID=${solapa}`);
     await esperarFinDeCarga(this.page);
@@ -61,6 +82,91 @@ export class WebAdminTarifasHabitacionPage {
       sgl: importe(f[2]!), dbl: importe(f[3]!), tpl: importe(f[4]!),
       extendida: f[5]!, origen: f[6],
     }));
+  }
+
+  /**
+   * "Gestion de Tarifas": carga un rango de fechas con un importe POR HABITACION por
+   * tipo (1 Single, 2 Doble, 3 Triple, 20 Menores), todos los dias de la semana.
+   * Pisa lo que hubiera en el rango. Devuelve el mensaje que muestra la pantalla.
+   */
+  async cargarTarifas(room: number, desde: string, hasta: string, porTipo: Record<number, number>): Promise<string> {
+    await this.abrir(room, 'pnlRoomRates');
+    await this.fecha('ctrlFromDate', desde);
+    await this.fecha('ctrlToDate', hasta);
+    await expect(this.page.locator(this.sel('hfWeekdays')), 'Tienen que quedar elegidos todos los dias').toHaveValue('1111111');
+    const ids = await this.page.locator('[id*="ctrlRoomRateControl_lvTarifas"][id$="hfID"]').evaluateAll((hs) =>
+      hs.map((h) => ({ id: h.id, tipo: Number((h as HTMLInputElement).value) })));
+    for (const { id, tipo } of ids) {
+      const valor = porTipo[tipo];
+      expect(valor, `Falta el importe del tipo de tarifa ${tipo}`).not.toBeUndefined();
+      const campo = this.page.locator(`#${id.replace(/hfID$/, 'txtTarifa_txtValue')}`);
+      await campo.fill(String(valor).replace('.', ','));
+    }
+    return this.clicConAviso(this.page.locator(this.sel('btnSave')), /Se guardaron \d+ items/,
+      'Guardar tiene que informar cuantas tarifas guardo');
+  }
+
+  /** "Eliminar tarifas por rango de fechas": borra las tarifas del rango, todos los dias. */
+  async eliminarTarifas(room: number, desde: string, hasta: string): Promise<string> {
+    await this.abrir(room, 'pnlRoomRates');
+    await this.fecha('ctrlFromDate', desde);
+    await this.fecha('ctrlToDate', hasta);
+    const interruptor = this.page.locator(this.sel('cdDeleteTariffs'));
+    if (!(await interruptor.isChecked())) await interruptor.click({ force: true });
+    await expect(this.page.locator(this.sel('btnDelete')), 'El boton Eliminar se habilita con el interruptor').toBeEnabled();
+    await this.page.locator(this.sel('btnDelete')).click();
+    const confirmar = this.page.locator(this.sel('confirmBoxDelete_btnYES'));
+    await expect(confirmar, 'Eliminar tiene que pedir confirmacion').toBeVisible();
+    return this.clicConAviso(confirmar, /Se borraron \d+ items/, 'Eliminar tiene que informar cuantas tarifas borro');
+  }
+
+  /** "Freesale": deja el cupo de cada dia del rango en `cupo`. */
+  async guardarCupo(room: number, desde: string, hasta: string, cupo: number) {
+    await this.abrir(room, 'pnlRoomRates');
+    await this.fecha('ctrlFromDateFs', desde);
+    await this.fecha('ctrlToDateFs', hasta);
+    await this.page.locator(this.sel('txtFreesale_txtValue')).fill(String(cupo));
+    await this.clicConAviso(this.page.locator(this.sel('btnFreesale')), /Los datos se guardaron correctamente/,
+      'Guardar Freesale tiene que confirmar');
+  }
+
+  /** Solapa Detalle: tilda o destilda "Publicado" y guarda la habitacion. */
+  async publicarHabitacion(room: number, publicada: boolean) {
+    await this.guardarDetalle(room, { publicada });
+  }
+
+  /**
+   * Solapa Detalle: deja "Publicado" y "Tiene freesale" como se pide y guarda.
+   * Sin freesale, el formulario de cupo de la solapa Tarifas queda deshabilitado.
+   */
+  async guardarDetalle(room: number, cambios: { publicada?: boolean; freesale?: boolean }) {
+    await this.page.goto(`/administration/rooms/detail.aspx?room=${room}`);
+    await esperarFinDeCarga(this.page);
+    const checks = {
+      publicada: this.page.locator('[id$="pnlRoomDetails_cbPublicado"]'),
+      freesale: this.page.locator('[id$="pnlRoomDetails_cbHasFreesale"]'),
+    };
+    for (const clave of ['publicada', 'freesale'] as const) {
+      const valor = cambios[clave];
+      if (valor === undefined) continue;
+      const check = checks[clave];
+      await expect(check).toBeAttached();
+      if ((await check.isChecked()) !== valor) {
+        await check.click();
+        // Si la habitacion esta en un paquete no se puede despublicar: el sistema
+        // vuelve a tildar el check y abre un modal. La de prueba no esta en ninguno.
+        await expect(check, `"${clave}" tiene que quedar ${valor ? 'tildado' : 'destildado'}`).toBeChecked({ checked: valor });
+      }
+    }
+    await Promise.all([this.page.waitForLoadState('load'), this.page.locator('[id$="pnlRoomDetails_btnSave"]').click()]);
+    await esperarFinDeCarga(this.page);
+    await this.page.goto(`/administration/rooms/detail.aspx?room=${room}`);
+    await esperarFinDeCarga(this.page);
+    for (const clave of ['publicada', 'freesale'] as const) {
+      const valor = cambios[clave];
+      if (valor === undefined) continue;
+      await expect(checks[clave], `La habitacion tiene que quedar con "${clave}" en ${valor}`).toBeChecked({ checked: valor });
+    }
   }
 
   async abrirExtender(room: number) {
