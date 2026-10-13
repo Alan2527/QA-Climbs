@@ -13,7 +13,7 @@ import {
   reiniciarNumeracionDePasos, conResaltado, importeANumero,
 } from '../../utils/pasos';
 import {
-  SALTO, CAJA_DE_REGRESION, importe, aFormatoBO, nombreDelMes, masDias, celdasDe,
+  SALTO, CAJA_DE_REGRESION, cajaDeRegresion, importe, aFormatoBO, nombreDelMes, masDias, celdasDe,
   Precondicion, reservarServicioYGenerarFile,
 } from './cobranzas-comun';
 
@@ -237,7 +237,7 @@ export async function armarOrdenDePagoAprobada(
     await orden.asegurarSucursal('Argentina');
     await orden.elegirProveedor('GRUPO SUMMA', 'GRUPO SUMMA SRL');
     await orden.elegirEnCombo(orden.comboMoneda, factura.moneda);
-    await orden.elegirEnCombo(orden.comboCaja, CAJA_DE_REGRESION);
+    await orden.elegirEnCombo(orden.comboCaja, cajaDeRegresion(factura.moneda));
     await orden.cargarImporte(aFormatoBO(factura.total));
     await page.locator(orden.campoDetalle)
       .fill(`Orden de pago de regresion automatica ${sello}. No operar.`);

@@ -2,7 +2,9 @@ import { Page, Locator, expect } from '@playwright/test';
 import { esperarFinDeCarga, formatearFecha } from '../utils/pasos';
 
 /**
- * PROVISORIO, hasta que se corrija el hallazgo 9.
+ * Hallazgo 9: CORREGIDO por la US 4757 (06/10/2026, `8d35b7ed` del BO) y verificado el
+ * 13/10/2026 con las dos bandejas en sus filtros por defecto. Queda en `false`; el
+ * texto de abajo es el antecedente.
  *
  * Las bandejas de facturas y de ordenes de pago comparan la fecha de CREACION contra
  * el "Hasta" a las 00:00, asi que lo creado hoy no figura con los filtros con los que
@@ -11,7 +13,7 @@ import { esperarFinDeCarga, formatearFecha } from '../utils/pasos';
  * "Hasta" en manana. Cuando se corrija, pasar esto a `false`: las bandejas vuelven a
  * mirarse con sus filtros por defecto, que es lo que hace una persona.
  */
-const ESQUIVAR_HALLAZGO_9 = true;
+const ESQUIVAR_HALLAZGO_9 = false;
 
 /**
  * Las dos bandejas de no asignados del BackOffice.

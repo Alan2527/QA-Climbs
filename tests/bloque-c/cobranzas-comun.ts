@@ -33,6 +33,25 @@ export const SALTO = String.fromCharCode(10);
 export const CAJA_DE_REGRESION = 'AUTO-QA NO TOCAR - CAJA USD';
 
 /**
+ * La caja AUTO-QA de la moneda pedida: 187 en USD y 188 en ARS, las dos en la
+ * categoria 18. La orden de pago solo ofrece cajas de su misma moneda.
+ *
+ * Desde el 12/10/2026 (hotfix `4b60e763` del BO, InboxDetail.aspx.cs) el costo de un
+ * servicio del portal sale de la tarifa web, en la moneda del servicio: el Tigre y
+ * Delta queda con costo en ARS, asi que la factura del proveedor y su orden de pago
+ * salen en pesos. Antes salia de BO_ServiceCostBySupplier, en USD.
+ */
+export function cajaDeRegresion(moneda: string): string {
+  const cajas: Record<string, string> = {
+    USD: 'AUTO-QA NO TOCAR - CAJA USD',
+    ARS: 'AUTO-QA NO TOCAR - CAJA ARS',
+  };
+  const caja = cajas[moneda.trim().toUpperCase()];
+  if (!caja) throw new Error(`No hay caja de regresion para la moneda "${moneda}"`);
+  return caja;
+}
+
+/**
  * Separa un texto de importe ("USD 1.234,50") en moneda y numero.
  *
  * Se compara el numero y no la cadena: el mismo importe se escribe distinto

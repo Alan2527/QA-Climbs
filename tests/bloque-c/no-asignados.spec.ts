@@ -7,7 +7,7 @@ import {
   paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado, formatearFecha, numeroDelFile,
 } from '../../utils/pasos';
 import {
-  SALTO, CAJA_DE_REGRESION, aFormatoBO, importe, reservarServicioYGenerarFile,
+  SALTO, CAJA_DE_REGRESION, cajaDeRegresion, aFormatoBO, importe, reservarServicioYGenerarFile,
 } from './cobranzas-comun';
 import { armarFacturaAprobada } from './cobranzas-armado';
 
@@ -169,7 +169,7 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
       await orden.asegurarSucursal('Argentina');
       await orden.elegirProveedor('GRUPO SUMMA', 'GRUPO SUMMA SRL');
       await orden.elegirEnCombo(orden.comboMoneda, factura.moneda);
-      await orden.elegirEnCombo(orden.comboCaja, CAJA_DE_REGRESION);
+      await orden.elegirEnCombo(orden.comboCaja, cajaDeRegresion(factura.moneda));
       await orden.cargarImporte(aFormatoBO(total));
       await page.locator(orden.campoDetalle)
         .fill(`Orden de pago de regresion automatica ${sello}. No operar.`);

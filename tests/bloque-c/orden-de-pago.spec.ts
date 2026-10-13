@@ -13,7 +13,7 @@ import {
   reiniciarNumeracionDePasos, conResaltado, importeANumero,
 } from '../../utils/pasos';
 import {
-  SALTO, CAJA_DE_REGRESION, importe, aFormatoBO, nombreDelMes, masDias, celdasDe,
+  SALTO, CAJA_DE_REGRESION, cajaDeRegresion, importe, aFormatoBO, nombreDelMes, masDias, celdasDe,
   Precondicion, reservarServicioYGenerarFile,
 } from './cobranzas-comun';
 import {
@@ -61,8 +61,10 @@ test.describe('Cobranzas', () => {
       sucursal: 'Argentina',
       proveedor: 'GRUPO SUMMA',
       razonSocial: 'GRUPO SUMMA SRL',
-      // La caja propia del Bloque C: la 187, en USD y con saldo inicial en cero.
-      // Ninguna caja preexistente se usa, para no mover los saldos reales de QA.
+      // La caja propia del Bloque C de la moneda de la factura (187 USD, 188 ARS),
+      // con saldo inicial en cero: ninguna caja preexistente se usa, para no mover
+      // los saldos reales de QA. Se elige al conocer la moneda, despues de la
+      // precondicion (ver `cajaDeRegresion`).
       caja: CAJA_DE_REGRESION,
       detalle: `Orden de pago de regresion automatica ${sello}. No operar.`,
       comentarioDeLaImputacion: `AUTO-QA ${sello.slice(-8)}`,
@@ -73,6 +75,7 @@ test.describe('Cobranzas', () => {
 
     const precondicion = await armarFacturaAprobada(
       page, sello, ahora, await reservarServicioYGenerarFile(page, sello));
+    datos.caja = cajaDeRegresion(precondicion.moneda);
     const totalDeLaOrden = precondicion.total;
     const fechaDeHoy = formatearFecha(ahora);
 

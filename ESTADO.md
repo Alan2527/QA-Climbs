@@ -1477,6 +1477,8 @@ español. El test de series lo adjunta sin exigirlo, como el resto de las etique
 
 ### 9. El filtro "Hasta" deja afuera el día elegido en tres pantallas del BO
 
+> **Corregido (verificado el 2026-10-13).** Lo arreglo la US 4757 (`8d35b7ed`, Valentino Sara, 06/10): las tres consultas suman un dia al Hasta y comparan con "menor que". `ESQUIVAR_HALLAZGO_9` paso a `false` y `no-asignados` dio verde con los filtros por defecto en facturas y en ordenes de pago. De paso: desde el hotfix `4b60e763` del BO (12/10) el costo del servicio del portal sale de la tarifa web en la moneda del servicio (Tigre y Delta en ARS), asi que la factura del proveedor y la orden de pago salen en pesos; los tests eligen la caja AUTO-QA por moneda (`cajaDeRegresion`: 187 USD, 188 ARS). Caja diaria queda por replantear: el pago cae en ARS y el cobro en USD.
+
 Con el "Hasta" en hoy, que es como abren, no aparece nada de lo creado hoy: hay que
 poner mañana y filtrar. Las tres comparan una fecha **con hora** contra el "Hasta"
 tomado como ese día a las 00:00 (`txtDateTo.Text.ToDate()`).
