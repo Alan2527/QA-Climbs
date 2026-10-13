@@ -221,6 +221,11 @@
       "archivo": "webadmin/markups-mercado.spec.ts",
       "titulo": "Agencia: el markup propio de servicios gana sobre el del mercado y al vaciarlo vuelve al mercado",
       "nombre": "Markup propio de la agencia"
+    },
+    {
+      "archivo": "webadmin/extender-tarifas.spec.ts",
+      "titulo": "Extender un corte con incremento crea las tarifas del rango y se puede volver a extender",
+      "nombre": "Extender tarifas de habitación"
     }
   ]
 }

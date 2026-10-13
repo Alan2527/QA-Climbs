@@ -94,6 +94,8 @@ Suite adaptada a los cambios del front del 26/09 al 08/10 y probada contra QA en
 
 **WebAdmin (nuevo, 12/10):** `tests/webadmin/markups-mercado.spec.ts`, proyecto `Climbs - WebAdmin` (suite `webadmin` en el workflow). Cambia desde el WebAdmin el markup de hoteles del mercado 37 y el markup propio de servicios de la agencia 6334, y verifica en el portal con `autoqa.markups` que el precio sigue la proporcion y que el otro tipo no se mueve. Restaura en `finally`. 2 en verde contra QA. Es el primero de los flujos sensibles del WebAdmin propuestos; los de tarifas de habitacion esperan que `rooms/detail.aspx` deje de dar 500 (falta la tabla `RoomMinStay` de la 4870).
 
+**WebAdmin, extension de tarifas (13/10):** `tests/webadmin/extender-tarifas.spec.ts` sobre la habitacion 18371: genera el tarifario, extiende el corte base de enero 2031 un 10% a marzo (110/66/55, "10%", tooltip con el origen), de marzo otro 10% a mayo ("21%"), verifica el aviso de pisar tarifas y el tope de 100. Repetible: pisa sus propios rangos. Las fechas del modal son flatpickr: se cargan con `_flatpickr.setDate`, tipearlas no alcanza.
+
 **Datos de QA de los que depende la suite:** `CurrencyExchange` 509 (pais 10) en 1.000; el crucero 14 con las 41 salidas recargadas el 28/09.
 
 ## ⚠️ Para retomar — 2026-09-21
