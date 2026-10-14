@@ -1,0 +1,8 @@
+precio esperado = precio de pablo1 x 0.5 / 0.6
+
+OK   01/07/2026 - 31/12/2031 Recargo por idioma 10% | Regular | Mínimo 2 pasajeros | columna 4  ->  antes 95  /  esperado 78..81  /  obtenido 79
+OK   01/07/2026 - 31/12/2031 | Privado | 1 | columna 4  ->  antes 793  /  esperado 659..662  /  obtenido 661
+OK   01/07/2026 - 31/12/2031 | Privado | 2 | columna 4  ->  antes 417  /  esperado 346..349  /  obtenido 347
+OK   01/07/2026 - 31/12/2031 | Privado | 3 | columna 4  ->  antes 328  /  esperado 272..275  /  obtenido 273
+OK   01/07/2026 - 31/12/2031 | Privado | 4 - 6 | columna 4  ->  antes 256  /  esperado 212..215  /  obtenido 213
+OK   01/07/2026 - 31/12/2031 | Privado | 7 - 9 | columna 4  ->  antes 164  /  esperado 135..138  /  obtenido 136
