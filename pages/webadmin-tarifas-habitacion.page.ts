@@ -139,9 +139,23 @@ export class WebAdminTarifasHabitacionPage {
    * Solapa Detalle: deja "Publicado" y "Tiene freesale" como se pide y guarda.
    * Sin freesale, el formulario de cupo de la solapa Tarifas queda deshabilitado.
    */
-  async guardarDetalle(room: number, cambios: { publicada?: boolean; freesale?: boolean }) {
+  /** El regimen de comidas de la habitacion (`ddlMealType`): el valor y el texto elegidos. */
+  async regimen(room: number): Promise<{ valor: string; texto: string }> {
     await this.page.goto(`/administration/rooms/detail.aspx?room=${room}`);
     await esperarFinDeCarga(this.page);
+    const combo = this.page.locator('[id$="pnlRoomDetails_ddlMealType"]');
+    return { valor: await combo.inputValue(), texto: (await combo.locator('option:checked').innerText()).trim() };
+  }
+
+  /**
+   * Guarda la solapa de datos con los cambios pedidos. `regimen` es el valor de
+   * `ddlMealType` ("" = Seleccione, que guarda la habitacion sin regimen).
+   */
+  async guardarDetalle(room: number, cambios: { publicada?: boolean; freesale?: boolean; regimen?: string }) {
+    await this.page.goto(`/administration/rooms/detail.aspx?room=${room}`);
+    await esperarFinDeCarga(this.page);
+    const comboRegimen = this.page.locator('[id$="pnlRoomDetails_ddlMealType"]');
+    if (cambios.regimen !== undefined) await comboRegimen.selectOption(cambios.regimen);
     const checks = {
       publicada: this.page.locator('[id$="pnlRoomDetails_cbPublicado"]'),
       freesale: this.page.locator('[id$="pnlRoomDetails_cbHasFreesale"]'),
@@ -167,6 +181,60 @@ export class WebAdminTarifasHabitacionPage {
       if (valor === undefined) continue;
       await expect(checks[clave], `La habitacion tiene que quedar con "${clave}" en ${valor}`).toBeChecked({ checked: valor });
     }
+    if (cambios.regimen !== undefined) {
+      await expect(comboRegimen, 'La habitacion tiene que quedar con el regimen elegido').toHaveValue(cambios.regimen);
+    }
+  }
+
+  /**
+   * Solapa Observaciones (`pnlTariffDetails`, RoomTariffCutDetailControl): el texto
+   * de un periodo que el portal muestra debajo de las fechas del corte. Se entra con
+   * `observationFrom/observationTo` en la URL, como el boton "Crear" del Tarifario,
+   * que precarga las fechas. El texto es obligatorio en todos los idiomas: es un
+   * textarea por idioma, cada uno en su solapa (MultiLanguageQuillEditor en texto plano).
+   *
+   * Devuelve el error de la pantalla si lo hay (por ejemplo un periodo superpuesto),
+   * o null si guardo.
+   */
+  async crearObservacion(room: number, desdeISO: string, hastaISO: string, texto: string): Promise<string | null> {
+    await this.page.goto(`/administration/rooms/detail.aspx?room=${room}&TabID=pnlTariffDetails&observationFrom=${desdeISO}&observationTo=${hastaISO}`);
+    await esperarFinDeCarga(this.page);
+    const panel = this.page.locator('div[id$="_pnlTariffDetails"]');
+    const [a, m, d] = desdeISO.split('-');
+    await expect(panel.locator('[id$="ctrlDateFrom_txtDateTime"]'), 'El periodo tiene que venir precargado')
+      .toHaveValue(`${d}/${m}/${a}`);
+    const idiomas = panel.locator('a.tab-link');
+    const n = await idiomas.count();
+    expect(n, 'El editor tiene que ofrecer al menos un idioma').toBeGreaterThan(0);
+    for (let i = 0; i < n; i++) {
+      await idiomas.nth(i).click();
+      await panel.locator('textarea[id$="txtPlain"]').filter({ visible: true }).first().fill(texto);
+    }
+    await panel.locator('[id$="btnNewTariffCutDetail"]').click();
+    await esperarFinDeCarga(this.page);
+    const error = this.page.locator('.messageBox.messageBoxError').filter({ visible: true });
+    if (await error.count()) return (await error.first().innerText()).trim();
+    return null;
+  }
+
+  /** Las filas de la grilla de observaciones: Desde | Hasta | Detalle. */
+  async observaciones(room: number): Promise<string[][]> {
+    await this.page.goto(`/administration/rooms/detail.aspx?room=${room}&TabID=pnlTariffDetails`);
+    await esperarFinDeCarga(this.page);
+    const filas = this.page.locator('div[id$="_pnlTariffDetails"] [id$="gvwDetails"] tr').filter({ has: this.page.locator('td') });
+    const out: string[][] = [];
+    for (const f of await filas.all()) out.push((await f.locator('td').allInnerTexts()).map((c) => c.replace(/\s+/g, ' ').trim()));
+    return out;
+  }
+
+  /** Borra la observacion del periodo que empieza en `desde` (dd/mm/aaaa), en todos sus idiomas. */
+  async borrarObservacion(room: number, desde: string) {
+    await this.page.goto(`/administration/rooms/detail.aspx?room=${room}&TabID=pnlTariffDetails`);
+    await esperarFinDeCarga(this.page);
+    const fila = this.page.locator('div[id$="_pnlTariffDetails"] [id$="gvwDetails"] tr').filter({ hasText: desde }).first();
+    if (!(await fila.count())) return;
+    await fila.locator('[id$="lnkDelete"]').click();
+    await esperarFinDeCarga(this.page);
   }
 
   async abrirExtender(room: number) {

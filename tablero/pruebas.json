@@ -286,6 +286,11 @@
       "archivo": "webadmin/humo-pantallas.spec.ts",
       "titulo": "Las fichas de los datos propios abren todas sus solapas, en claro y en oscuro",
       "nombre": "Fichas del WebAdmin en claro y oscuro"
+    },
+    {
+      "archivo": "webadmin/observaciones-y-regimen.spec.ts",
+      "titulo": "La observacion del periodo y el regimen de la habitacion se ven en el tarifario del portal",
+      "nombre": "Observaciones y régimen de habitación"
     }
   ]
 }
