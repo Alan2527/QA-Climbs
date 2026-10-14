@@ -1,0 +1,12 @@
+[0] item
+    texto:   02:00
+    meses:   
+    tooltip: Duración estimada del servicio
+[1] item
+    texto:   ES, EN, PT
+    meses:   
+    tooltip: IdiomasEspañolEnglishPortuguese
+[2] calendario
+    texto:   Todos los dias Ene–Mar, May–Jul, Oct–Dic
+    meses:   Ene–Mar, May–Jul, Oct–Dic
+    tooltip: Operatividad• Días: Todos los dias• Temporada: enero a marzo, mayo a julio, octubre a diciembre

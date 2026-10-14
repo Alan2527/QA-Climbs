@@ -1,0 +1,6 @@
+FECHAS | TIPO DE SERVICIO | PAX | PRECIO POR PERSONA
+01/01/2026 - 31/12/2031 Recargo por idioma. | Regular | USD 137 TARIFA EXTENDIDA
+01/01/2026 - 31/12/2031 Menores de 3 a 11 años | Menores en regular | USD 69 TARIFA EXTENDIDA
+01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo. | Solo Show | 1 | USD 88 TARIFA EXTENDIDA
+01/01/2026 - 31/12/2031 No aplica para cenas de Navidad y Año Nuevo. | Cena Show VIP | 1 | USD 286 TARIFA EXTENDIDA
+01/01/2026 - 31/12/2031 Menores de 3 a 11 años | Cena Show VIP | 1 | USD 143 TARIFA EXTENDIDA
