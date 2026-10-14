@@ -1,0 +1,2 @@
+Incluye | Bebidas -- Bebidas a cargo del pasajero durante la navegación
+No incluye | Almuerzo -- El almuerzo no está incluido, hay parada en restaurante
