@@ -198,6 +198,11 @@
       "nombre": "Pendientes de asignar: órdenes de pago"
     },
     {
+      "archivo": "bloque-c/cierre-del-file.spec.ts",
+      "titulo": "Cierre del file: con la cadena completa, el file muestra cada comprobante y queda al dia",
+      "nombre": "Cierre del file"
+    },
+    {
       "archivo": "bloque-a/markups.spec.ts",
       "titulo": "Hoteles: aplica el markup de hoteles del mercado",
       "nombre": "Markup de hoteles"
@@ -261,6 +266,16 @@
       "archivo": "webadmin/series.spec.ts",
       "titulo": "El cupo, las salidas y las tarifas de una salida se reflejan en el portal",
       "nombre": "Series: cupo, salidas y tarifas"
+    },
+    {
+      "archivo": "webadmin/humo-pantallas.spec.ts",
+      "titulo": "Todas las pantallas del menu abren sin error",
+      "nombre": "Pantallas del menú del WebAdmin"
+    },
+    {
+      "archivo": "webadmin/humo-pantallas.spec.ts",
+      "titulo": "Las fichas de los datos propios abren todas sus solapas, en claro y en oscuro",
+      "nombre": "Fichas del WebAdmin en claro y oscuro"
     }
   ]
 }
