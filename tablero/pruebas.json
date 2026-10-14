@@ -241,6 +241,16 @@
       "archivo": "webadmin/extension-masiva.spec.ts",
       "titulo": "Extender el ultimo corte de un solo hotel crea las tarifas hasta la fecha pedida",
       "nombre": "Extensión masiva de tarifas"
+    },
+    {
+      "archivo": "webadmin/condiciones-comerciales.spec.ts",
+      "titulo": "Un markup por producto cambia el precio del hotel y \"Excluido\" lo deja sin tarifas para la agencia",
+      "nombre": "Condiciones comerciales por producto"
+    },
+    {
+      "archivo": "webadmin/tarifas-servicio.spec.ts",
+      "titulo": "Extender las tarifas de un servicio con incremento crea las del rango y el portal las cobra",
+      "nombre": "Extensión de tarifas de servicio"
     }
   ]
 }

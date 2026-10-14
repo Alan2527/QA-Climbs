@@ -1113,5 +1113,17 @@
       "porcentaje": 10,
       "porcentajeTotal": 21
     }
+  },
+  "tarifasServicio": {
+    "_nota": "Servicio propio del test del WebAdmin de tarifas de servicio (tests/webadmin/tarifas-servicio.spec.ts). Creado por SQL el 2026-10-14 copiando el servicio 5 (Tigre y Delta): Service 7954, ServiceDetail 22948-22951 y ServiceRate 283109-283114 (vigentes hasta el 31/12/2031). El test extiende esas 6 tarifas al primer trimestre de 2032 y al final borra lo extendido.",
+    "servicioId": 7954,
+    "nombre": "AUTO-QA NO TOCAR - WebAdmin Tarifas de servicio",
+    "terminoBusqueda": "WebAdmin Tarifas",
+    "vigenciaBase": "01/07/2026 - 31/12/2031",
+    "extension": {
+      "desde": "01/01/2032",
+      "hasta": "31/03/2032",
+      "porcentaje": 10
+    }
   }
 }
