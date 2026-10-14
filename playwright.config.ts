@@ -140,6 +140,15 @@ export default defineConfig({
       dependencies: ['Precondiciones - Bloque A'],
     },
     {
+      // La app del pasajero: no usa la sesion del portal (entra con el link de autologin
+      // de AMV_SIX_AUTOLOGIN_URL) y es mobile. Solo lee, asi que admite un reintento. Sin
+      // trace: registra las URLs de la red y el link lleva el token del pasajero.
+      name: 'Climbs - SIX',
+      testDir: './tests/six',
+      retries: process.env.CI ? 1 : 0,
+      use: { ...devices['Pixel 7'], storageState: { cookies: [], origins: [] }, trace: 'off' },
+    },
+    {
       name: 'Climbs - Bloque C: Cobranzas',
       testDir: './tests/bloque-c',
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },

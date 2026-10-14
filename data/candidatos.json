@@ -1144,5 +1144,13 @@
       "_formula": "por categoria (GroupOrder g): SGL 400+10g, DBL 300+10g, TPL 250+10g, menor 150",
       "primeraDBL": 330
     }
+  },
+  "six": {
+    "_nota": "File fijo para los tests de SIX, armado el 2026-10-14 con pablo1: hotel 15422 / habitacion 18371 del 13 al 15/01/2031 y servicio 7954 Regular 2 pax el 13/01/2031. No operar ni cancelar. El pasajero de la app se da de alta a mano en el Rooming del BO (crea BO_UserApp y el mail con el link de autologin, que va al .env como AMV_SIX_AUTOLOGIN_URL).",
+    "reserva": "BO00025513",
+    "fileId": 33379,
+    "fileCode": "AMV-AR-30161",
+    "referencia": "AUTO-QA NO TOCAR - SIX",
+    "pasajeros": ["PasajeroSix AutoQa", "AcompananteSix AutoQa"]
   }
 }
