@@ -208,6 +208,11 @@
       "nombre": "Cierre del file"
     },
     {
+      "archivo": "bloque-c/bloqueos-del-file.spec.ts",
+      "titulo": "Bloqueos: el file con comprobantes no se cancela y el vencimiento invalido se rechaza",
+      "nombre": "Bloqueos del file"
+    },
+    {
       "archivo": "bloque-a/markups.spec.ts",
       "titulo": "Hoteles: aplica el markup de hoteles del mercado",
       "nombre": "Markup de hoteles"
