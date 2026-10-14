@@ -643,6 +643,32 @@ export class SeriePage {
    * El redibujo es en el cliente y no dispara ninguna llamada, asi que la unica
    * senial de que termino es que **cambie la etiqueta del mes**.
    */
+  /**
+   * Busca una salida puntual (`yyyy-MM-dd`) avanzando el calendario hasta su mes, y
+   * dice si el asistente la ofrece (celda reservable), con que tarifa y que cupo.
+   */
+  async salidaDelCalendario(clave: string, mesesAMirar = 8): Promise<{ ofrecida: boolean; tarifa: number | null; cupo: number | null; mes: string }> {
+    const [anio, mes] = clave.split('-').map(Number);
+    const nombres = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const buscado = `${nombres[mes - 1]} ${anio}`;
+    let actual = '';
+    for (let i = 0; i < mesesAMirar; i++) {
+      actual = await this.mesDelCalendario();
+      if (actual.toLowerCase().includes(buscado)) break;
+      await this.pasarAlMesSiguiente(actual);
+    }
+    // La celda existe mientras haya salida; lo que dice si se vende es la clase:
+    // `departure-has-price` (con precio, reservable), `departure-no-price` o `no-departure`
+    // (assets/js/serie-tour.js, renderCell).
+    const celda = this.page.locator(`${this.celdaConSalida}[data-key='${clave}']`).first();
+    const clase = (await celda.count()) ? ((await celda.getAttribute('class')) ?? '') : 'sin celda';
+    const salida = (await this.salidasDelMes()).find((s) => s.clave === clave);
+    const cupo = (await this.datosDelCalendario()).cupos[clave];
+    return {
+      ofrecida: /departure-has-price/.test(clase), tarifa: salida?.tarifa ?? null, cupo: cupo ?? null, mes: actual, clase,
+    } as { ofrecida: boolean; tarifa: number | null; cupo: number | null; mes: string };
+  }
+
   private async pasarAlMesSiguiente(mesActual: string) {
     await this.page.locator(this.mesSiguiente).first().click();
     await this.page.waitForFunction(

@@ -100,6 +100,8 @@ Suite adaptada a los cambios del front del 26/09 al 08/10 y probada contra QA en
 
 **WebAdmin, 14/10 (3 tests mas, los 9 de la suite webadmin):** condiciones comerciales por producto (agencia 6334 + hotel 15422: markup 0,50 duplica, Excluido deja sin tarifas), extension de tarifas de servicio (servicio propio 7954, copia del 5 por SQL: Service 7954, ServiceDetail 22948-22951, ServiceRate 283109-283114; extiende a 2032 y el portal se mira con `from`/`to` en la URL; las fechas del popup se tipean, `setDate` borraba el Desde) y cotizacion a reserva (cada corrida crea una cotizacion con el paquete 5059 como itinerario, la convierte, la busca en la solapa Grupos del BO y al final elimina la reserva y borra la cotizacion; quedan los CT_* de cada reserva, solo se limpian por SQL). Observacion sin medir: en la grilla de servicios de la cotizacion la Cena Show (163) sale sin nombre; probablemente por su ServiceDetail despublicado.
 
+**WebAdmin, series (14/10):** `tests/webadmin/series.spec.ts` sobre la serie propia 20 (paquete 5067, copia del 5061 armada desde el WebAdmin; tarifas por SQL). Sobre la primera salida a 7 dias o mas: cupo 0 -> el portal no la ofrece; quitar la salida -> no la ofrece; volver a agregarla y cargarle tarifas -> la ofrece a USD 330 (Primera, 2 adultos). Restaura todo en `finally` (verificado en base: 13 salidas, 208 tarifas, cupo 10). En el portal una salida 'se ofrece' si su celda tiene `departure-has-price` (con cupo 0 la celda sigue, en `departure-no-price`). **Las salidas de la serie 20 vencen el 25/01/2027.**
+
 **Datos de QA de los que depende la suite:** `CurrencyExchange` 509 (pais 10) en 1.000; el crucero 14 con las 41 salidas recargadas el 28/09.
 
 ## ⚠️ Para retomar — 2026-09-21

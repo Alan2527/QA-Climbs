@@ -256,6 +256,11 @@
       "archivo": "webadmin/cotizacion-a-reserva.spec.ts",
       "titulo": "Una cotizacion de grupo se convierte en reserva y llega a la bandeja del BO",
       "nombre": "Cotización de grupo a reserva"
+    },
+    {
+      "archivo": "webadmin/series.spec.ts",
+      "titulo": "El cupo, las salidas y las tarifas de una salida se reflejan en el portal",
+      "nombre": "Series: cupo, salidas y tarifas"
     }
   ]
 }
