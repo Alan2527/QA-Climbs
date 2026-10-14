@@ -251,6 +251,11 @@
       "archivo": "webadmin/tarifas-servicio.spec.ts",
       "titulo": "Extender las tarifas de un servicio con incremento crea las del rango y el portal las cobra",
       "nombre": "Extensión de tarifas de servicio"
+    },
+    {
+      "archivo": "webadmin/cotizacion-a-reserva.spec.ts",
+      "titulo": "Una cotizacion de grupo se convierte en reserva y llega a la bandeja del BO",
+      "nombre": "Cotización de grupo a reserva"
     }
   ]
 }
