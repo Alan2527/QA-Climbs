@@ -216,7 +216,7 @@ test.describe('Cobranzas', () => {
       });
     });
 
-    await paso(page, 'Guardar el comprobante y verificarlo en la bandeja de pendientes', async () => {
+    await paso(page, 'Guardar el comprobante y verificar que quede emitido en Cartas emitidas', async () => {
       await page.locator(factura.campoDetalle).fill(datos.detalle);
 
       // La cotizacion tiene que ser mayor a cero o el guardado corta
@@ -229,38 +229,47 @@ test.describe('Cobranzas', () => {
 
       await factura.guardar();
 
-      const fila = factura.filaPendiente(digitosDelFile);
+      // Desde el 06/10/2026 (US 4839) la Carta de Cobranza se emite al guardar: ya no
+      // pasa por Pendientes de emision. El PM confirmo el 14/10 que es lo buscado.
+      await expect(page, 'Guardar una Carta de Cobranza tiene que llevar a Cartas emitidas del file')
+        .toHaveURL(/invoicing\/issued-letters\?fileId=\d+/i);
+
+      const fila = factura.filaEmitida(digitosDelFile);
       await expect(
         fila,
-        `El comprobante del file ${precondicion.fileCode} tiene que quedar en la bandeja de ` +
-        `pendientes de emision. El BO dijo: "${await factura.mensajeDeError()}"`,
+        `El comprobante del file ${precondicion.fileCode} tiene que quedar en Cartas emitidas. ` +
+        `El BO dijo: "${await factura.mensajeDeError()}"`,
       ).toBeVisible({ timeout: 60_000 });
 
       const celdas = await factura.celdas(fila);
-      await adjuntarTexto('Fila del comprobante pendiente', celdas.join(' | '));
+      await adjuntarTexto('Fila del comprobante emitido', celdas.join(' | '));
 
       const soloImporte = /^([A-Z]{3}\s*)?\d[\d.,]*$/;
       const importesDeLaFila = celdas.filter((c) => soloImporte.test(c)).map(importe);
 
       await conResaltado(page, fila, 'Total del comprobante en la bandeja', () => {
         expect(importesDeLaFila.map((i) => i.valor),
-          'La bandeja tiene que mostrar el mismo total con el que se guardo el comprobante')
+          'Cartas emitidas tiene que mostrar el mismo total con el que se guardo el comprobante')
           .toContain(totalDelComprobante.valor);
       });
 
-      // Columnas: chk, Comprobante, File, Pax, Fecha, Total, Emitir.
+      // Columnas: chk, Comprobante, File, Pax, Cliente, Fecha, Emitido, Total.
       const texto = celdas.join(' | ');
+      await conResaltado(page, fila, 'Cliente en Cartas emitidas', () => {
+        expect(texto.toUpperCase(), 'Cartas emitidas tiene que mostrar el cliente del comprobante')
+          .toContain(precondicion.cliente.toUpperCase());
+      });
       await conResaltado(page, fila, 'Pasajero en la bandeja', () => {
-        expect(texto.toUpperCase(), 'La bandeja tiene que mostrar el pasajero del file')
+        expect(texto.toUpperCase(), 'Cartas emitidas tiene que mostrar el pasajero del file')
           .toContain(precondicion.apellidoDelPax.toUpperCase());
       });
       await conResaltado(page, fila, 'Numero de comprobante en la bandeja', () => {
         expect(celdas.some((c) => /^[A-Z]{2}\d/.test(c)),
-          'La bandeja tiene que mostrar el numero del comprobante')
+          'Cartas emitidas tiene que mostrar el numero del comprobante')
           .toBe(true);
       });
       await conResaltado(page, fila, 'Fecha en la bandeja', () => {
-        expect(texto, 'La bandeja tiene que mostrar la fecha de emision del comprobante')
+        expect(texto, 'Cartas emitidas tiene que mostrar la fecha de emision del comprobante')
           .toContain(formatearFecha(ahora));
       });
 

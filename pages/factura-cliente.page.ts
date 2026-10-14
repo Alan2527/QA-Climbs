@@ -59,6 +59,9 @@ export class FacturaClientePage {
 
   // --- Bandeja de pendientes ---
   readonly grillaPendientes = '#tblPending';
+  // Cartas emitidas (invoicing/IssuedLetters.aspx): Comprobante, File, Pax, Cliente,
+  // Fecha, Emitido, Total.
+  readonly grillaEmitidas = '#tblIssued';
 
   /**
    * Entra por el menu lateral, abriendo el padre solo si esta cerrado.
@@ -188,7 +191,10 @@ export class FacturaClientePage {
    */
   async guardar() {
     await this.page.locator(this.btnGuardar).click();
-    await this.page.waitForURL(/invoicing\/pending/i, { timeout: 120_000 });
+    // Desde el 06/10/2026 (US 4839) una Carta de Cobranza se emite al guardar y
+    // redirige a Cartas emitidas del file; el resto de los comprobantes sigue yendo
+    // a Pendientes de emision (NewInvoice.aspx.cs:554).
+    await this.page.waitForURL(/invoicing\/(pending|issued-letters)/i, { timeout: 120_000 });
     await this.page.waitForLoadState('domcontentloaded');
     await esperarFinDeCarga(this.page);
   }
@@ -197,6 +203,11 @@ export class FacturaClientePage {
   async mensajeDeError(): Promise<string> {
     const noty = this.page.locator('.noty_text, .noty_body').first();
     return (await noty.count()) ? (await noty.innerText()).replace(/\s+/g, ' ').trim() : '';
+  }
+
+  /** Fila de Cartas emitidas que corresponde a un file. */
+  filaEmitida(texto: string): Locator {
+    return this.page.locator(`${this.grillaEmitidas} tbody tr`).filter({ hasText: texto }).first();
   }
 
   /** Fila de la bandeja de pendientes que corresponde a un file. */

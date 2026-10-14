@@ -195,20 +195,22 @@ export async function armarFacturaAlCliente(
     }
     await factura.guardar();
 
-    const fila = factura.filaPendiente(digitosDelFile);
+    // La Carta de Cobranza se emite al guardar (US 4839) y la pantalla va a Cartas
+    // emitidas del file: el comprobante ya queda listo para cobrar.
+    const fila = factura.filaEmitida(digitosDelFile);
     await expect(
       fila,
-      `La precondicion necesita el comprobante del file ${precondicion.fileCode} en la bandeja ` +
-      `de pendientes. El BO dijo: "${await factura.mensajeDeError()}"`,
+      `La precondicion necesita el comprobante del file ${precondicion.fileCode} en Cartas ` +
+      `emitidas. El BO dijo: "${await factura.mensajeDeError()}"`,
     ).toBeVisible({ timeout: 60_000 });
 
     // El numero del comprobante es lo que despues hay que ubicar entre los
-    // pendientes de cobro: se lee de la bandeja, no se arma.
+    // pendientes de cobro: se lee de la grilla, no se arma.
     const celdas = await factura.celdas(fila);
     comprobante = celdas.find((c) => /^[A-Z]{2}\d/.test(c)) ?? '';
     expect(
       comprobante,
-      `No se pudo leer el numero del comprobante de la bandeja: ${celdas.join(' | ')}`,
+      `No se pudo leer el numero del comprobante de Cartas emitidas: ${celdas.join(' | ')}`,
     ).not.toBe('');
 
     await adjuntarTexto('Comprobante de la precondicion', [

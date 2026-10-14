@@ -13,7 +13,7 @@ import {
   reiniciarNumeracionDePasos, conResaltado, importeANumero,
 } from '../../utils/pasos';
 import {
-  SALTO, CAJA_DE_REGRESION, importe, aFormatoBO, nombreDelMes, masDias, celdasDe,
+  SALTO, CAJA_DE_REGRESION, cajaDeRegresion, importe, aFormatoBO, nombreDelMes, masDias, celdasDe,
   Precondicion, reservarServicioYGenerarFile,
 } from './cobranzas-comun';
 import {
@@ -76,8 +76,26 @@ test.describe('Cobranzas', () => {
     const costo = base.costoDelItem.valor as number;
     const venta = facturaCliente.total;
 
-    // Totales que muestra la pantalla, para exigir que el pre-cierre diga lo mismo.
-    let totalesDeLaCaja: Awaited<ReturnType<CajaDiariaPage['totales']>> = null;
+    /**
+     * Cada rama cae en la caja AUTO-QA de su moneda. Desde el 12/10/2026 (hotfix
+     * `4b60e763` del BO) el costo del servicio sale de la tarifa web en la moneda del
+     * servicio, asi que el pago al proveedor va en pesos (caja 188) y el cobro al
+     * cliente sigue en dolares (caja 187): ya no cuadran en una misma caja, cada una
+     * se verifica con su propio cuadre.
+     */
+    const ramas = [
+      {
+        que: 'pago', codigo: ordenDePago, moneda: facturaProveedor.moneda,
+        caja: cajaDeRegresion(facturaProveedor.moneda), importe: costo,
+        contraparte: 'GRUPO SUMMA', queImporte: 'el costo del item del file',
+      },
+      {
+        que: 'cobro', codigo: ordenDeCobro, moneda: 'USD',
+        caja: cajaDeRegresion('USD'), importe: venta,
+        contraparte: base.cliente.toUpperCase(), queImporte: 'la venta del item del file',
+      },
+    ];
+    const balances: Record<string, number | null> = {};
 
     await paso(page, 'Abrir la caja del dia de la sucursal', async () => {
       await caja.irABandejaDeCajas();
@@ -85,170 +103,105 @@ test.describe('Cobranzas', () => {
       await adjuntarTexto('Caja del dia',
         `id ${id} — ${creada ? 'abierta por el test' : 'ya existia'} — ${fechaDeHoy}`);
       expect(id, 'Tiene que haber una caja diaria para hoy en la sucursal').toMatch(/^\d+$/);
+      await adjuntarTexto('Cajas de cada rama',
+        ramas.map((r) => `${r.que}: ${r.codigo} en ${r.caja} (${r.moneda} ${r.importe})`).join(SALTO));
     });
 
-    await paso(page, 'Filtrar por la caja de regresion y verificar que este disponible', async () => {
-      const cajas = await caja.cajasOfrecidas();
-      await adjuntarTexto('Cajas ofrecidas en la caja diaria', cajas.join(SALTO));
+    for (const r of ramas) {
+      await paso(page, `Filtrar por ${r.caja} y verificar que el ${r.que} cayo solo en la caja`, async () => {
+        const cajas = await caja.cajasOfrecidas();
+        await conResaltado(page, page.locator(caja.comboCajaDeTotales).first(), `Caja del ${r.que} en la caja diaria`, () => {
+          expect(cajas.join(' | '), `La caja diaria tiene que ofrecer ${r.caja} para filtrar sus movimientos`)
+            .toContain(r.caja);
+        });
+        await caja.filtrarPorCaja(r.caja);
+        await adjuntarTexto(`Movimientos de ${r.caja}`, (await caja.movimientos()).join(SALTO));
 
-      await conResaltado(page, page.locator(caja.comboCajaDeTotales).first(), 'Caja de regresion en la caja diaria', () => {
-        expect(cajas.join(' | '),
-          `La caja diaria tiene que ofrecer ${CAJA_DE_REGRESION} para filtrar sus movimientos`)
-          .toContain(CAJA_DE_REGRESION);
+        const fila = caja.filaDelMovimiento(r.codigo);
+        await expect(
+          fila,
+          `La orden ${r.codigo} tiene que aparecer sola en ${r.caja}. Si no esta, revisar que este ` +
+          'aprobada, que su fecha de recibo sea la de la caja y que la sucursal coincida.',
+        ).toBeVisible({ timeout: 60_000 });
+        const celdas = await caja.celdas(fila);
+        const texto = celdas.join(' | ').toUpperCase();
+        await adjuntarTexto(`Movimiento del ${r.que}`, celdas.join(' | '));
+
+        const soloImporte = /^-?([A-Z]{3}\s*)?\d[\d.,]*$/;
+        const importes = celdas.filter((c) => soloImporte.test(c)).map(importe);
+        await conResaltado(page, fila, `Caja del movimiento de ${r.que}`, () => {
+          expect(texto, `El ${r.que} tiene que quedar registrado en ${r.caja}`).toContain(r.caja.toUpperCase());
+        });
+        await conResaltado(page, fila, `Importe del ${r.que} en la caja`, () => {
+          expect(importes.map((x) => Math.abs(x.valor ?? 0)), `El movimiento de ${r.que} tiene que ser por ${r.queImporte}`)
+            .toContain(r.importe);
+        });
+        await conResaltado(page, fila, `Fecha del movimiento de ${r.que}`, () => {
+          expect(celdas.join(' | '), `El movimiento de ${r.que} tiene que llevar la fecha de la caja`).toContain(fechaDeHoy);
+        });
+        await conResaltado(page, fila, `Contraparte del movimiento de ${r.que}`, () => {
+          expect(texto, `El movimiento de ${r.que} tiene que identificar a ${r.contraparte}`).toContain(r.contraparte);
+        });
+        await conResaltado(page, fila, `Moneda del movimiento de ${r.que}`, () => {
+          expect(texto, 'El movimiento tiene que estar en la moneda de su caja').toContain(r.moneda);
+        });
       });
 
-      await caja.filtrarPorCaja(CAJA_DE_REGRESION);
-      await adjuntarTexto('Movimientos de la caja de regresion',
-        (await caja.movimientos()).join(SALTO));
-    });
+      await paso(page, `Verificar el cuadre de ${r.caja}`, async () => {
+        const totales = await caja.totales(r.moneda);
+        await adjuntarTexto(`Totales de ${r.caja}`, JSON.stringify(totales, null, 2));
+        expect(totales, `La caja tiene que mostrar sus totales en ${r.moneda}`).not.toBeNull();
 
-    await paso(page, 'Verificar que el pago y el cobro cayeron solos en la caja', async () => {
-      // Ninguno de los dos se cargo aca: las ordenes aprobadas aparecen solas en
-      // la caja de su fecha y sucursal. Si alguna faltara, o quedo sin aprobar o
-      // su fecha de recibo no es la de la caja.
-      const filaDelPago = caja.filaDelMovimiento(ordenDePago);
-      await expect(
-        filaDelPago,
-        `La orden de pago ${ordenDePago} tiene que aparecer sola en la caja del dia. Si no esta, ` +
-        'revisar que este aprobada, que su fecha de recibo sea la de la caja y que la sucursal coincida.',
-      ).toBeVisible({ timeout: 60_000 });
+        const inicial = importe(totales!.inicial).valor ?? 0;
+        const ingreso = importe(totales!.ingreso).valor ?? 0;
+        const salida = importe(totales!.salida).valor ?? 0;
+        const balance = importe(totales!.balance).valor ?? 0;
+        const final = importe(totales!.final).valor ?? 0;
+        balances[r.caja] = importe(totales!.balance).valor;
 
-      const filaDelCobro = caja.filaDelMovimiento(ordenDeCobro);
-      await expect(
-        filaDelCobro,
-        `La orden de cobro ${ordenDeCobro} tiene que aparecer sola en la caja del dia`,
-      ).toBeVisible({ timeout: 60_000 });
+        const grilla = page.locator(caja.grillaDeTotales).first();
+        await conResaltado(page, grilla, `Balance de ${r.caja}`, () => {
+          expect(Number((ingreso + salida).toFixed(2)),
+            'El balance tiene que ser el ingreso mas la salida, que viene con signo negativo')
+            .toBe(Number(balance.toFixed(2)));
+        });
+        await conResaltado(page, grilla, `Saldo final de ${r.caja}`, () => {
+          expect(Number((inicial + balance).toFixed(2)), 'El saldo final tiene que ser el saldo inicial mas el balance')
+            .toBe(Number(final.toFixed(2)));
+        });
+        if (r.que === 'cobro') {
+          await conResaltado(page, grilla, `Ingreso de ${r.caja}`, () => {
+            expect(ingreso, 'El ingreso de la caja tiene que incluir la venta cobrada').toBeGreaterThanOrEqual(r.importe);
+          });
+        } else {
+          await conResaltado(page, grilla, `Salida de ${r.caja}`, () => {
+            expect(Math.abs(salida), 'La salida de la caja tiene que incluir el costo pagado').toBeGreaterThanOrEqual(r.importe);
+          });
+        }
+      });
+    }
 
-      const celdasDelPago = await caja.celdas(filaDelPago);
-      const celdasDelCobro = await caja.celdas(filaDelCobro);
-      await adjuntarTexto('Movimiento del pago', celdasDelPago.join(' | '));
-      await adjuntarTexto('Movimiento del cobro', celdasDelCobro.join(' | '));
-
-      await conResaltado(page, filaDelPago, 'Caja del movimiento de pago', () => {
-        expect(celdasDelPago.join(' | ').toUpperCase(),
-          'El pago tiene que quedar registrado en la caja de regresion')
-          .toContain(CAJA_DE_REGRESION.toUpperCase());
-      });
-      await conResaltado(page, filaDelCobro, 'Caja del movimiento de cobro', () => {
-        expect(celdasDelCobro.join(' | ').toUpperCase(),
-          'El cobro tiene que quedar registrado en la caja de regresion')
-          .toContain(CAJA_DE_REGRESION.toUpperCase());
-      });
-
-      const soloImporte = /^-?([A-Z]{3}\s*)?\d[\d.,]*$/;
-      const importeDelPago = celdasDelPago.filter((c) => soloImporte.test(c)).map(importe);
-      const importeDelCobro = celdasDelCobro.filter((c) => soloImporte.test(c)).map(importe);
-
-      await conResaltado(page, filaDelPago, 'Importe del pago en la caja', () => {
-        expect(importeDelPago.map((i) => Math.abs(i.valor ?? 0)),
-          'El movimiento de pago tiene que ser por el costo del item del file')
-          .toContain(costo);
-      });
-      await conResaltado(page, filaDelCobro, 'Importe del cobro en la caja', () => {
-        expect(importeDelCobro.map((i) => Math.abs(i.valor ?? 0)),
-          'El movimiento de cobro tiene que ser por la venta del item del file')
-          .toContain(venta);
-      });
-
-      // Columnas del movimiento: C, (c), Fecha, T, M, M, C, Medio, Referencia,
-      // Cliente / Prov., Comentario. Cada movimiento tiene que decir con quien
-      // fue: el pago con el proveedor y el cobro con el cliente.
-      const textoDelPago = celdasDelPago.join(' | ').toUpperCase();
-      const textoDelCobro = celdasDelCobro.join(' | ').toUpperCase();
-
-      await conResaltado(page, filaDelPago, 'Fecha del movimiento de pago', () => {
-        expect(celdasDelPago.join(' | '),
-          'El movimiento de pago tiene que llevar la fecha de la caja')
-          .toContain(fechaDeHoy);
-      });
-      await conResaltado(page, filaDelCobro, 'Fecha del movimiento de cobro', () => {
-        expect(celdasDelCobro.join(' | '),
-          'El movimiento de cobro tiene que llevar la fecha de la caja')
-          .toContain(fechaDeHoy);
-      });
-      await conResaltado(page, filaDelPago, 'Proveedor del movimiento de pago', () => {
-        expect(textoDelPago, 'El movimiento de pago tiene que identificar al proveedor')
-          .toContain('GRUPO SUMMA');
-      });
-      await conResaltado(page, filaDelCobro, 'Cliente del movimiento de cobro', () => {
-        expect(textoDelCobro, 'El movimiento de cobro tiene que identificar al cliente')
-          .toContain(base.cliente.toUpperCase());
-      });
-      await conResaltado(page, filaDelPago, 'Moneda del movimiento de pago', () => {
-        expect(textoDelPago, 'El movimiento tiene que estar en la moneda de la caja')
-          .toContain(datos.moneda);
-      });
-    });
-
-    await paso(page, 'Verificar el cuadre de la caja', async () => {
-      const totales = await caja.totales(datos.moneda);
-      totalesDeLaCaja = totales;
-      await adjuntarTexto('Totales de la caja de regresion', JSON.stringify(totales, null, 2));
-      expect(totales, `La caja tiene que mostrar sus totales en ${datos.moneda}`).not.toBeNull();
-
-      const inicial = importe(totales!.inicial).valor ?? 0;
-      const ingreso = importe(totales!.ingreso).valor ?? 0;
-      const salida = importe(totales!.salida).valor ?? 0;
-      const balance = importe(totales!.balance).valor ?? 0;
-      const final = importe(totales!.final).valor ?? 0;
-
-      // No se exige un importe fijo: la caja acumula lo de todas las corridas del
-      // dia. Lo que si tiene que cerrar siempre es su propia aritmetica, que es
-      // donde aparecerian los errores de cuadre.
-      // La Salida se muestra **negativa**, asi que el balance es ingreso mas
-      // salida, no ingreso menos salida.
-      await conResaltado(page, page.locator(caja.grillaDeTotales).first(), 'Balance de la caja', () => {
-        expect(Number((ingreso + salida).toFixed(2)),
-          'El balance tiene que ser el ingreso mas la salida, que viene con signo negativo')
-          .toBe(Number(balance.toFixed(2)));
-      });
-      await conResaltado(page, page.locator(caja.grillaDeTotales).first(), 'Saldo final de la caja', () => {
-        expect(Number((inicial + balance).toFixed(2)),
-          'El saldo final tiene que ser el saldo inicial mas el balance')
-          .toBe(Number(final.toFixed(2)));
-      });
-
-      // Y lo nuestro tiene que estar adentro: el ingreso contiene la venta y la
-      // salida contiene el costo.
-      await conResaltado(page, page.locator(caja.grillaDeTotales).first(), 'Ingreso de la caja', () => {
-        expect(ingreso, 'El ingreso de la caja tiene que incluir la venta cobrada')
-          .toBeGreaterThanOrEqual(venta);
-      });
-      await conResaltado(page, page.locator(caja.grillaDeTotales).first(), 'Salida de la caja', () => {
-        expect(Math.abs(salida), 'La salida de la caja tiene que incluir el costo pagado')
-          .toBeGreaterThanOrEqual(costo);
-      });
-    });
-
-    await paso(page, 'Abrir el pre-cierre y verificar que muestre el cuadre', async () => {
-      // El pre-cierre es de solo lectura: no cambia el estado de la caja. El
-      // cierre definitivo no se automatiza a proposito — ver la nota del ESTADO.
+    await paso(page, 'Abrir el pre-cierre y verificar que muestre el cuadre de las dos cajas', async () => {
       const modal = await caja.abrirPreCierre();
-      const fila = await caja.filaDelPreCierre(CAJA_DE_REGRESION);
-      await adjuntarTexto('Fila de la caja en el pre-cierre', fila.join(' | '));
-
-      await conResaltado(page, modal, 'Pre-cierre con la caja de regresion', () => {
-        expect(fila.length,
-          `El pre-cierre tiene que listar ${CAJA_DE_REGRESION} con su cuadre`)
-          .toBeGreaterThan(0);
-      });
-
-      // Columnas: (c), Nombre, M, Inicial, Ingreso, Salida, Balance dia, Final.
-      // El cuadre del pre-cierre tiene que dar lo mismo que el de la pantalla.
-      const numeros = fila.map(importe).map((i) => i.valor);
-      await conResaltado(page, modal, 'Cuadre del pre-cierre', () => {
-        expect(numeros,
-          'El balance del dia en el pre-cierre tiene que coincidir con el de la pantalla')
-          .toContain(importe(totalesDeLaCaja?.balance ?? '').valor);
-      });
+      for (const r of ramas) {
+        const fila = await caja.filaDelPreCierre(r.caja);
+        await adjuntarTexto(`Fila de ${r.caja} en el pre-cierre`, fila.join(' | '));
+        await conResaltado(page, modal, `Pre-cierre con ${r.caja}`, () => {
+          expect(fila.length, `El pre-cierre tiene que listar ${r.caja} con su cuadre`).toBeGreaterThan(0);
+        });
+        const numeros = fila.map(importe).map((x) => x.valor);
+        await conResaltado(page, modal, `Cuadre de ${r.caja} en el pre-cierre`, () => {
+          expect(numeros, `El balance del dia de ${r.caja} en el pre-cierre tiene que coincidir con el de la pantalla`)
+            .toContain(balances[r.caja]);
+        });
+      }
 
       await adjuntarTexto('Cadena completa generada', [
         `File: ${base.fileCode}`,
         `Factura de proveedor: ${facturaProveedor.puntoDeVenta}-${facturaProveedor.numeroDeFactura}`,
-        `Orden de pago: ${ordenDePago} (costo ${costo})`,
+        `Orden de pago: ${ordenDePago} (costo ${facturaProveedor.moneda} ${costo})`,
         `Comprobante al cliente: ${facturaCliente.comprobante}`,
-        `Orden de cobro: ${ordenDeCobro} (venta ${venta})`,
-        `Utilidad: ${venta - costo}`,
+        `Orden de cobro: ${ordenDeCobro} (venta USD ${venta})`,
       ].join(SALTO));
     });
 
