@@ -158,6 +158,11 @@
       "nombre": "Cotización de multidestino"
     },
     {
+      "archivo": "bloque-b/carrito-mixto-markups.spec.ts",
+      "titulo": "Hotel y servicio en el mismo carrito: cada uno lleva el markup de su tipo",
+      "nombre": "Carrito con hotel y servicio"
+    },
+    {
       "archivo": "bloque-c/factura-proveedor.spec.ts",
       "titulo": "Factura de proveedor: se carga sobre el file y se imputa al item",
       "nombre": "Factura del proveedor"

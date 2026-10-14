@@ -132,20 +132,28 @@ export class CarritoPage {
     // salia sin vaciar. El 2026-10-10 asi quedo un Tigre y Delta de un test anterior,
     // el siguiente agrego otro y el file de la liquidacion salio con el servicio
     // duplicado. Se entra derecho a la pantalla del carrito y se miran sus filas.
-    await this.page.goto('/online/ShoppingCartPage.aspx');
-    await esperarFinDeCarga(this.page);
-    // Con el carrito vacio la pantalla redirige al inicio y no hay filas.
-    if (await this.page.locator(this.filas).count() === 0) return;
-    // "Limpiar Carrito" vacia por API y redirige al inicio
-    // (ShoppingCartPage.aspx.cs:209 y :220), asi que no se queda en el carrito.
-    await this.page.locator(this.btnLimpiar).first().click();
-    await esperarFinDeCarga(this.page);
+    //
+    // "Limpiar Carrito" vacia por API y redirige al inicio (ShoppingCartPage.aspx.cs:209
+    // y :220). Si se vuelve al carrito antes de que la API termine, todavia muestra el
+    // item: medido el 14/10, la verificacion esperaba 30 s sobre esa misma pagina sin
+    // recargarla y fallaba con el carrito ya vacio. Por eso se reintenta: limpiar,
+    // volver a abrir el carrito y mirar sus filas, hasta tres veces.
+    const abrirYContar = async () => {
+      await this.page.goto('/online/ShoppingCartPage.aspx');
+      await esperarFinDeCarga(this.page);
+      // Con el carrito vacio la pantalla redirige al inicio y no hay filas.
+      return this.page.locator(this.filas).count();
+    };
+    let quedan = await abrirYContar();
+    for (let intento = 0; intento < 3 && quedan > 0; intento++) {
+      await this.page.locator(this.btnLimpiar).first().click();
+      await esperarFinDeCarga(this.page);
+      await this.page.waitForTimeout(2_000 * (intento + 1));
+      quedan = await abrirYContar();
+    }
     // Se confirma en la pantalla del carrito y no con el contador, que vacio
     // tambien "da" 0.
-    await this.page.goto('/online/ShoppingCartPage.aspx');
-    await esperarFinDeCarga(this.page);
-    await expect(this.page.locator(this.filas), 'Despues de limpiarlo, el carrito no puede tener items')
-      .toHaveCount(0, { timeout: 30_000 });
+    expect(quedan, 'Despues de limpiarlo, el carrito no puede tener items').toBe(0);
   }
 
   filaDelCarrito(nombre: string): Locator {

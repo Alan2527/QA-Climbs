@@ -49,7 +49,7 @@ test.describe('WebAdmin — cupo y publicacion de habitacion', () => {
     await inicio.abrir();
     await inicio.abrirSolapa('hoteles');
     await hotel.verificarResidente();
-    await hotel.elegirHotel(HOTEL_ID, E.hotelNombre.replace(/^AUTO-QA NO TOCAR - /, ''));
+    await hotel.elegirHotel(HOTEL_ID, E.hotelNombre.replace(/^AUTO-QA NO TOCAR - /, ''), E.terminoBusqueda);
     await hotel.fijarViajeros(1, 2);
     await hotel.elegirFechas(entrada, salida);
     await expect(page.locator(hotel.campoFechas), 'El calendario tiene que quedar con las fechas del test')

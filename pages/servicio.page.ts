@@ -121,10 +121,13 @@ export class ServicioPage {
     // El picker se abre con showDropdowns, asi que el mes y el anio se eligen en
     // sus combos y despues se clickea el dia. Sin esto solo se podria reservar
     // dentro del mes en curso.
+    // Primero el anio y despues el mes: al reves, para un mes de otro anio (enero
+    // 2031 visto desde octubre 2026) el combo de meses todavia muestra el anio en
+    // curso, donde ese mes ya paso y esta deshabilitado.
     const combosMes = picker.locator('select.monthselect');
     if (await combosMes.count()) {
-      await combosMes.first().selectOption(String(fecha.getMonth()));
       await picker.locator('select.yearselect').first().selectOption(String(fecha.getFullYear()));
+      await combosMes.first().selectOption(String(fecha.getMonth()));
     }
 
     const dia = String(fecha.getDate());

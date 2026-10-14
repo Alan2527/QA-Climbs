@@ -39,10 +39,13 @@ export class HotelPage {
    * Ojo con el selector: un id que empieza con digito no es un selector CSS
    * valido, asi que va por atributo (`a[id="5003"]`, no `a#5003`).
    */
-  async elegirHotel(id: number, nombreEsperado: string) {
+  async elegirHotel(id: number, nombreEsperado: string, termino = 'AUTO-QA') {
+    // El buscador devuelve 30 resultados como mucho (Default.aspx.cs, SearchDestination)
+    // y "AUTO-QA" coincide con todos los hoteles de prueba: para un hotel que no sea
+    // el de la regresion conviene pasar un termino propio de su nombre.
     const destino = this.page.locator(this.campoDestino);
     await destino.click();
-    await destino.pressSequentially('AUTO-QA', { delay: 60 });
+    await destino.pressSequentially(termino, { delay: 60 });
 
     const sugerencia = this.page.locator(`${this.sugerencias} a[id="${id}"]`);
     await expect(
