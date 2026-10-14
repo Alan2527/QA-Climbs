@@ -312,6 +312,7 @@
     <li><a href="#reservas" data-vista="reservas"><i class="ph ph-suitcase-rolling"></i><span>Reservas</span></a></li>
     <li><a href="#cobranzas" data-vista="cobranzas"><i class="ph ph-receipt"></i><span>Cobranzas</span></a></li>
     <li><a href="#webadmin" data-vista="webadmin"><i class="ph ph-sliders-horizontal"></i><span>WebAdmin</span></a></li>
+    <li><a href="#six" data-vista="six"><i class="ph ph-device-mobile"></i><span>SIX</span></a></li>
     <li class="sf-section"></li>
     <li><a href="#historial" data-vista="historial"><i class="ph ph-clock-counter-clockwise"></i><span>Historial</span></a></li>
   </ul>
@@ -340,7 +341,7 @@
 
 <script>
 (() => {
-  const AREA_DE_SUITE = { 'bloque-a': 'Tarifario', 'bloque-b': 'Reservas', 'bloque-c': 'Cobranzas', 'webadmin': 'WebAdmin', 'todas': 'Todas las pruebas' };
+  const AREA_DE_SUITE = { 'bloque-a': 'Tarifario', 'bloque-b': 'Reservas', 'bloque-c': 'Cobranzas', 'webadmin': 'WebAdmin', 'six': 'SIX', 'todas': 'Todas las pruebas' };
   const DETALLES = 15;        // corridas leidas en detalle: alcanza para el historial de cada prueba
   const FILAS_HISTORIAL = 10;
   const ORDEN = { fail: 0, skip: 1, none: 2, ok: 3 };
@@ -432,7 +433,7 @@
       historial.get(k).push(r);
     }
 
-    const areaDe = (a) => a.startsWith('bloque-a/') ? 'tarifario' : a.startsWith('bloque-b/') ? 'reservas' : a.startsWith('bloque-c/') ? 'cobranzas' : a.startsWith('webadmin/') ? 'webadmin' : null;
+    const areaDe = (a) => a.startsWith('bloque-a/') ? 'tarifario' : a.startsWith('bloque-b/') ? 'reservas' : a.startsWith('bloque-c/') ? 'cobranzas' : a.startsWith('webadmin/') ? 'webadmin' : a.startsWith('six/') ? 'six' : null;
     const enCatalogo = new Set(catalogo.pruebas.map((p) => clave(p.archivo, p.titulo)));
     const extras = [...historial.values()].map((h) => h[0])
       .filter((p) => p.area !== 'preparacion' && !enCatalogo.has(clave(p.archivo, p.titulo)))
@@ -466,7 +467,7 @@
   // --- Vistas: Resumen muestra todo; cada area y el historial, solo su tabla ----
   const vistaActual = () => {
     const v = location.hash.replace('#', '');
-    return ['tarifario', 'reservas', 'cobranzas', 'webadmin', 'historial'].includes(v) ? v : 'resumen';
+    return ['tarifario', 'reservas', 'cobranzas', 'webadmin', 'six', 'historial'].includes(v) ? v : 'resumen';
   };
   window.addEventListener('hashchange', () => { if (datos) { pintar(); scrollTo(0, 0); } });
 

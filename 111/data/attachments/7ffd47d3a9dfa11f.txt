@@ -1,0 +1,13 @@
+FECHAS | SGL | DBL | TPL
+01/10/2026 - 27/12/2026 Todos los días | USD 625 | USD 313 | USD 242
+03/01/2027 - 31/03/2027 Todos los días | USD 625 | USD 313 | USD 242
+01/04/2027 - 30/06/2027 Todos los días | USD 538 | USD 269 | USD 213
+01/07/2027 - 30/09/2027 Todos los días | USD 592 | USD 296 | USD 234
+01/10/2027 - 27/12/2027 Todos los días | USD 688 | USD 344 | USD 266
+03/01/2028 - 28/02/2028 Todos los días | USD 688 | USD 344 | USD 266
+01/03/2028 - 31/03/2028 Todos los días | USD 688 | USD 344 | USD 266
+01/04/2028 - 30/09/2028 Todos los días | USD 592 | USD 296 | USD 234
+01/10/2028 - 27/12/2028 Todos los días | USD 688 | USD 344 | USD 266
+03/01/2029 - 31/03/2029 Todos los días | USD 688 | USD 344 | USD 266
+01/04/2029 - 30/09/2029 Todos los días | USD 592 | USD 296 | USD 234
+01/10/2029 - 27/12/2029 Todos los días | USD 688 | USD 344 | USD 266

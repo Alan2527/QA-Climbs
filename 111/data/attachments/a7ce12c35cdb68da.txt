@@ -1,0 +1,2 @@
+Incluye | Almuerzo -- Texto de prueba.
+No incluye | Bebidas -- Texto de prueba 2.

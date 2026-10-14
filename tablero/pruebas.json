@@ -24,6 +24,12 @@
       "nombre": "WebAdmin",
       "icono": "ph-sliders-horizontal",
       "descripcion": "Que lo que se configura en el WebAdmin llegue bien a los precios del portal."
+    },
+    {
+      "id": "six",
+      "nombre": "SIX",
+      "icono": "ph-device-mobile",
+      "descripcion": "Que el pasajero entre a la app y vea su viaje como se vendió."
     }
   ],
   "pruebas": [
@@ -296,6 +302,16 @@
       "archivo": "webadmin/observaciones-y-regimen.spec.ts",
       "titulo": "La observacion del periodo y el regimen de la habitacion se ven en el tarifario del portal",
       "nombre": "Observaciones y régimen de habitación"
+    },
+    {
+      "archivo": "six/pasajero.spec.ts",
+      "titulo": "Pasajero: con el link entra a su viaje y el itinerario trae lo del file",
+      "nombre": "SIX: entrada e itinerario"
+    },
+    {
+      "archivo": "six/pasajero.spec.ts",
+      "titulo": "Pasajero: con un token adulterado no entra y vuelve al login",
+      "nombre": "SIX: token inválido"
     }
   ]
 }
