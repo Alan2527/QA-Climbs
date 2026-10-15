@@ -1,6 +1,40 @@
 {
-  "actualizado": "2026-10-14T23:14:02.700Z",
+  "actualizado": "2026-10-15T00:15:15.902Z",
   "corridas": [
+    {
+      "corrida": 112,
+      "fecha": "2026-10-15T00:09:13.480Z",
+      "duracionMs": 343144.63999999996,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "c6cc4b70353198b4abe04ef641475dbf496c56fd",
+      "totales": {
+        "total": 16,
+        "paso": 16,
+        "fallo": 0,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/112.json"
+    },
     {
       "corrida": 111,
       "fecha": "2026-10-14T23:07:31.873Z",

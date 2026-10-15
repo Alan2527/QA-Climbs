@@ -312,6 +312,21 @@
       "archivo": "six/pasajero.spec.ts",
       "titulo": "Pasajero: con un token adulterado no entra y vuelve al login",
       "nombre": "SIX: token inválido"
+    },
+    {
+      "archivo": "six/pasajero.spec.ts",
+      "titulo": "Pasajero: el voucher se descarga en PDF",
+      "nombre": "SIX: voucher en PDF"
+    },
+    {
+      "archivo": "six/pasajero.spec.ts",
+      "titulo": "Pasajero: al pasar a ingles el inicio y el itinerario salen en ingles",
+      "nombre": "SIX: viaje en inglés"
+    },
+    {
+      "archivo": "six/pasajero.spec.ts",
+      "titulo": "Pasajero: la opinion del viaje se guarda y al volver se ve lo que dejo",
+      "nombre": "SIX: opinión del viaje"
     }
   ]
 }
