@@ -242,6 +242,9 @@ export async function clicEnMenuDelBO(item: Locator) {
     // link se mueve y el clic no agarra.
     await expect.poll(desplegada, { timeout: 15_000 }).toBe(true);
   }
+  // El overlay de carga del BO (`#pageloadcnt`) queda encima del menu mientras termina
+  // un postback y se traga el clic: medido el 15/10, con el link ya visible y estable.
+  await item.page().locator('#pageloadcnt').waitFor({ state: 'hidden', timeout: 30_000 }).catch(() => {});
   await item.click({ timeout: 30_000 });
 }
 

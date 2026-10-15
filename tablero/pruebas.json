@@ -169,6 +169,16 @@
       "nombre": "Carrito con hotel y servicio"
     },
     {
+      "archivo": "bloque-b/historial-por-usuario.spec.ts",
+      "titulo": "Reservas: la reserva de pablo1 se acota por codigo y no se ve ni se abre desde otra agencia",
+      "nombre": "Historial: reservas de otra agencia"
+    },
+    {
+      "archivo": "bloque-b/historial-por-usuario.spec.ts",
+      "titulo": "Cotizaciones: la cotizacion de pablo1 se acota por codigo y no se ve ni se abre desde otra agencia",
+      "nombre": "Historial: cotizaciones de otra agencia"
+    },
+    {
       "archivo": "bloque-c/factura-proveedor.spec.ts",
       "titulo": "Factura de proveedor: se carga sobre el file y se imputa al item",
       "nombre": "Factura del proveedor"
@@ -222,6 +232,26 @@
       "archivo": "bloque-c/bloqueos-del-file.spec.ts",
       "titulo": "Bloqueos: el file con comprobantes no se cancela y el vencimiento invalido se rechaza",
       "nombre": "Bloqueos del file"
+    },
+    {
+      "archivo": "bloque-c/anulaciones.spec.ts",
+      "titulo": "Anular la carta de cobranza: sale de Cartas emitidas, el file vuelve a A Facturar y se puede volver a facturar",
+      "nombre": "Anular la carta de cobranza"
+    },
+    {
+      "archivo": "bloque-c/anulaciones.spec.ts",
+      "titulo": "Anular ordenes de pago: la que no tiene imputacion se anula y la imputada sigue vigente",
+      "nombre": "Anular órdenes de pago"
+    },
+    {
+      "archivo": "bloque-c/anulaciones.spec.ts",
+      "titulo": "Orden de pago parcial: el pendiente de la factura baja el monto imputado y no se puede imputar de mas",
+      "nombre": "Orden de pago parcial"
+    },
+    {
+      "archivo": "bloque-c/cuenta-corriente.spec.ts",
+      "titulo": "Cuenta corriente: con la cadena completa, el cliente y el proveedor listan sus comprobantes con importes y saldos coherentes",
+      "nombre": "Cuenta corriente de cliente y proveedor"
     },
     {
       "archivo": "bloque-a/markups.spec.ts",
