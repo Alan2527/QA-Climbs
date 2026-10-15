@@ -284,6 +284,11 @@
       "nombre": "Cotización de grupo a reserva"
     },
     {
+      "archivo": "webadmin/cotizacion-markup-agencia.spec.ts",
+      "titulo": "La cotizacion carga el markup de hoteles y el tipo de cambio de la agencia y los conserva al crear la reserva",
+      "nombre": "Cotización de grupo: markup y tipo de cambio"
+    },
+    {
       "archivo": "webadmin/series.spec.ts",
       "titulo": "El cupo, las salidas y las tarifas de una salida se reflejan en el portal",
       "nombre": "Series: cupo, salidas y tarifas"
