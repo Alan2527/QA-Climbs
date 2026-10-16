@@ -254,6 +254,16 @@
       "nombre": "Cuenta corriente de cliente y proveedor"
     },
     {
+      "archivo": "bloque-c/movimientos-entre-cajas.spec.ts",
+      "titulo": "Movimiento entre dos cajas de la misma sucursal: sale de una, entra en la otra y cuadra",
+      "nombre": "Movimiento entre cajas de la misma sucursal"
+    },
+    {
+      "archivo": "bloque-c/movimientos-entre-cajas.spec.ts",
+      "titulo": "Movimiento entre sucursales: la entrada vive en la caja destino, se ve en solo lectura y no se copia",
+      "nombre": "Movimiento entre cajas de distintas sucursales"
+    },
+    {
       "archivo": "bloque-a/markups.spec.ts",
       "titulo": "Hoteles: aplica el markup de hoteles del mercado",
       "nombre": "Markup de hoteles"
