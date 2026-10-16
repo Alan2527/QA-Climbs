@@ -264,6 +264,11 @@
       "nombre": "Movimiento entre cajas de distintas sucursales"
     },
     {
+      "archivo": "bloque-b/idioma-del-servicio.spec.ts",
+      "titulo": "Cena Show: el idioma y el recargo de la ficha llegan iguales al carrito",
+      "nombre": "Idioma del servicio y su recargo"
+    },
+    {
       "archivo": "bloque-a/markups.spec.ts",
       "titulo": "Hoteles: aplica el markup de hoteles del mercado",
       "nombre": "Markup de hoteles"
