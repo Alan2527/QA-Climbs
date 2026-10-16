@@ -269,6 +269,16 @@
       "nombre": "Idioma del servicio y su recargo"
     },
     {
+      "archivo": "bloque-b/multidestino-agregar.spec.ts",
+      "titulo": "Multidestino: el servicio y el hotel agregados desde los modales quedan con el precio del tarifario con el markup una sola vez y suben el total",
+      "nombre": "Agregar servicio y hotel al multidestino"
+    },
+    {
+      "archivo": "bloque-c/alta-manual-de-servicio.spec.ts",
+      "titulo": "Alta manual: el servicio agregado a un file queda con el costo, la venta y la moneda esperados, y los totales lo reflejan",
+      "nombre": "Alta manual de servicio en el file"
+    },
+    {
       "archivo": "bloque-a/markups.spec.ts",
       "titulo": "Hoteles: aplica el markup de hoteles del mercado",
       "nombre": "Markup de hoteles"
