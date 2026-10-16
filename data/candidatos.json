@@ -1127,7 +1127,7 @@
     }
   },
   "serieWebAdmin": {
-    "_nota": "Serie propia del test del WebAdmin de series (cupos, salidas y tarifas). Armada el 2026-10-14: serie y copia del paquete 5061 desde el WebAdmin (Series/Detail, solapa Paquetes), salidas y cupos con las cargas masivas, y por SQL la publicacion del paquete y las 208 tarifas (ReceptiveTourDepartureRate 2988-3195). No usar la serie de regresion del bloque B. Las salidas vencen el 25/01/2027: renovarlas antes.",
+    "_nota": "Serie propia del test del WebAdmin de series (cupos, salidas y tarifas). Armada el 2026-10-14: serie y copia del paquete 5061 desde el WebAdmin (Series/Detail, solapa Paquetes), salidas y cupos con las cargas masivas, y por SQL la publicacion del paquete y las 208 tarifas (ReceptiveTourDepartureRate 2988-3195). No usar la serie de regresion del bloque B. Renovadas el 2026-10-16 desde el WebAdmin (salidas, cupo 10 los lunes y tarifas por categoria) hasta el 27/12/2027: renovarlas antes de esa fecha.",
     "serieId": 20,
     "tourId": 5067,
     "nombre": "AUTO-QA NO TOCAR - Serie de cupos y tarifas",
@@ -1136,8 +1136,8 @@
     "salidas": {
       "dias": "lunes",
       "desde": "2026-11-02",
-      "hasta": "2027-01-25",
-      "cantidad": 13
+      "hasta": "2027-12-27",
+      "cantidad": 61
     },
     "cupoPorSalida": 10,
     "tarifas": {
