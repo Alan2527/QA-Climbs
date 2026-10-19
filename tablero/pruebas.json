@@ -279,6 +279,11 @@
       "nombre": "Alta manual de servicio en el file"
     },
     {
+      "archivo": "webadmin/alta-usuario-agencia.spec.ts",
+      "titulo": "El alta crea el usuario, aparece en el listado, rechaza el email duplicado, entra al portal y se da de baja",
+      "nombre": "Alta de usuario de agencia"
+    },
+    {
       "archivo": "bloque-a/markups.spec.ts",
       "titulo": "Hoteles: aplica el markup de hoteles del mercado",
       "nombre": "Markup de hoteles"
