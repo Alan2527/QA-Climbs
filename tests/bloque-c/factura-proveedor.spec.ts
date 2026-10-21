@@ -76,7 +76,9 @@ test.describe('Cobranzas', () => {
       medioDePago: 'Efectivo',
       tipo: 'Factura A',
       sucursal: 'Argentina',
-      moneda: 'USD',
+      // Se completa con la moneda del costo del item recien reservado (lo que cobra el
+      // proveedor): Tigre y Delta tiene el costo en pesos, asi que la factura va en ARS.
+      moneda: '',
       monedaPorDefecto: 'ARS',
       puntoDeVenta: '0001',
       // El numero tiene que ser unico por corrida: el BO rechaza el comprobante
@@ -96,7 +98,8 @@ test.describe('Cobranzas', () => {
     };
 
     const precondicion = await reservarServicioYGenerarFile(page, sello);
-    // La factura se emite por el costo del item: es lo que el proveedor cobra.
+    // La factura se emite por el costo del item: es lo que el proveedor cobra, en su misma moneda.
+    comprobante.moneda = precondicion.costoDelItem.moneda;
     const totalDeLaFactura = precondicion.costoDelItem.valor as number;
 
     let idDeLaFactura = '';
