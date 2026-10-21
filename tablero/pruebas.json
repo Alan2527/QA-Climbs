@@ -30,6 +30,12 @@
       "nombre": "SIX",
       "icono": "ph-device-mobile",
       "descripcion": "Que el pasajero entre a la app y vea su viaje como se vendió."
+    },
+    {
+      "id": "seguridad",
+      "nombre": "Seguridad",
+      "icono": "ph-shield-check",
+      "descripcion": "Que una agencia no vea por URL las reservas ni las cotizaciones de otra, ni un visitante sin sesión."
     }
   ],
   "pruebas": [
@@ -392,6 +398,21 @@
       "archivo": "six/pasajero.spec.ts",
       "titulo": "Pasajero: la opinion del viaje se guarda y al volver se ve lo que dejo",
       "nombre": "SIX: opinión del viaje"
+    },
+    {
+      "archivo": "seguridad/acceso-por-url.spec.ts",
+      "titulo": "Una agencia no puede ver por URL la reserva de otra agencia",
+      "nombre": "Reserva de otra agencia por URL"
+    },
+    {
+      "archivo": "seguridad/acceso-por-url.spec.ts",
+      "titulo": "Una agencia no puede ver por URL la cotizacion de otra agencia",
+      "nombre": "Cotización de otra agencia por URL"
+    },
+    {
+      "archivo": "seguridad/acceso-por-url.spec.ts",
+      "titulo": "Un usuario sin sesion no puede ver por URL una reserva",
+      "nombre": "Reserva sin sesión por URL"
     }
   ]
 }

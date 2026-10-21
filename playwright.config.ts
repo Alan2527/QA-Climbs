@@ -154,5 +154,16 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
       dependencies: ['Precondiciones - Bloque C'],
     },
+    {
+      // Acceso por URL a reservas y cotizaciones ajenas o sin sesion. Solo lee (no
+      // emite nada), asi que admite un reintento para absorber intermitencia. No
+      // necesita precondiciones de tarifario: toma una reserva y una cotizacion que
+      // pablo1 ya tenga en su historial.
+      name: 'Climbs - Bloque Seguridad',
+      testDir: './tests/seguridad',
+      retries: process.env.CI ? 1 : 0,
+      use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
+      dependencies: ['Login'],
+    },
   ],
 });
