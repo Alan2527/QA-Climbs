@@ -400,6 +400,11 @@
       "nombre": "SIX: opinión del viaje"
     },
     {
+      "archivo": "six/acceso-por-guid.spec.ts",
+      "titulo": "El viaje del pasajero se obtiene con solo el GUID, sin sesion (la API no valida la sesion)",
+      "nombre": "SIX: viaje accesible sin sesión"
+    },
+    {
       "archivo": "seguridad/acceso-por-url.spec.ts",
       "titulo": "Una agencia no puede ver por URL la reserva de otra agencia",
       "nombre": "Reserva de otra agencia por URL"
