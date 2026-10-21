@@ -410,6 +410,11 @@
       "nombre": "SIX: rooming (PII) accesible sin sesión"
     },
     {
+      "archivo": "six/api-sin-sesion.spec.ts",
+      "titulo": "bookingservice/getbookpassengers devuelve los pasajeros (PII) de una reserva sin sesion",
+      "nombre": "API: pasajeros de la reserva sin sesión"
+    },
+    {
       "archivo": "seguridad/acceso-por-url.spec.ts",
       "titulo": "Una agencia no puede ver por URL la reserva de otra agencia",
       "nombre": "Reserva de otra agencia por URL"
