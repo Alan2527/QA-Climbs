@@ -30,8 +30,8 @@ const S = candidatos.tarifasServicio;
  * autoqa.markups = precio de pablo1 x 0,50 / markup del tipo, con margen por el
  * redondeo hacia arriba. Si los markups se cruzaran, la proporcion no da.
  *
- * Fechas de enero 2031: la habitacion tiene ahi un corte fijo (cargado por SQL) y el
- * servicio tarifas hasta fin de 2031, asi no depende de lo que dejen otros tests.
+ * Fechas de enero 2028: la habitacion tiene ahi un corte fijo (cargado por SQL) y el
+ * servicio tarifas hasta fin de 2028, dentro del tope de 3 anios de la HU 4949.
  * No emite: al final vacia los dos carritos.
  */
 test.describe('Carrito con hotel y servicio', () => {
@@ -50,8 +50,8 @@ test.describe('Carrito con hotel y servicio', () => {
     reiniciarNumeracionDePasos();
   });
 
-  const ENTRADA = new Date(2031, 0, 13);
-  const SALIDA = new Date(2031, 0, 15);
+  const ENTRADA = new Date(2028, 0, 13);
+  const SALIDA = new Date(2028, 0, 15);
   const HOTEL = { id: H.hotelId, room: H.roomId, nombre: H.hotelNombre.replace(/^AUTO-QA NO TOCAR - /, '') };
   const SERVICIO = { nombre: S.nombre, termino: S.terminoBusqueda, modalidad: 'Regular', pax: 2 };
 

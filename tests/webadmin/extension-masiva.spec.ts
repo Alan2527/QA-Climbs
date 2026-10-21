@@ -32,7 +32,7 @@ test.describe('WebAdmin — extension masiva de tarifas', () => {
 
   const ROOM = E.roomId;
   const HOTEL_ID = E.hotelId;
-  const TRAMO = { desde: '16/08/2031', hasta: '30/09/2031' };
+  const TRAMO = { desde: '16/08/2028', hasta: '30/09/2028' };
   const PORCENTAJE = 10;
   const formato = (c: Corte) => `${c.desde} - ${c.hasta} | SGL ${c.sgl} | DBL ${c.dbl} | TPL ${c.tpl} | ${c.extendida}`;
   const fecha = (t: string) => { const [d, m, a] = t.split('/').map(Number); return new Date(a, m - 1, d).getTime(); };
@@ -44,13 +44,15 @@ test.describe('WebAdmin — extension masiva de tarifas', () => {
     let base: Corte | undefined;
 
     await paso(page, `Dejar la habitacion ${ROOM} sin tarifas del ${TRAMO.desde} al ${TRAMO.hasta}`, async () => {
-      // Solo si quedo algo de una corrida anterior: borrar un tramo vacio no
-      // muestra ningun aviso, y no habria como saber si se hizo.
+      // Se genera el tarifario primero: asi los cortes reflejan las tarifas reales y no
+      // una grilla vieja. Solo entonces se borra lo que de verdad quedo en el tramo (borrar
+      // un tramo vacio no muestra ningun aviso, y no habria como saber si se hizo).
+      await habitacion.generarTarifario(ROOM);
       const previos = await habitacion.cortesDelTarifario(ROOM);
       if (previos.some((c) => fecha(c.hasta) >= fecha(TRAMO.desde))) {
         await adjuntarTexto('Borrado previo', await habitacion.eliminarTarifas(ROOM, TRAMO.desde, TRAMO.hasta));
+        await habitacion.generarTarifario(ROOM);
       }
-      await habitacion.generarTarifario(ROOM);
       const cortes = await habitacion.cortesDelTarifario(ROOM);
       await adjuntarTexto('Tarifario de partida', cortes.map(formato).join(SALTO));
       base = [...cortes].sort((a, b) => fecha(b.hasta) - fecha(a.hasta))[0];

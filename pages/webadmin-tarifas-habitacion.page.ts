@@ -123,6 +123,12 @@ export class WebAdminTarifasHabitacionPage {
   /** "Freesale": deja el cupo de cada dia del rango en `cupo`. */
   async guardarCupo(room: number, desde: string, hasta: string, cupo: number) {
     await this.abrir(room, 'pnlRoomRates');
+    // Desde la HU 4949 la pantalla tiene dos solapas: "Gestion de tarifas" y "Actualizar
+    // Freesale". El cupo y sus fechas viven en la segunda, asi que hay que abrirla primero.
+    const solapaFreesale = this.page.locator('[data-pane="ratePaneFreesale"]');
+    await solapaFreesale.click();
+    await expect(this.page.locator(this.sel('txtFreesale_txtValue')), 'La solapa Freesale tiene que mostrar el campo de cupo')
+      .toBeVisible({ timeout: 15_000 });
     await this.fecha('ctrlFromDateFs', desde);
     await this.fecha('ctrlToDateFs', hasta);
     await this.page.locator(this.sel('txtFreesale_txtValue')).fill(String(cupo));
