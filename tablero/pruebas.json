@@ -418,6 +418,16 @@
       "archivo": "seguridad/acceso-por-url.spec.ts",
       "titulo": "Una agencia no puede ver por URL el Word de la cotizacion de otra agencia",
       "nombre": "Word de cotización ajena por URL"
+    },
+    {
+      "archivo": "seguridad/control-de-acceso.spec.ts",
+      "titulo": "Las pantallas internas no se abren sin sesion, y el BackOffice tampoco con una agencia",
+      "nombre": "Pantallas internas protegidas"
+    },
+    {
+      "archivo": "seguridad/control-de-acceso.spec.ts",
+      "titulo": "Despues de cerrar sesion no se vuelve a una pantalla protegida, ni por URL ni con el boton atras",
+      "nombre": "Cierre de sesión"
     }
   ]
 }
