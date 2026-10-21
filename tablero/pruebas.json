@@ -405,6 +405,11 @@
       "nombre": "SIX: viaje accesible sin sesión"
     },
     {
+      "archivo": "six/rooming-por-fileid.spec.ts",
+      "titulo": "El rooming (PII) de un file se obtiene por fileid sin sesion",
+      "nombre": "SIX: rooming (PII) accesible sin sesión"
+    },
+    {
       "archivo": "seguridad/acceso-por-url.spec.ts",
       "titulo": "Una agencia no puede ver por URL la reserva de otra agencia",
       "nombre": "Reserva de otra agencia por URL"
