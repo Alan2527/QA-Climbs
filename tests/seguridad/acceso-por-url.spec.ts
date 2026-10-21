@@ -83,6 +83,7 @@ test.describe('Seguridad — acceso a reservas y cotizaciones por URL', () => {
 
   const urlDetalleReserva = (id: string) => `/online/BookingHistoryDetail.aspx?book=${id}`;
   const urlDocumentoCotizacion = (id: string) => `/online/customtours/print/customtourquote.aspx?quote=${id}&lang=1`;
+  const urlDocumentoCotizacionWord = (id: string) => `/online/CustomTours/Print/CustomTourQuoteWord.aspx?quote=${id}&lang=1`;
 
   type FilaReserva = { codigo: string; id: string; agencia: string; titulo: string; texto: string };
   type FilaCotizacion = { codigo: string; id: string; agencia: string; referencia: string; pasajero: string; texto: string };
@@ -179,6 +180,27 @@ test.describe('Seguridad — acceso a reservas y cotizaciones por URL', () => {
     return reserva;
   }
 
+  /**
+   * pablo1 toma su cotizacion de multidestino mas reciente. Se cachea entre pruebas:
+   * la misma cotizacion alimenta el PDF, el Word y el "Ver detalle".
+   */
+  let cotizacion: { id: string; codigo: string; referencia: string; pasajero: string; hrefVerDetalle: string; marcas: string[] } | null = null;
+
+  async function cotizacionDePablo1(page: Page) {
+    if (cotizacion) return cotizacion;
+    let filas = await filasDeCotizaciones(page, 'AUTO-QA COT');
+    if (!filas.length) filas = await filasDeCotizaciones(page);
+    const primera = filas[0];
+    expect(primera, 'pablo1 tiene que tener al menos una cotizacion de multidestino en su historial').toBeTruthy();
+    expect(primera.id, 'La fila tiene que llevar el numero de cotizacion en su link Editar (quote=...)').toMatch(/^\d+$/);
+    cotizacion = {
+      id: primera.id, codigo: primera.codigo, referencia: primera.referencia,
+      pasajero: primera.pasajero, hrefVerDetalle: primera.hrefVerDetalle,
+      marcas: [primera.codigo, primera.referencia, primera.pasajero].filter(Boolean),
+    };
+    return cotizacion;
+  }
+
   // ======================================================================== 1
   test('Una agencia no puede ver por URL la reserva de otra agencia', async ({ page }) => {
     test.setTimeout(300_000);
@@ -206,21 +228,14 @@ test.describe('Seguridad — acceso a reservas y cotizaciones por URL', () => {
     test.setTimeout(300_000);
     let cot: { id: string; codigo: string; marcas: string[] };
 
-    await paso(page, 'pablo1 (agencia duena): tomar su cotizacion reciente y verificar que su documento muestra las marcas', async () => {
-      let filas = await filasDeCotizaciones(page, 'AUTO-QA COT');
-      if (!filas.length) filas = await filasDeCotizaciones(page);
-      const primera = filas[0];
-      expect(primera, 'pablo1 tiene que tener al menos una cotizacion de multidestino en su historial').toBeTruthy();
-      expect(primera.id, 'La fila tiene que llevar el numero de cotizacion en su link Editar (quote=...)').toMatch(/^\d+$/);
-      const marcas = [primera.codigo, primera.referencia, primera.pasajero].filter(Boolean);
-
+    await paso(page, 'pablo1 (agencia duena): tomar su cotizacion reciente y verificar que su PDF muestra las marcas', async () => {
+      const c = await cotizacionDePablo1(page);
       // El documento propio tiene que mostrar las marcas: sin eso, que la agencia ajena
       // no las vea no probaria nada.
-      const propio = await abrirYBuscarMarcas(page, urlDocumentoCotizacion(primera.id), marcas);
-      await adjuntarTexto('Cotizacion de pablo1', `${JSON.stringify({ id: primera.id, codigo: primera.codigo, marcas, fila: primera.texto }, null, 1)}\n\nDocumento propio: HTTP ${propio.estado}, marcas visibles: ${propio.encontradas.join(' | ') || 'ninguna'}`);
-      expect(propio.encontradas.length, 'El documento propio de la cotizacion tiene que mostrar sus marcas para poder compararlo con el ajeno').toBeGreaterThan(0);
-
-      cot = { id: primera.id, codigo: primera.codigo, marcas: propio.encontradas };
+      const propio = await abrirYBuscarMarcas(page, urlDocumentoCotizacion(c.id), c.marcas);
+      await adjuntarTexto('Cotizacion de pablo1', `${JSON.stringify(c, null, 1)}\n\nPDF propio: HTTP ${propio.estado}, marcas visibles: ${propio.encontradas.join(' | ') || 'ninguna'}`);
+      expect(propio.encontradas.length, 'El PDF propio de la cotizacion tiene que mostrar sus marcas para poder compararlo con el ajeno').toBeGreaterThan(0);
+      cot = { id: c.id, codigo: c.codigo, marcas: propio.encontradas };
     });
 
     await paso(ajena, 'autoqa.markups (otra agencia): abrir el documento de esa cotizacion por URL directa no tiene que mostrar nada de pablo1', async () => {
@@ -263,4 +278,27 @@ test.describe('Seguridad — acceso a reservas y cotizaciones por URL', () => {
       });
     });
   });
+
+  // ======================================================================== 4
+  test('Una agencia no puede ver por URL el Word de la cotizacion de otra agencia', async ({ page }) => {
+    test.setTimeout(300_000);
+    let cot: { id: string; codigo: string; marcas: string[] };
+
+    await paso(page, 'pablo1 (agencia duena): su Word de la cotizacion muestra las marcas', async () => {
+      const c = await cotizacionDePablo1(page);
+      const propio = await abrirYBuscarMarcas(page, urlDocumentoCotizacionWord(c.id), c.marcas);
+      await adjuntarTexto('Word propio de pablo1', `HTTP ${propio.estado}, marcas visibles: ${propio.encontradas.join(' | ') || 'ninguna'}`);
+      expect(propio.encontradas.length, 'El Word propio de la cotizacion tiene que mostrar sus marcas para poder compararlo con el ajeno').toBeGreaterThan(0);
+      cot = { id: c.id, codigo: c.codigo, marcas: propio.encontradas };
+    });
+
+    await paso(ajena, 'autoqa.markups (otra agencia): abrir el Word de esa cotizacion por URL directa no tiene que mostrar nada de pablo1', async () => {
+      const { estado, urlFinal, contenido, encontradas } = await abrirYBuscarMarcas(ajena, urlDocumentoCotizacionWord(cot.id), cot.marcas);
+      await adjuntarTexto('Word ajeno', `HTTP ${estado}\nURL final: ${urlFinal}\nMarcas de pablo1 que se ven: ${encontradas.join(' | ') || 'ninguna'}\n\n${contenido.slice(0, 3000)}`);
+      await conResaltado(ajena, ajena.locator('body'), 'Word ajeno por URL', () => {
+        expect(encontradas, `Otra agencia no tiene que poder ver el Word de la cotizacion ${cot.codigo} de pablo1 (se ven: ${encontradas.join(', ')})`).toHaveLength(0);
+      });
+    });
+  });
+
 });

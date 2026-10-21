@@ -413,6 +413,11 @@
       "archivo": "seguridad/acceso-por-url.spec.ts",
       "titulo": "Un usuario sin sesion no puede ver por URL una reserva",
       "nombre": "Reserva sin sesión por URL"
+    },
+    {
+      "archivo": "seguridad/acceso-por-url.spec.ts",
+      "titulo": "Una agencia no puede ver por URL el Word de la cotizacion de otra agencia",
+      "nombre": "Word de cotización ajena por URL"
     }
   ]
 }
