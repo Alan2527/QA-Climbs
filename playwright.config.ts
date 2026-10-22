@@ -158,7 +158,10 @@ export default defineConfig({
     {
       name: 'Climbs - Bloque C: Cobranzas',
       testDir: './tests/bloque-c',
-      use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
+      // Cobranzas corre al final y emite pesado: el BO queda saturado y sus PostBacks
+      // responden lento. Con el actionTimeout global de 30s, clicks y esperas flaquean
+      // en la ventana lenta (y no hay reintentos porque emite). Se le da mas margen.
+      use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION, actionTimeout: 60_000 },
       dependencies: ['Precondiciones - Bloque C'],
     },
     {
