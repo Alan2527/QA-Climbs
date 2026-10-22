@@ -242,6 +242,10 @@
   .dot.ok { background: var(--ok); } .dot.fail { background: var(--fail); } .dot.known { background: var(--known); } .dot.skip, .dot.none { background: var(--skip); }
   .detail { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; max-width: 520px; }
   .detail .why { font-size: 12px; color: var(--color-text-muted); overflow-wrap: anywhere; }
+  /* Icono de info por prueba + tooltip (el tooltip va en el body para no cortarse con el overflow de la card/grilla). */
+  .info-ico { color: var(--color-text-muted); font-size: 14px; margin-left: 6px; cursor: help; opacity: .6; vertical-align: -1px; transition: color .15s ease, opacity .15s ease; }
+  .info-ico:hover, .info-ico:focus { color: var(--color-text); opacity: 1; outline: none; }
+  .tip-bubble { position: fixed; z-index: 9999; max-width: 340px; background: var(--color-text); color: var(--color-surface); padding: 8px 11px; border-radius: 8px; font-size: 12.5px; line-height: 1.45; font-weight: 400; box-shadow: 0 6px 20px rgba(0, 0, 0, .28); pointer-events: none; }
   .grid-action {
     width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--grid-border); background: var(--icon-btn-bg);
     display: inline-grid; place-items: center; font-size: 15px; color: var(--color-text-muted); text-decoration: none;
@@ -350,6 +354,32 @@
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // Tooltip de la info de cada prueba: una sola burbuja en el body, posicionada junto al
+  // icono, para no cortarse con el overflow de la card/grilla. Por delegacion en el
+  // document, asi sigue funcionando aunque las filas se vuelvan a renderizar.
+  const tipEl = document.createElement('div');
+  tipEl.className = 'tip-bubble';
+  tipEl.hidden = true;
+  document.body.appendChild(tipEl);
+  const mostrarTip = (ico) => {
+    const txt = ico.getAttribute('data-tip');
+    if (!txt) return;
+    tipEl.textContent = txt;
+    tipEl.hidden = false;
+    const r = ico.getBoundingClientRect();
+    let left = Math.min(r.left, window.innerWidth - tipEl.offsetWidth - 8);
+    let top = r.bottom + 6;
+    if (top + tipEl.offsetHeight > window.innerHeight - 8) top = r.top - tipEl.offsetHeight - 6;
+    tipEl.style.left = `${Math.max(8, left)}px`;
+    tipEl.style.top = `${Math.max(8, top)}px`;
+  };
+  const ocultarTip = () => { tipEl.hidden = true; };
+  document.addEventListener('mouseover', (e) => { const i = e.target.closest?.('.info-ico'); if (i) mostrarTip(i); });
+  document.addEventListener('mouseout', (e) => { if (e.target.closest?.('.info-ico')) ocultarTip(); });
+  document.addEventListener('focusin', (e) => { const i = e.target.closest?.('.info-ico'); if (i) mostrarTip(i); });
+  document.addEventListener('focusout', (e) => { if (e.target.closest?.('.info-ico')) ocultarTip(); });
+  window.addEventListener('scroll', ocultarTip, true);
   const clave = (archivo, titulo) => `${archivo}::${titulo}`;
   const p2 = (n) => String(n).padStart(2, '0');
   const fecha = (iso) => { const d = new Date(iso); return `${p2(d.getDate())}-${p2(d.getMonth() + 1)}-${d.getFullYear()} ${p2(d.getHours())}:${p2(d.getMinutes())}`; };
@@ -576,7 +606,7 @@
       .sort((x, y) => ORDEN[x.vis] - ORDEN[y.vis])
       .map((p) => `<tr>
         <td><i class="dot ${p.vis}" title="${ETIQUETA[p.vis]}" aria-label="${ETIQUETA[p.vis]}"></i></td>
-        <td class="left strong" title="${esc(p.titulo)}">${esc(p.nombre)}</td>
+        <td class="left strong" title="${esc(p.titulo)}">${esc(p.nombre)}${p.descripcion ? ` <i class="ph ph-info info-ico" data-tip="${esc(p.descripcion)}" tabindex="0" role="button" aria-label="Qué verifica este test"></i>` : ''}</td>
         <td class="left"><div class="detail">${detalle(p)}</div></td>
         <td class="num">${conTiempo(p) ? duracion(p.res.duracionMs) : '—'}${p.res?.intentos > 1 ? `<br><span class="why">${p.res.intentos} intentos</span>` : ''}</td>
         <td class="num">${p.res ? `#${p.res.corrida}` : '—'}</td>

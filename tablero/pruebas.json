@@ -42,407 +42,488 @@
     {
       "archivo": "bloque-a/tarifario.spec.ts",
       "titulo": "Paquetes: trae tarifas y muestra el paquete esperado",
-      "nombre": "Paquetes"
+      "nombre": "Paquetes",
+      "descripcion": "Verifica que el tarifario de Paquetes traiga tarifas y muestre el paquete esperado con sus precios."
     },
     {
       "archivo": "bloque-a/tarifario.spec.ts",
       "titulo": "Excursiones: trae tarifas y muestra la excursion esperada",
-      "nombre": "Excursiones"
+      "nombre": "Excursiones",
+      "descripcion": "Verifica que el tarifario de Excursiones traiga tarifas y muestre la excursión esperada."
     },
     {
       "archivo": "bloque-a/tarifario.spec.ts",
       "titulo": "Hoteles: trae tarifas y muestra el hotel esperado",
-      "nombre": "Hoteles"
+      "nombre": "Hoteles",
+      "descripcion": "Verifica que el tarifario de Hoteles traiga tarifas y muestre el hotel esperado."
     },
     {
       "archivo": "bloque-a/tarifario.spec.ts",
       "titulo": "Traslados: trae tarifas y muestra el traslado esperado",
-      "nombre": "Traslados"
+      "nombre": "Traslados",
+      "descripcion": "Verifica que el tarifario de Traslados traiga tarifas y muestre el traslado esperado."
     },
     {
       "archivo": "bloque-a/tarifario.spec.ts",
       "titulo": "Cena Show: trae tarifas y coinciden con las de la base",
-      "nombre": "Cena show"
+      "nombre": "Cena show",
+      "descripcion": "Verifica que la Cena Show traiga tarifas y que coincidan con las de la base de datos."
     },
     {
       "archivo": "bloque-a/tarifario.spec.ts",
       "titulo": "Cruceros: trae tarifas y muestra el crucero esperado",
-      "nombre": "Cruceros"
+      "nombre": "Cruceros",
+      "descripcion": "Verifica que el crucero muestre sus precios por cabina y sus salidas en el modal de precios."
     },
     {
       "archivo": "bloque-a/tarifario.spec.ts",
       "titulo": "Ofertas: trae tarifas y muestra la oferta esperada",
-      "nombre": "Ofertas"
+      "nombre": "Ofertas",
+      "descripcion": "Verifica que el tarifario de Ofertas traiga tarifas y muestre la oferta esperada."
     },
     {
       "archivo": "bloque-a/calendario.spec.ts",
       "titulo": "El calendario opera todos los dias que declaran sus reglas",
-      "nombre": "Calendario de salidas"
+      "nombre": "Calendario de salidas",
+      "descripcion": "Verifica que el calendario opere todos los días que declaran sus reglas."
     },
     {
       "archivo": "bloque-a/filtros-y-card.spec.ts",
       "titulo": "Cabecera: el contador, los chips de categoria y Limpiar acompanan al listado",
-      "nombre": "Filtros y contador"
+      "nombre": "Filtros y contador",
+      "descripcion": "Verifica que el contador, los chips de categoría y \"Limpiar\" acompañen al listado."
     },
     {
       "archivo": "bloque-a/filtros-y-card.spec.ts",
       "titulo": "Card: el carrusel trae todas las imagenes del hotel",
-      "nombre": "Fotos de la tarjeta"
+      "nombre": "Fotos de la tarjeta",
+      "descripcion": "Verifica que las imágenes de las tarjetas se muestren (y la por defecto cuando falta el archivo)."
     },
     {
       "archivo": "bloque-a/multiidioma.spec.ts",
       "titulo": "El contenido del tarifario se muestra en el idioma elegido",
-      "nombre": "Contenido en inglés y portugués"
+      "nombre": "Contenido en inglés y portugués",
+      "descripcion": "Verifica que los contenidos del tarifario se traduzcan al cambiar el idioma de la web."
     },
     {
       "archivo": "bloque-a/multiidioma.spec.ts",
       "titulo": "El tarifario muestra hoteles, paquetes y ofertas en el idioma elegido",
-      "nombre": "Hoteles, paquetes y ofertas en otro idioma"
+      "nombre": "Hoteles, paquetes y ofertas en otro idioma",
+      "descripcion": "Verifica que esos productos muestren su contenido traducido según el idioma elegido."
     },
     {
       "archivo": "bloque-b/reservas-clasico.spec.ts",
       "titulo": "Servicio: la reserva emitida conserva los datos en el BackOffice",
-      "nombre": "Reserva de excursión"
+      "nombre": "Reserva de excursión",
+      "descripcion": "Verifica que una excursión reservada en la web llegue completa y sin cambios al BackOffice."
     },
     {
       "archivo": "bloque-b/reservas-clasico.spec.ts",
       "titulo": "Hotel: la reserva emitida conserva los datos en el BackOffice",
-      "nombre": "Reserva de hotel"
+      "nombre": "Reserva de hotel",
+      "descripcion": "Verifica que una reserva de hotel llegue completa al BackOffice."
     },
     {
       "archivo": "bloque-b/reservas-circuitos.spec.ts",
       "titulo": "Oferta: la reserva emitida conserva los datos en el BackOffice",
-      "nombre": "Reserva de oferta"
+      "nombre": "Reserva de oferta",
+      "descripcion": "Verifica que una oferta reservada llegue completa al BackOffice."
     },
     {
       "archivo": "bloque-b/reservas-circuitos.spec.ts",
       "titulo": "Multidestino: la reserva emitida conserva los datos en el BackOffice",
-      "nombre": "Reserva multidestino"
+      "nombre": "Reserva multidestino",
+      "descripcion": "Verifica que una reserva multidestino llegue completa al BackOffice."
     },
     {
       "archivo": "bloque-b/reservas-series.spec.ts",
       "titulo": "Serie: la reserva emitida conserva los datos en el BackOffice",
-      "nombre": "Reserva de serie"
+      "nombre": "Reserva de serie",
+      "descripcion": "Verifica que una reserva de serie (circuito con salidas programadas) llegue al BackOffice."
     },
     {
       "archivo": "bloque-b/reservas-series.spec.ts",
       "titulo": "Serie: el asistente no deja avanzar con datos incompletos",
-      "nombre": "Serie con datos incompletos"
+      "nombre": "Serie con datos incompletos",
+      "descripcion": "Verifica el comportamiento al reservar una serie a la que le faltan datos."
     },
     {
       "archivo": "bloque-b/reservas-series.spec.ts",
       "titulo": "Serie: las pantallas se muestran en el idioma elegido",
-      "nombre": "Serie en otro idioma"
+      "nombre": "Serie en otro idioma",
+      "descripcion": "Verifica que la serie muestre su contenido en el idioma elegido."
     },
     {
       "archivo": "bloque-b/validaciones.spec.ts",
       "titulo": "Checkout: el portal no deja emitir una reserva incompleta",
-      "nombre": "No deja emitir una reserva incompleta"
+      "nombre": "No deja emitir una reserva incompleta",
+      "descripcion": "Verifica que el sistema bloquee emitir una reserva a la que le faltan datos."
     },
     {
       "archivo": "bloque-b/anulacion.spec.ts",
       "titulo": "Servicio: una reserva emitida se puede cancelar y el portal lo refleja",
-      "nombre": "Cancelar una excursión"
+      "nombre": "Cancelar una excursión",
+      "descripcion": "Verifica que una excursión emitida se pueda cancelar y el portal lo refleje."
     },
     {
       "archivo": "bloque-b/anulacion.spec.ts",
       "titulo": "Hotel: una reserva emitida se puede cancelar y el portal lo refleja",
-      "nombre": "Cancelar un hotel"
+      "nombre": "Cancelar un hotel",
+      "descripcion": "Verifica que una reserva de hotel emitida se pueda cancelar."
     },
     {
       "archivo": "bloque-b/anulacion.spec.ts",
       "titulo": "Multidestino: una reserva emitida se puede cancelar y el portal lo refleja",
-      "nombre": "Cancelar un multidestino"
+      "nombre": "Cancelar un multidestino",
+      "descripcion": "Verifica que un multidestino emitido se pueda cancelar."
     },
     {
       "archivo": "bloque-b/multiidioma-reservas.spec.ts",
       "titulo": "Carrito y checkout: el servicio se muestra en el idioma elegido",
-      "nombre": "Carrito en otro idioma"
+      "nombre": "Carrito en otro idioma",
+      "descripcion": "Verifica que el carrito muestre el nombre del servicio en el idioma de la web."
     },
     {
       "archivo": "bloque-b/multiidioma-reservas.spec.ts",
       "titulo": "Multidestino: armado, detalle y carrito se muestran en el idioma elegido",
-      "nombre": "Multidestino en otro idioma"
+      "nombre": "Multidestino en otro idioma",
+      "descripcion": "Verifica que el multidestino muestre sus textos en el idioma elegido."
     },
     {
       "archivo": "bloque-b/cotizacion-multidestino.spec.ts",
       "titulo": "Multidestino: la cotizacion guardada se descarga y al retomarla conserva el precio hasta el carrito",
-      "nombre": "Cotización de multidestino"
+      "nombre": "Cotización de multidestino",
+      "descripcion": "Verifica que se genere la cotización (PDF/Word) de un multidestino."
     },
     {
       "archivo": "bloque-b/carrito-mixto-markups.spec.ts",
       "titulo": "Hotel y servicio en el mismo carrito: cada uno lleva el markup de su tipo",
-      "nombre": "Carrito con hotel y servicio"
+      "nombre": "Carrito con hotel y servicio",
+      "descripcion": "Verifica que hotel y servicio en el mismo carrito lleven cada uno el markup de su tipo."
     },
     {
       "archivo": "bloque-b/historial-por-usuario.spec.ts",
       "titulo": "Reservas: la reserva de pablo1 se acota por codigo y no se ve ni se abre desde otra agencia",
-      "nombre": "Historial: reservas de otra agencia"
+      "nombre": "Historial: reservas de otra agencia",
+      "descripcion": "Verifica que una agencia no pueda ver ni abrir las reservas de otra (control de acceso)."
     },
     {
       "archivo": "bloque-b/historial-por-usuario.spec.ts",
       "titulo": "Cotizaciones: la cotizacion de pablo1 se acota por codigo y no se ve ni se abre desde otra agencia",
-      "nombre": "Historial: cotizaciones de otra agencia"
+      "nombre": "Historial: cotizaciones de otra agencia",
+      "descripcion": "Verifica que una agencia no pueda ver ni abrir las cotizaciones de otra."
     },
     {
       "archivo": "bloque-c/factura-proveedor.spec.ts",
       "titulo": "Factura de proveedor: se carga sobre el file y se imputa al item",
-      "nombre": "Factura del proveedor"
+      "nombre": "Factura del proveedor",
+      "descripcion": "Verifica que la factura del proveedor se cargue sobre el file y se impute al ítem."
     },
     {
       "archivo": "bloque-c/orden-de-pago.spec.ts",
       "titulo": "Orden de pago: cancela la factura del proveedor desde la caja de regresion",
-      "nombre": "Orden de pago"
+      "nombre": "Orden de pago",
+      "descripcion": "Verifica que la orden de pago cancele la factura del proveedor desde la caja."
     },
     {
       "archivo": "bloque-c/factura-cliente.spec.ts",
       "titulo": "Factura al cliente: se emite sobre el file y toma sus conceptos",
-      "nombre": "Factura al cliente"
+      "nombre": "Factura al cliente",
+      "descripcion": "Verifica que la factura al cliente se emita sobre el file y tome sus conceptos."
     },
     {
       "archivo": "bloque-c/orden-de-cobro.spec.ts",
       "titulo": "Orden de cobro: cobra el comprobante del cliente en la caja de regresion",
-      "nombre": "Orden de cobro"
+      "nombre": "Orden de cobro",
+      "descripcion": "Verifica que la orden de cobro cobre el comprobante del cliente en la caja."
     },
     {
       "archivo": "bloque-c/caja-diaria.spec.ts",
       "titulo": "Caja diaria: recibe el pago y el cobro del mismo file y cuadra",
-      "nombre": "Caja diaria"
+      "nombre": "Caja diaria",
+      "descripcion": "Verifica que la caja diaria reciba el pago y el cobro del mismo file y cuadre."
     },
     {
       "archivo": "bloque-c/liquidacion.spec.ts",
       "titulo": "Liquidacion: se arma desde el file, guarda lo editado y se regenera",
-      "nombre": "Liquidación del file"
+      "nombre": "Liquidación del file",
+      "descripcion": "Verifica que la liquidación se arme desde el file, guarde lo editado y se regenere."
     },
     {
       "archivo": "bloque-c/validaciones-bo.spec.ts",
       "titulo": "Validaciones: el BO rechaza lo que no debe permitir",
-      "nombre": "El BackOffice rechaza datos inválidos"
+      "nombre": "El BackOffice rechaza datos inválidos",
+      "descripcion": "Verifica que el BackOffice rechace los datos que no debe permitir."
     },
     {
       "archivo": "bloque-c/no-asignados.spec.ts",
       "titulo": "No asignados: el item y la factura figuran pendientes y salen al imputar",
-      "nombre": "Pendientes de asignar: ítems y facturas"
+      "nombre": "Pendientes de asignar: ítems y facturas",
+      "descripcion": "Verifica que ítems y facturas figuren pendientes y salgan de la bandeja al imputarlos."
     },
     {
       "archivo": "bloque-c/no-asignados.spec.ts",
       "titulo": "No asignados: la orden de pago aprobada figura sin imputar y sale al imputarla",
-      "nombre": "Pendientes de asignar: órdenes de pago"
+      "nombre": "Pendientes de asignar: órdenes de pago",
+      "descripcion": "Verifica que una orden de pago aprobada figure sin imputar y salga al imputarla."
     },
     {
       "archivo": "bloque-c/cierre-del-file.spec.ts",
       "titulo": "Cierre del file: con la cadena completa, el file muestra cada comprobante y queda al dia",
-      "nombre": "Cierre del file"
+      "nombre": "Cierre del file",
+      "descripcion": "Verifica que, con la cadena completa, el file muestre cada comprobante y quede al día."
     },
     {
       "archivo": "bloque-c/bloqueos-del-file.spec.ts",
       "titulo": "Bloqueos: el file con comprobantes no se cancela y el vencimiento invalido se rechaza",
-      "nombre": "Bloqueos del file"
+      "nombre": "Bloqueos del file",
+      "descripcion": "Verifica que un file con comprobantes no se cancele y que rechace un vencimiento inválido."
     },
     {
       "archivo": "bloque-c/anulaciones.spec.ts",
       "titulo": "Anular la carta de cobranza: sale de Cartas emitidas, el file vuelve a A Facturar y se puede volver a facturar",
-      "nombre": "Anular la carta de cobranza"
+      "nombre": "Anular la carta de cobranza",
+      "descripcion": "Verifica que anular la carta la saque de Emitidas y el file vuelva a A Facturar."
     },
     {
       "archivo": "bloque-c/anulaciones.spec.ts",
       "titulo": "Anular ordenes de pago: la que no tiene imputacion se anula y la imputada sigue vigente",
-      "nombre": "Anular órdenes de pago"
+      "nombre": "Anular órdenes de pago",
+      "descripcion": "Verifica que una OP sin imputación se anule y la imputada siga vigente."
     },
     {
       "archivo": "bloque-c/anulaciones.spec.ts",
       "titulo": "Orden de pago parcial: el pendiente de la factura baja el monto imputado y no se puede imputar de mas",
-      "nombre": "Orden de pago parcial"
+      "nombre": "Orden de pago parcial",
+      "descripcion": "Verifica que una OP parcial baje el pendiente de la factura y no deje imputar de más."
     },
     {
       "archivo": "bloque-c/cuenta-corriente.spec.ts",
       "titulo": "Cuenta corriente: con la cadena completa, el cliente y el proveedor listan sus comprobantes con importes y saldos coherentes",
-      "nombre": "Cuenta corriente de cliente y proveedor"
+      "nombre": "Cuenta corriente de cliente y proveedor",
+      "descripcion": "Verifica que ambas cuentas corrientes listen sus comprobantes con importes y saldos coherentes."
     },
     {
       "archivo": "bloque-c/movimientos-entre-cajas.spec.ts",
       "titulo": "Movimiento entre dos cajas de la misma sucursal: sale de una, entra en la otra y cuadra",
-      "nombre": "Movimiento entre cajas de la misma sucursal"
+      "nombre": "Movimiento entre cajas de la misma sucursal",
+      "descripcion": "Verifica que un movimiento salga de una caja, entre en la otra y cuadre."
     },
     {
       "archivo": "bloque-c/movimientos-entre-cajas.spec.ts",
       "titulo": "Movimiento entre sucursales: la entrada vive en la caja destino, se ve en solo lectura y no se copia",
-      "nombre": "Movimiento entre cajas de distintas sucursales"
+      "nombre": "Movimiento entre cajas de distintas sucursales",
+      "descripcion": "Verifica que el movimiento a otra sucursal viva en la caja destino, se vea en solo lectura y no se copie."
     },
     {
       "archivo": "bloque-b/idioma-del-servicio.spec.ts",
       "titulo": "Cena Show: el idioma y el recargo de la ficha llegan iguales al carrito",
-      "nombre": "Idioma del servicio y su recargo"
+      "nombre": "Idioma del servicio y su recargo",
+      "descripcion": "Verifica que el idioma y el recargo de la ficha lleguen iguales al carrito."
     },
     {
       "archivo": "bloque-b/multidestino-agregar.spec.ts",
       "titulo": "Multidestino: el servicio y el hotel agregados desde los modales quedan con el precio del tarifario con el markup una sola vez y suben el total",
-      "nombre": "Agregar servicio y hotel al multidestino"
+      "nombre": "Agregar servicio y hotel al multidestino",
+      "descripcion": "Verifica que lo agregado desde los modales quede con el precio del tarifario y el markup una sola vez."
     },
     {
       "archivo": "bloque-c/alta-manual-de-servicio.spec.ts",
       "titulo": "Alta manual: el servicio agregado a un file queda con el costo, la venta y la moneda esperados, y los totales lo reflejan",
-      "nombre": "Alta manual de servicio en el file"
+      "nombre": "Alta manual de servicio en el file",
+      "descripcion": "Verifica que el servicio agregado a mano quede con el costo, la venta y la moneda esperados."
     },
     {
       "archivo": "webadmin/alta-usuario-agencia.spec.ts",
       "titulo": "El alta crea el usuario, aparece en el listado, rechaza el email duplicado, entra al portal y se da de baja",
-      "nombre": "Alta de usuario de agencia"
+      "nombre": "Alta de usuario de agencia",
+      "descripcion": "Verifica el alta de un usuario de agencia: aparece en el listado, rechaza el email duplicado, entra al portal y se da de baja."
     },
     {
       "archivo": "bloque-a/markups.spec.ts",
       "titulo": "Hoteles: aplica el markup de hoteles del mercado",
-      "nombre": "Markup de hoteles"
+      "nombre": "Markup de hoteles",
+      "descripcion": "Verifica que el portal aplique el markup de hoteles del mercado."
     },
     {
       "archivo": "bloque-a/markups.spec.ts",
       "titulo": "Servicios: aplica el markup de servicios del mercado",
-      "nombre": "Markup de servicios"
+      "nombre": "Markup de servicios",
+      "descripcion": "Verifica que el portal aplique el markup de servicios del mercado."
     },
     {
       "archivo": "webadmin/markups-mercado.spec.ts",
       "titulo": "Mercado: cambiar el markup de hoteles mueve solo los precios de hoteles",
-      "nombre": "Markup del mercado"
+      "nombre": "Markup del mercado",
+      "descripcion": "Verifica que cambiar el markup de hoteles del mercado mueva solo los precios de hoteles."
     },
     {
       "archivo": "webadmin/markups-mercado.spec.ts",
       "titulo": "Agencia: el markup propio de servicios gana sobre el del mercado y al vaciarlo vuelve al mercado",
-      "nombre": "Markup propio de la agencia"
+      "nombre": "Markup propio de la agencia",
+      "descripcion": "Verifica que el markup propio de la agencia gane sobre el del mercado y al vaciarlo vuelva al del mercado."
     },
     {
       "archivo": "webadmin/extender-tarifas.spec.ts",
       "titulo": "Extender un corte con incremento crea las tarifas del rango y se puede volver a extender",
-      "nombre": "Extender tarifas de habitación"
+      "nombre": "Extender tarifas de habitación",
+      "descripcion": "Verifica que extender un corte con incremento cree las tarifas del rango y se pueda volver a extender."
     },
     {
       "archivo": "webadmin/cargar-tarifas.spec.ts",
       "titulo": "Lo que se carga en Gestion de Tarifas llega al Tarifario al generarlo y al precio del portal",
-      "nombre": "Carga de tarifas de habitación"
+      "nombre": "Carga de tarifas de habitación",
+      "descripcion": "Verifica que lo cargado en Gestión de Tarifas llegue al Tarifario al generarlo y al precio del portal."
     },
     {
       "archivo": "webadmin/cupo-y-publicacion.spec.ts",
       "titulo": "Con cupo se vende disponible, sin cupo pasa a requerir y despublicada no se ofrece",
-      "nombre": "Cupo y publicación de habitación"
+      "nombre": "Cupo y publicación de habitación",
+      "descripcion": "Verifica que con cupo se venda disponible, sin cupo pase a requerir, y despublicada no se ofrezca."
     },
     {
       "archivo": "webadmin/tipo-de-cambio.spec.ts",
       "titulo": "Una cotizacion manual cambia el precio de lo que esta en pesos y al desactivarla vuelve a la del pais",
-      "nombre": "Tipo de cambio manual por agencia"
+      "nombre": "Tipo de cambio manual por agencia",
+      "descripcion": "Verifica que una cotización manual cambie el precio de lo que está en pesos y al desactivarla vuelva a la del país."
     },
     {
       "archivo": "webadmin/extension-masiva.spec.ts",
       "titulo": "Extender el ultimo corte de un solo hotel crea las tarifas hasta la fecha pedida",
-      "nombre": "Extensión masiva de tarifas"
+      "nombre": "Extensión masiva de tarifas",
+      "descripcion": "Verifica que extender el último corte de un solo hotel cree las tarifas hasta la fecha pedida."
     },
     {
       "archivo": "webadmin/condiciones-comerciales.spec.ts",
       "titulo": "Un markup por producto cambia el precio del hotel y \"Excluido\" lo deja sin tarifas para la agencia",
-      "nombre": "Condiciones comerciales por producto"
+      "nombre": "Condiciones comerciales por producto",
+      "descripcion": "Verifica que un markup por producto cambie el precio del hotel y que \"Excluido\" lo deje sin tarifas para la agencia."
     },
     {
       "archivo": "webadmin/tarifas-servicio.spec.ts",
       "titulo": "Extender las tarifas de un servicio con incremento crea las del rango y el portal las cobra",
-      "nombre": "Extensión de tarifas de servicio"
+      "nombre": "Extensión de tarifas de servicio",
+      "descripcion": "Verifica que extender las tarifas de un servicio con incremento las cree y el portal las cobre."
     },
     {
       "archivo": "webadmin/cotizacion-a-reserva.spec.ts",
       "titulo": "Una cotizacion de grupo se convierte en reserva y llega a la bandeja del BO",
-      "nombre": "Cotización de grupo a reserva"
+      "nombre": "Cotización de grupo a reserva",
+      "descripcion": "Verifica que una cotización de grupo se convierta en reserva y llegue a la bandeja del BackOffice."
     },
     {
       "archivo": "webadmin/cotizacion-markup-agencia.spec.ts",
       "titulo": "La cotizacion carga el markup de hoteles y el tipo de cambio de la agencia y los conserva al crear la reserva",
-      "nombre": "Cotización de grupo: markup y tipo de cambio"
+      "nombre": "Cotización de grupo: markup y tipo de cambio",
+      "descripcion": "Verifica que la cotización conserve el markup y el tipo de cambio de la agencia al crear la reserva."
     },
     {
       "archivo": "webadmin/series.spec.ts",
       "titulo": "El cupo, las salidas y las tarifas de una salida se reflejan en el portal",
-      "nombre": "Series: cupo, salidas y tarifas"
+      "nombre": "Series: cupo, salidas y tarifas",
+      "descripcion": "Verifica que el cupo, las salidas y las tarifas de una salida se reflejen en el portal."
     },
     {
       "archivo": "webadmin/humo-pantallas.spec.ts",
       "titulo": "Todas las pantallas del menu abren sin error",
-      "nombre": "Pantallas del menú del WebAdmin"
+      "nombre": "Pantallas del menú del WebAdmin",
+      "descripcion": "Verifica que todas las pantallas del menú del WebAdmin abran sin error."
     },
     {
       "archivo": "webadmin/humo-pantallas.spec.ts",
       "titulo": "Las fichas de los datos propios abren todas sus solapas, en claro y en oscuro",
-      "nombre": "Fichas del WebAdmin en claro y oscuro"
+      "nombre": "Fichas del WebAdmin en claro y oscuro",
+      "descripcion": "Verifica que las fichas de los datos propios abran todas sus solapas, en claro y en oscuro."
     },
     {
       "archivo": "webadmin/observaciones-y-regimen.spec.ts",
       "titulo": "La observacion del periodo y el regimen de la habitacion se ven en el tarifario del portal",
-      "nombre": "Observaciones y régimen de habitación"
+      "nombre": "Observaciones y régimen de habitación",
+      "descripcion": "Verifica que la observación del período y el régimen de la habitación se vean en el tarifario del portal."
     },
     {
       "archivo": "six/pasajero.spec.ts",
       "titulo": "Pasajero: con el link entra a su viaje y el itinerario trae lo del file",
-      "nombre": "SIX: entrada e itinerario"
+      "nombre": "SIX: entrada e itinerario",
+      "descripcion": "Verifica que el pasajero entre con su link y el itinerario traiga lo del file."
     },
     {
       "archivo": "six/pasajero.spec.ts",
       "titulo": "Pasajero: con un token adulterado no entra y vuelve al login",
-      "nombre": "SIX: token inválido"
+      "nombre": "SIX: token inválido",
+      "descripcion": "Verifica que con un token adulterado el pasajero no entre y vuelva al login."
     },
     {
       "archivo": "six/pasajero.spec.ts",
       "titulo": "Pasajero: el voucher se descarga en PDF",
-      "nombre": "SIX: voucher en PDF"
+      "nombre": "SIX: voucher en PDF",
+      "descripcion": "Verifica que el voucher del pasajero se descargue en PDF."
     },
     {
       "archivo": "six/pasajero.spec.ts",
       "titulo": "Pasajero: al pasar a ingles el inicio y el itinerario salen en ingles",
-      "nombre": "SIX: viaje en inglés"
+      "nombre": "SIX: viaje en inglés",
+      "descripcion": "Verifica que al pasar a inglés el inicio y el itinerario salgan en inglés."
     },
     {
       "archivo": "six/pasajero.spec.ts",
       "titulo": "Pasajero: la opinion del viaje se guarda y al volver se ve lo que dejo",
-      "nombre": "SIX: opinión del viaje"
+      "nombre": "SIX: opinión del viaje",
+      "descripcion": "Verifica que la opinión del viaje se guarde y al volver se vea lo que dejó."
     },
     {
       "archivo": "six/acceso-por-guid.spec.ts",
       "titulo": "El viaje del pasajero se obtiene con solo el GUID, sin sesion (la API no valida la sesion)",
-      "nombre": "SIX: viaje accesible sin sesión"
+      "nombre": "SIX: viaje accesible sin sesión",
+      "descripcion": "SEGURIDAD: el viaje del pasajero NO debería obtenerse con solo el guid, sin sesión. Hoy la API sí lo devuelve: rojo que documenta el hallazgo."
     },
     {
       "archivo": "six/rooming-por-fileid.spec.ts",
       "titulo": "El rooming (PII) de un file se obtiene por fileid sin sesion",
-      "nombre": "SIX: rooming (PII) accesible sin sesión"
+      "nombre": "SIX: rooming (PII) accesible sin sesión",
+      "descripcion": "SEGURIDAD: el rooming (PII de pasajeros) NO debería obtenerse por fileid sin sesión. Hoy la API sí lo devuelve: rojo del hallazgo."
     },
     {
       "archivo": "six/api-sin-sesion.spec.ts",
       "titulo": "bookingservice/getbookpassengers devuelve los pasajeros (PII) de una reserva sin sesion",
-      "nombre": "API: pasajeros de la reserva sin sesión"
+      "nombre": "API: pasajeros de la reserva sin sesión",
+      "descripcion": "SEGURIDAD: getbookpassengers NO debería devolver los pasajeros de una reserva sin sesión. Hoy sí: rojo del hallazgo."
     },
     {
       "archivo": "seguridad/acceso-por-url.spec.ts",
       "titulo": "Una agencia no puede ver por URL la reserva de otra agencia",
-      "nombre": "Reserva de otra agencia por URL"
+      "nombre": "Reserva de otra agencia por URL",
+      "descripcion": "SEGURIDAD: una agencia NO debería ver por URL la reserva de otra. Hoy sí: rojo del hallazgo (US 4917)."
     },
     {
       "archivo": "seguridad/acceso-por-url.spec.ts",
       "titulo": "Una agencia no puede ver por URL la cotizacion de otra agencia",
-      "nombre": "Cotización de otra agencia por URL"
+      "nombre": "Cotización de otra agencia por URL",
+      "descripcion": "SEGURIDAD: una agencia NO debería ver por URL la cotización de otra. Hoy sí: rojo del hallazgo (US 4917)."
     },
     {
       "archivo": "seguridad/acceso-por-url.spec.ts",
       "titulo": "Un usuario sin sesion no puede ver por URL una reserva",
-      "nombre": "Reserva sin sesión por URL"
+      "nombre": "Reserva sin sesión por URL",
+      "descripcion": "SEGURIDAD: sin sesión no se debe poder ver una reserva por URL; tiene que redirigir al inicio. Verde."
     },
     {
       "archivo": "seguridad/acceso-por-url.spec.ts",
       "titulo": "Una agencia no puede ver por URL el Word de la cotizacion de otra agencia",
-      "nombre": "Word de cotización ajena por URL"
+      "nombre": "Word de cotización ajena por URL",
+      "descripcion": "SEGURIDAD: una agencia NO debería ver por URL el Word de la cotización de otra. Hoy sí: rojo del hallazgo."
     },
     {
       "archivo": "seguridad/control-de-acceso.spec.ts",
       "titulo": "Las pantallas internas no se abren sin sesion, y el BackOffice tampoco con una agencia",
-      "nombre": "Pantallas internas protegidas"
+      "nombre": "Pantallas internas protegidas",
+      "descripcion": "SEGURIDAD: el BackOffice y Administración no se abren sin sesión (mandan al login), y el BackOffice tampoco con una agencia."
     },
     {
       "archivo": "seguridad/control-de-acceso.spec.ts",
       "titulo": "Despues de cerrar sesion no se vuelve a una pantalla protegida, ni por URL ni con el boton atras",
-      "nombre": "Cierre de sesión"
+      "nombre": "Cierre de sesión",
+      "descripcion": "SEGURIDAD: tras cerrar sesión no se vuelve a una pantalla protegida, ni por URL ni con el botón atrás del navegador."
     }
   ]
 }
