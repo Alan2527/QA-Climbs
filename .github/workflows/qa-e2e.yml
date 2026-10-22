@@ -138,18 +138,19 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Se genera con el CLI de Allure (corre en el runner con el Java ya instalado) en
+      # vez de la accion Docker simple-elf/allure-report-action: esa accion es Docker y
+      # GitHub la buildea al iniciar el job; cuando el build fallaba (Docker Hub
+      # intermitente) tumbaba el job ENTERO antes de correr los tests. El 22/10 asi
+      # murieron varias corridas. El tablero NO depende de este paso (lo arma el paso
+      # siguiente leyendo gh-pages/tablero), y el fallback deja allure-history creado
+      # aunque Allure falle, para que la publicacion siga igual.
       - name: Generar reporte Allure
         if: always()
-        # Pineada a un release estable: @master buildeaba intermitentemente mal y tumbaba
-        # el job entero antes de correr los tests (la accion es Docker y se buildea al
-        # iniciar el job). El 22/10 fallo 3 corridas seguidas.
-        uses: simple-elf/allure-report-action@v1.15
-        with:
-          allure_results: allure-results
-          allure_history: allure-history
-          # 5 corridas en el historial: con 20 lo publicado pesaba el cuadruple y
-          # nadie mira tan atras.
-          keep_reports: 5
+        run: |
+          # Tendencia entre corridas: se restaura el history de lo ya publicado, si esta.
+          if [ -d gh-pages/history ]; then mkdir -p allure-results/history && cp -r gh-pages/history/. allure-results/history/ || true; fi
+          npx -y -p allure-commandline@2.29.0 allure generate allure-results --clean -o allure-history || mkdir -p allure-history
 
       # Va DESPUES de generar el Allure: ese paso borra de allure-history todo lo que
       # no sea el numero de una corrida, y se llevaria la carpeta del tablero.
