@@ -19,7 +19,12 @@ export class LoginPage {
 
   async ingresar(usuario: string, password: string) {
     await this.abrir();
-    await this.page.locator(this.usuario).fill(usuario);
+    // El login de QA a veces tarda en servir el formulario: se espera el campo de usuario
+    // visible con mas margen antes de escribir, para no flaquear con un "fill: Timeout".
+    const campoUsuario = this.page.locator(this.usuario);
+    await expect(campoUsuario, 'El formulario de login tiene que cargar su campo de usuario')
+      .toBeVisible({ timeout: 60_000 });
+    await campoUsuario.fill(usuario);
     await this.page.locator(this.password).fill(password);
     await this.page.locator(this.btnEntrar).click();
     // El login redirige fuera de /login.aspx; si no lo hace, quedaron credenciales mal.

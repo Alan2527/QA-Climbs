@@ -80,7 +80,14 @@ export default defineConfig({
    * funcionando igual: el filtro por ruta deja fuera a los otros dos.
    */
   projects: [
-    { name: 'Login', testMatch: /auth\.setup\.ts/ },
+    {
+      // El login a veces flaquea por lentitud del QA (fill/goto timeout) y, al ser la
+      // dependencia de todo, un flake ahi se lleva la corrida ENTERA. Un par de
+      // reintentos en CI lo absorben: el login no emite nada, reintentarlo es inocuo.
+      name: 'Login',
+      testMatch: /auth\.setup\.ts/,
+      retries: process.env.CI ? 2 : 0,
+    },
     /**
      * Precondiciones: una por bloque, sobre el mismo archivo.
      *
