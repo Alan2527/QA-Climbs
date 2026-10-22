@@ -606,7 +606,7 @@
       .sort((x, y) => ORDEN[x.vis] - ORDEN[y.vis])
       .map((p) => `<tr>
         <td><i class="dot ${p.vis}" title="${ETIQUETA[p.vis]}" aria-label="${ETIQUETA[p.vis]}"></i></td>
-        <td class="left strong" title="${esc(p.titulo)}">${esc(p.nombre)}${p.descripcion ? ` <i class="ph ph-info info-ico" data-tip="${esc(p.descripcion)}" tabindex="0" role="button" aria-label="Qué verifica este test"></i>` : ''}</td>
+        <td class="left strong" title="${esc(p.titulo)}">${esc(p.nombre)}${p.descripcion ? ` <i class="ph ph-info info-ico" data-tip="${esc(p.descripcion)}" title="" tabindex="0" role="button" aria-label="Qué verifica este test"></i>` : ''}</td>
         <td class="left"><div class="detail">${detalle(p)}</div></td>
         <td class="num">${conTiempo(p) ? duracion(p.res.duracionMs) : '—'}${p.res?.intentos > 1 ? `<br><span class="why">${p.res.intentos} intentos</span>` : ''}</td>
         <td class="num">${p.res ? `#${p.res.corrida}` : '—'}</td>
