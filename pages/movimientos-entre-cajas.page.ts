@@ -459,14 +459,17 @@ export class MovimientosEntreCajasPage {
     const fila = this.filaDeLaBandejaDeLaFecha(fecha);
     await fila.locator('a.del-data').click();
     const confirmacion = this.page.locator(this.cartel).last();
-    await expect(confirmacion).toBeVisible({ timeout: 30_000 });
+    // Timeouts holgados (60s): el segundo cartel sale despues de que el servidor valida
+    // el bloqueo, y en una corrida completa, con el BO bajo carga, eso llega a pasar los
+    // 30s (flaqueo asi en la corrida #146, sin reintento porque cobranzas emite).
+    await expect(confirmacion).toBeVisible({ timeout: 60_000 });
     await this.page.waitForTimeout(500);
     await confirmacion.getByRole('button', { name: /S[ií],\s*eliminar/i }).click();
 
     // Llega un segundo cartel (showErrorPopUp) con el motivo del bloqueo.
     const bloqueo = this.page.locator(this.cartel).filter({ hasText: 'No es posible eliminar la caja' }).last();
     await expect(bloqueo, 'La baja de una caja con movimientos de otra sucursal tiene que bloquearse con un cartel')
-      .toBeVisible({ timeout: 30_000 });
+      .toBeVisible({ timeout: 60_000 });
     const texto = (await bloqueo.innerText()).replace(/\s+/g, ' ').trim();
     await bloqueo.getByRole('button', { name: /Aceptar/i }).click();
     return texto;
