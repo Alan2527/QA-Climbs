@@ -853,6 +853,42 @@ test.describe('Tarifario', () => {
     await t.cerrarExplorador();
   }
 
+  // Cruceros (rediseno US 4517): chequeo liviano del modal de precios/salidas, en vez de
+  // la comparacion contra la linea base (que era de la tabla inline, ya desaparecida).
+  async function validarPreciosCrucero(page: Page, cfg: any) {
+    await paso(page, 'El modal de precios del crucero muestra las cabinas y las salidas', async () => {
+      const modal = page.locator('#cruiseDeparturesModal');
+      await expect(modal, 'El modal de precios del crucero tiene que estar abierto').toBeVisible();
+      const cabinas = modal.locator('button.cruise-tariff__cabin');
+      await expect(cabinas, `Tiene que mostrar las ${cfg.cabinas.length} cabinas del crucero`).toHaveCount(cfg.cabinas.length);
+      const desde = (await modal.locator('span.cruise-tariff__cabin-from').allInnerTexts()).map((s) => s.replace(/\s+/g, ' ').trim());
+      for (const d of desde) {
+        expect(d, `Cada cabina tiene que mostrar su precio "Desde" en USD (se ve "${d}")`).toMatch(/USD\s*[\d.]+/);
+      }
+      const filasConImporte = modal.locator('[data-departures-content] table tr', { hasText: /USD/ });
+      await expect(filasConImporte.first(), 'La tabla de salidas del crucero tiene que traer importes').toBeVisible();
+      await adjuntarTexto('Precios del crucero',
+        `Cabinas (${desde.length}): ${desde.join(' | ')}` + SALTO +
+        `Salidas con importe: ${await filasConImporte.count()}`);
+    });
+  }
+
+  // Cruceros (rediseno US 4517): "Ver detalle" ([data-cruise-sheet-detail]) abre el modal
+  // #cruiseDetailModal. Chequeo liviano: que abra con el nombre del crucero y descripcion.
+  async function validarDetalleCrucero(page: Page, cfg: any) {
+    await paso(page, 'El modal "Ver detalle" del crucero abre con su nombre y descripcion', async () => {
+      await page.locator(`#${cfg.container} [data-cruise-sheet-detail]`).first().click();
+      const modal = page.locator('#cruiseDetailModal');
+      await expect(modal, 'El modal de detalle del crucero tiene que abrirse').toBeVisible({ timeout: 30_000 });
+      const nombre = (await modal.locator('[data-detail-name]').first().innerText()).replace(/\s+/g, ' ').trim();
+      const texto = (await modal.locator('[data-detail-text]').first().innerText()).replace(/\s+/g, ' ').trim();
+      await adjuntarTexto('Detalle del crucero', `${nombre}` + SALTO + texto.slice(0, 800));
+      expect(nombre, `El modal tiene que abrir con el nombre del crucero (contiene "${cfg.terminoBusqueda}")`).toContain(cfg.terminoBusqueda);
+      expect(texto.length, 'El detalle del crucero tiene que traer una descripcion').toBeGreaterThan(20);
+      await modal.locator('[data-dismiss="modal"], .close').first().click().catch(() => {});
+    });
+  }
+
   async function validarItem(page: Page, cfg: Config, titulo: string) {
     const tarifario = new TarifarioPage(page);
     const ciudad = CIUDAD[cfg.tab] ?? 'Buenos Aires';
@@ -936,6 +972,13 @@ test.describe('Tarifario', () => {
       const precios = await tarifario.preciosDelTarifario(cfg.container);
       expect(precios.length, 'El tarifario tiene que mostrar importes').toBeGreaterThan(0);
     });
+
+    // Cruceros (rediseno US 4517): "Ver precios" abre el modal de salidas, no alterna un
+    // boton ni usa el explorador modal. verTarifario ya verifico que el modal abrio con
+    // precios, asi que se saltean las dos ramas siguientes (explorador / transicion de boton).
+    if (await page.locator('#cruiseDeparturesModal').isVisible().catch(() => false)) {
+      return tarifario;
+    }
 
     // El paso exige la misma transicion en todas las pestanias. Antes, en
     // Cruceros se invertia la validacion y se daba por bueno que el boton
@@ -1138,8 +1181,12 @@ test.describe('Tarifario', () => {
   // una por cada `DateTo` de sus tarifas.
   test('Cruceros: trae tarifas y muestra el crucero esperado', async ({ page }) => {
     const t = await validarItem(page, T.cruceros as Config, 'Cruceros');
-    await validarImportes(page, t, 'cruceros', T.cruceros);
-    await validarModalDetalle(page, t, T.cruceros);
+    // Rediseno US 4517: los precios del crucero viven en el modal de salidas, no en la
+    // tabla inline, asi que no se comparan contra la linea base vieja. Se verifica que el
+    // modal muestre las cabinas con su "Desde" y la tabla de salidas con importes.
+    await validarPreciosCrucero(page, T.cruceros);
+    await t.cerrarExplorador();
+    await validarDetalleCrucero(page, T.cruceros);
   });
 
   test('Ofertas: trae tarifas y muestra la oferta esperada', async ({ page }) => {

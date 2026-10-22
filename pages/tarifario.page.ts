@@ -68,7 +68,9 @@ export class TarifarioPage {
    */
   ambitoTarifas(container: string): Locator {
     return this.page.locator(
-      `#${container}, [id^="detailcnt-"], [id^="detailoptcnt-"], [id^="detailtscnt-"], #tariffExplorerDetail`,
+      // #cruiseDeparturesModal: los cruceros (rediseno US 4517) muestran la tabla de
+      // salidas en ese modal, no en la card ni en el explorador.
+      `#${container}, [id^="detailcnt-"], [id^="detailoptcnt-"], [id^="detailtscnt-"], #tariffExplorerDetail, #cruiseDeparturesModal`,
     );
   }
 
@@ -217,6 +219,12 @@ export class TarifarioPage {
       await modal.locator('.tariff-explorer-close').click();
       await expect(modal, 'El explorador de tarifas tiene que cerrarse').toBeHidden({ timeout: 15_000 });
     }
+    // Cruceros: su modal de precios es otro (#cruiseDeparturesModal).
+    const crucero = this.page.locator('#cruiseDeparturesModal');
+    if (await crucero.isVisible().catch(() => false)) {
+      await crucero.locator('[data-dismiss="modal"], .close').first().click().catch(() => {});
+      await expect(crucero, 'El modal de precios del crucero tiene que cerrarse').toBeHidden({ timeout: 15_000 }).catch(() => {});
+    }
   }
 
   async verTarifario(container: string) {
@@ -227,10 +235,25 @@ export class TarifarioPage {
     // tests, que entre la busqueda y el tarifario validan otras cosas.
     await esperarFinDeCarga(this.page);
     await this.contenedor(container)
-      .locator(`${this.botonExplorador}, a[onclick*='load'], a.accordeon-header`)
+      .locator(`${this.botonExplorador}, [data-cruise-sheet-prices], a[onclick*='load'], a.accordeon-header`)
       .first()
       .waitFor({ state: 'visible', timeout: 30_000 })
       .catch(() => {});
+
+    // Cruceros (rediseno US 4517): la card ya no tiene explorador ni tabla inline. "Ver
+    // precios" ([data-cruise-sheet-prices]) abre el modal de salidas #cruiseDeparturesModal,
+    // con las cabinas (button.cruise-tariff__cabin) y la tabla de salidas renderizadas por JS.
+    const verPreciosCrucero = this.contenedor(container).locator('[data-cruise-sheet-prices]').first();
+    if (await verPreciosCrucero.count()) {
+      await verPreciosCrucero.click();
+      const modal = this.page.locator('#cruiseDeparturesModal');
+      await expect(modal, 'El modal de precios del crucero tiene que abrirse').toBeVisible({ timeout: 30_000 });
+      await this.verificarSeguimosEnElTarifario('abrir los precios del crucero');
+      await expect
+        .poll(async () => modal.locator('span.cruise-tariff__cabin-from').count(), { timeout: 60_000 })
+        .toBeGreaterThan(0);
+      return;
+    }
 
     // Paquetes: el tarifario se abre en el explorador modal, fuera de la card.
     const explorador = this.contenedor(container).locator(this.botonExplorador).first();
