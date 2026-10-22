@@ -37,8 +37,9 @@ const EN_DOLARES = T.hoteles as ItemDelTarifario;
  * y lo persiste (guardarTipoDeCambio re-navega y lo verifica), pero el portal sigue
  * aplicando el valor manual a la excursion: queda en 40/331/174 (la mitad) en vez de
  * volver a 79/661/347 (la del pais). Sospechoso: la US 4739 (recargo por idioma) recien
- * desplegada, que sumo las filas "Recargo por idioma 10%". Se deja en rojo hasta que se
- * corrija; va como consulta/bug al PM.
+ * desplegada, que sumo las filas "Recargo por idioma 10%". Ya esta reportado: US 4910
+ * "Hotfix Tipo de cambio manual que se sigue aplicando al desactivarlo" (Analisis Done).
+ * Se deja en rojo hasta que esa US se corrija.
  */
 test.describe('WebAdmin — tipo de cambio manual por agencia', () => {
   test.describe.configure({ mode: 'serial' });
