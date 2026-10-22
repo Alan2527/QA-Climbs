@@ -856,20 +856,40 @@ test.describe('Tarifario', () => {
   // Cruceros (rediseno US 4517): chequeo liviano del modal de precios/salidas, en vez de
   // la comparacion contra la linea base (que era de la tabla inline, ya desaparecida).
   async function validarPreciosCrucero(page: Page, cfg: any) {
-    await paso(page, 'El modal de precios del crucero muestra las cabinas y las salidas', async () => {
+    await paso(page, 'Cada cabina del crucero muestra su "Desde" y sus salidas con importes', async () => {
       const modal = page.locator('#cruiseDeparturesModal');
       await expect(modal, 'El modal de precios del crucero tiene que estar abierto').toBeVisible();
-      const cabinas = modal.locator('button.cruise-tariff__cabin');
-      await expect(cabinas, `Tiene que mostrar las ${cfg.cabinas.length} cabinas del crucero`).toHaveCount(cfg.cabinas.length);
-      const desde = (await modal.locator('span.cruise-tariff__cabin-from').allInnerTexts()).map((s) => s.replace(/\s+/g, ' ').trim());
-      for (const d of desde) {
-        expect(d, `Cada cabina tiene que mostrar su precio "Desde" en USD (se ve "${d}")`).toMatch(/USD\s*[\d.]+/);
+      const botones = modal.locator('button.cruise-tariff__cabin');
+      await expect(botones, `Tiene que mostrar las ${cfg.cabinas.length} cabinas del crucero`).toHaveCount(cfg.cabinas.length);
+
+      // Scope B: se recorre CABINA por CABINA; al tildarla, la tabla de salidas muestra
+      // sus importes. Se verifica que cada cabina traiga su "Desde" en USD y salidas con
+      // importes positivos, y que todas tengan la misma cantidad de salidas (completitud).
+      const resumen: string[] = [];
+      let salidasEsperadas = -1;
+      for (let i = 0; i < cfg.cabinas.length; i++) {
+        const boton = botones.nth(i);
+        const desde = (await boton.locator('span.cruise-tariff__cabin-from').innerText()).replace(/\s+/g, ' ').trim();
+        expect(desde, `La cabina ${i + 1} tiene que mostrar su precio "Desde" en USD`).toMatch(/USD\s*[\d.]+/);
+        await boton.click();
+        const filas = modal.locator('[data-departures-content] table tr', { hasText: /USD/ });
+        await expect(filas.first(), `La cabina ${i + 1} tiene que mostrar salidas con importe`).toBeVisible({ timeout: 15_000 });
+
+        // Cada salida visible tiene que traer al menos un importe USD positivo.
+        const celdasPorFila = await filas.evaluateAll((trs) => trs.map((tr) =>
+          Array.from(tr.querySelectorAll('td')).map((td) => (td.textContent || '').replace(/\s+/g, ' ').trim())));
+        const aUSD = (c: string) => Number((c.match(/USD\s*([\d.]+)/)?.[1] ?? '0').replace(/\./g, ''));
+        let salidasOk = 0;
+        for (const celdas of celdasPorFila) {
+          const importes = celdas.map(aUSD).filter((n) => n > 0);
+          if (importes.length) salidasOk++;
+        }
+        expect(salidasOk, `La cabina ${i + 1} tiene que traer salidas con importes USD positivos`).toBeGreaterThan(0);
+        if (salidasEsperadas === -1) salidasEsperadas = salidasOk;
+        else expect(salidasOk, 'Todas las cabinas tienen que tener la misma cantidad de salidas').toBe(salidasEsperadas);
+        resumen.push(`Cabina ${i + 1} (${desde}): ${salidasOk} salidas con importe`);
       }
-      const filasConImporte = modal.locator('[data-departures-content] table tr', { hasText: /USD/ });
-      await expect(filasConImporte.first(), 'La tabla de salidas del crucero tiene que traer importes').toBeVisible();
-      await adjuntarTexto('Precios del crucero',
-        `Cabinas (${desde.length}): ${desde.join(' | ')}` + SALTO +
-        `Salidas con importe: ${await filasConImporte.count()}`);
+      await adjuntarTexto('Precios por cabina del crucero', resumen.join(SALTO));
     });
   }
 
