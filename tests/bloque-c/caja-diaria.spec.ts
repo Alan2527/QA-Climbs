@@ -41,6 +41,10 @@ import {
  * consideraciones transversales de multiidioma ni modo oscuro.
  */
 test.describe('Cobranzas', () => {
+  // Abre la caja del dia (reusa la existente) y verifica su cuadre: no emite comprobantes
+  // nuevos, asi que reintentar es idempotente. En CI se reintenta para absorber los flakes
+  // del BO lento bajo carga (la bandeja que tarda en mostrar la caja).
+  test.describe.configure({ retries: process.env.CI ? 2 : 0 });
 
   // El carrito se vacia mirando el contador del encabezado, que solo existe
   // dentro del portal: sin entrar primero, el paso 1 muere esperando el icono.

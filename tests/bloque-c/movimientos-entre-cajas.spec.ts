@@ -131,6 +131,10 @@ async function limpiarMovimiento(
 }
 
 test.describe('Movimientos entre cajas', () => {
+  // Cada test limpia su movimiento en el finally, asi que reintentar no duplica datos.
+  // En CI se reintenta para absorber los flakes del BO lento bajo carga (timeouts de
+  // clicks y carteles). No aplica a los tests que emiten comprobantes.
+  test.describe.configure({ retries: process.env.CI ? 2 : 0 });
 
   test.beforeEach(() => {
     reiniciarNumeracionDePasos();

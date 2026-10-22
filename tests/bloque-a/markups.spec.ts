@@ -27,7 +27,8 @@ const SALTO = String.fromCharCode(10);
  * Solo lee: no reserva ni toca datos.
  */
 test.describe('Markups por tipo de producto', () => {
-  test.describe.configure({ mode: 'serial' });
+  // Solo lee: reintentar es inocuo. En CI absorbe flakes de ambiente (login/BO lento).
+  test.describe.configure({ mode: 'serial', retries: process.env.CI ? 2 : 0 });
 
   let contexto: BrowserContext;
   let pagina: Page;

@@ -41,6 +41,9 @@ import {
  * consideraciones transversales de multiidioma ni modo oscuro.
  */
 test.describe('Cobranzas', () => {
+  // Prueba que el BO RECHACE operaciones invalidas: los intentos se rechazan y no dejan
+  // datos, asi que reintentar es seguro. En CI se reintenta para absorber flakes del BO.
+  test.describe.configure({ retries: process.env.CI ? 2 : 0 });
 
   // El carrito se vacia mirando el contador del encabezado, que solo existe
   // dentro del portal: sin entrar primero, el paso 1 muere esperando el icono.

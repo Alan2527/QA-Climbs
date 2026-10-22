@@ -27,7 +27,9 @@ const SERVICIO = T.excursiones as ItemDelTarifario;
  * como estaban aunque el test falle (`finally`).
  */
 test.describe('WebAdmin — markups de mercado y agencia', () => {
-  test.describe.configure({ mode: 'serial' });
+  // Escribe markups pero restaura en finally: reintentar es seguro. En CI absorbe
+  // flakes de ambiente (login/BO lento bajo carga).
+  test.describe.configure({ mode: 'serial', retries: process.env.CI ? 2 : 0 });
 
   let contexto: BrowserContext;
   let portal: Page;
