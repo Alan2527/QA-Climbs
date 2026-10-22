@@ -65,10 +65,17 @@ export class WebAdminTarifasHabitacionPage {
   }
 
   /** Cortes de la solapa Tarifario, en la vista por pax (la que trae por defecto). */
-  async cortesDelTarifario(room: number): Promise<Corte[]> {
+  async cortesDelTarifario(room: number, opts: { permitirVacio?: boolean } = {}): Promise<Corte[]> {
     await this.abrir(room, 'pnlTariffs');
     const grilla = this.page.locator(this.grillaTarifario);
-    await expect(grilla, 'El Tarifario tiene que mostrar la grilla de cortes').toBeVisible();
+    if (opts.permitirVacio) {
+      // Desde la HU 4949, guardar tarifas en "Gestion de Tarifas" vacia el Tarifario
+      // generado hasta que se vuelve a Generar: ahi la grilla no esta y NO es un error.
+      await grilla.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
+      if (!(await grilla.isVisible().catch(() => false))) return [];
+    } else {
+      await expect(grilla, 'El Tarifario tiene que mostrar la grilla de cortes').toBeVisible();
+    }
     const filas = await grilla.locator('tr').evaluateAll((trs) => trs.slice(1).map((tr) => {
       const celdas = Array.from(tr.querySelectorAll('td'));
       const texto = (i: number) => (celdas[i]?.textContent ?? '').replace(/\s+/g, ' ').trim();

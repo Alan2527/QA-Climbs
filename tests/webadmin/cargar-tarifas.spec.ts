@@ -15,9 +15,9 @@ const SALTO = String.fromCharCode(10);
  * Es la fuente del precio de hotel: lo que se carga en "Gestion de Tarifas" tiene
  * que terminar en el precio que ve la agencia. Se carga por habitacion y el sistema
  * lo guarda por pax (Doble / 2, Triple / 3). El tarifario recien cambia al presionar
- * "Generar Tarifario": hasta entonces sigue mostrando lo anterior.
+ * "Generar Tarifario"; desde la HU 4949 guardar tarifas lo deja vacio hasta generar.
  *
- * Sobre la habitacion propia 18371 (hotel 15422), rango 01/08/2031 - 15/08/2031.
+ * Sobre la habitacion propia 18371 (hotel 15422), rango de data/candidatos (cargaManual).
  * Alterna entre dos juegos de importes: si lee el juego A en pantalla carga el B, y
  * al reves, asi el cambio se nota aunque corra dos veces seguidas.
  *
@@ -59,10 +59,13 @@ test.describe('WebAdmin — carga de tarifas de habitacion', () => {
     });
 
     await paso(page, 'Sin generar, el Tarifario todavia no muestra los importes nuevos', async () => {
-      const corte = corteDe(await admin.cortesDelTarifario(ROOM));
-      await adjuntarTexto('Tarifario sin generar', corte ? formato(corte) : 'sin corte en el rango');
+      // Desde la HU 4949 guardar tarifas vacia el Tarifario hasta Generar, asi que la
+      // grilla puede quedar vacia: se tolera. Lo que se exige es que los importes NUEVOS
+      // no aparezcan sin Generar (ni mostrando lo viejo ni mostrando lo nuevo).
+      const corte = corteDe(await admin.cortesDelTarifario(ROOM, { permitirVacio: true }));
+      await adjuntarTexto('Tarifario sin generar', corte ? formato(corte) : 'grilla vacia (hay que Generar Tarifario)');
       const yaCambio = !!corte && corte.sgl === esperado.sgl && corte.dbl === esperado.dbl && corte.tpl === esperado.tpl;
-      expect(yaCambio, 'El Tarifario solo se actualiza con Generar Tarifario').toBe(false);
+      expect(yaCambio, 'El Tarifario solo muestra los importes nuevos despues de Generar Tarifario').toBe(false);
     });
 
     await paso(page, 'Generar Tarifario: el corte queda con los importes por pax', async () => {

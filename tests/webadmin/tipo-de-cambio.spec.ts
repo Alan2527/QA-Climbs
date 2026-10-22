@@ -30,6 +30,15 @@ const EN_DOLARES = T.hoteles as ItemDelTarifario;
  *
  * Al terminar deja la cotizacion manual en 1.000 y desactivada: aunque el portal la
  * siguiera usando, el precio queda igual que con la del pais.
+ *
+ * ROJO CONOCIDO (22/10/2026): el ultimo paso falla y es BUG de producto, no del test.
+ * Verificado con un experimento que descarta cache/timing (a los 90s de desactivar sigue
+ * sin revertir). Al desactivar la cotizacion manual el WebAdmin la deja en manual=false
+ * y lo persiste (guardarTipoDeCambio re-navega y lo verifica), pero el portal sigue
+ * aplicando el valor manual a la excursion: queda en 40/331/174 (la mitad) en vez de
+ * volver a 79/661/347 (la del pais). Sospechoso: la US 4739 (recargo por idioma) recien
+ * desplegada, que sumo las filas "Recargo por idioma 10%". Se deja en rojo hasta que se
+ * corrija; va como consulta/bug al PM.
  */
 test.describe('WebAdmin — tipo de cambio manual por agencia', () => {
   test.describe.configure({ mode: 'serial' });
