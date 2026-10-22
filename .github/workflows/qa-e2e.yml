@@ -140,7 +140,10 @@ jobs:
 
       - name: Generar reporte Allure
         if: always()
-        uses: simple-elf/allure-report-action@master
+        # Pineada a un release estable: @master buildeaba intermitentemente mal y tumbaba
+        # el job entero antes de correr los tests (la accion es Docker y se buildea al
+        # iniciar el job). El 22/10 fallo 3 corridas seguidas.
+        uses: simple-elf/allure-report-action@v1.15
         with:
           allure_results: allure-results
           allure_history: allure-history
