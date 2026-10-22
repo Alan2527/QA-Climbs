@@ -56,6 +56,17 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      # Cachea el navegador de Playwright (~/.cache/ms-playwright) entre corridas: sin
+      # esto se baja Chromium (~150 MB) en cada una. La clave incluye el hash del
+      # package-lock, asi que al cambiar la version de Playwright el cache se invalida y
+      # el paso siguiente lo vuelve a bajar.
+      - name: Cache del navegador de Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-
+
       # `--with-deps` corre un `apt-get update`, y la imagen de ubuntu-latest trae
       # configurado el repositorio de Google Chrome. Cuando ese indice esta a mitad
       # de publicacion apt corta con "Hash Sum mismatch" y el paso muere con codigo
