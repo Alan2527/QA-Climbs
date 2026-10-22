@@ -95,6 +95,9 @@ jobs:
           AMV_MARKUP_USER: ${{ secrets.AMV_MARKUP_USER }}
           AMV_MARKUP_PASS: ${{ secrets.AMV_MARKUP_PASS }}
           AMV_SIX_AUTOLOGIN_URL: ${{ secrets.AMV_SIX_AUTOLOGIN_URL }}
+          AMV_MOV_SUCURSAL_DESTINO: ${{ secrets.AMV_MOV_SUCURSAL_DESTINO }}
+          AMV_MOV_CAJA_DESTINO: ${{ secrets.AMV_MOV_CAJA_DESTINO }}
+          AMV_MOV_MONEDA_DESTINO: ${{ secrets.AMV_MOV_MONEDA_DESTINO }}
           SUITE: ${{ github.event.inputs.suite || 'bloque-a' }}
           FILTRO: ${{ github.event.inputs.filtro }}
         run: |
