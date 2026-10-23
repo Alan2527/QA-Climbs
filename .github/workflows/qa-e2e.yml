@@ -26,6 +26,14 @@ on:
 permissions:
   contents: write
 
+# Cada corrida publica reemplazando la rama gh-pages entera (force_orphan). Si dos
+# corridas se solapan, la ultima en publicar pisa lo que subio la otra y se pierde su
+# detalle (asi se perdio el de la corrida #152). Con un unico grupo y sin cancelar la
+# que esta en curso, las corridas se encolan y publican de a una: nunca se pisan.
+concurrency:
+  group: tablero-publicacion
+  cancel-in-progress: false
+
 jobs:
   e2e:
     runs-on: ubuntu-latest

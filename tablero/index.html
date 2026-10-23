@@ -138,6 +138,7 @@
   .sf-section { height: 11px; display: flex; align-items: center; justify-content: center; }
   .sf-section::after { content: ""; width: 28px; height: 1px; border-radius: 1px; background: rgba(255, 255, 255, .06); }
   .sf-menu .count { flex: none; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; font-size: 10.5px; font-weight: 700; display: inline-grid; place-items: center; background: var(--fail); color: #fff; }
+  .sf-menu .count.count-known { background: var(--known); }
   .sf-menu .count.known { background: rgba(245, 158, 11, .2); color: #fcd34d; }
   .sidebar-foot { margin-top: auto; padding: 12px 10px 14px; border-top: 1px solid rgba(255, 255, 255, .06); }
   .sidebar-link {
@@ -190,6 +191,7 @@
   .verdict { padding: 16px; display: flex; align-items: center; gap: 14px; }
   .verdict-ico { width: 44px; height: 44px; border-radius: 12px; flex: none; display: grid; place-items: center; font-size: 24px; color: #fff; background: var(--ok); box-shadow: 0 4px 12px color-mix(in srgb, var(--ok) 35%, transparent); }
   .verdict.fail .verdict-ico { background: var(--fail); box-shadow: 0 4px 12px color-mix(in srgb, var(--fail) 35%, transparent); }
+  .verdict.known .verdict-ico { background: var(--known); box-shadow: 0 4px 12px color-mix(in srgb, var(--known) 35%, transparent); }
   .verdict.empty .verdict-ico { background: var(--skip); box-shadow: none; }
   .verdict h2 { margin: 0; font-size: 1rem; font-weight: 700; }
   .verdict p { margin: .15rem 0 0; font-size: .8rem; color: var(--color-text-muted); }
@@ -239,7 +241,7 @@
   .tablestyle td.strong { color: var(--color-text); font-weight: 500; }
   .tablestyle td.muted { color: var(--color-text-muted); }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; }
-  .dot.ok { background: var(--ok); } .dot.fail { background: var(--fail); } .dot.known { background: var(--known); } .dot.skip, .dot.none { background: var(--skip); }
+  .dot.ok { background: var(--ok); } .dot.fail, .dot.nueva { background: var(--fail); } .dot.known, .dot.arrastrada { background: var(--known); } .dot.skip, .dot.none { background: var(--skip); }
   .detail { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; max-width: 520px; }
   .detail .why { font-size: 12px; color: var(--color-text-muted); overflow-wrap: anywhere; }
   /* Icono de info por prueba + tooltip (el tooltip va en el body para no cortarse con el overflow de la card/grilla). */
@@ -349,8 +351,10 @@
   const AREA_DE_SUITE = { 'bloque-a': 'Tarifario', 'bloque-b': 'Reservas', 'bloque-c': 'Cobranzas', 'webadmin': 'WebAdmin', 'six': 'SIX', 'seguridad': 'Seguridad', 'todas': 'Todas las pruebas' };
   const DETALLES = 15;        // corridas leidas en detalle: alcanza para el historial de cada prueba
   const FILAS_HISTORIAL = 10;
-  const ORDEN = { fail: 0, skip: 1, none: 2, ok: 3 };
-  const ETIQUETA = { ok: 'Funciona', fail: 'Falla', skip: 'No se ejecutó', none: 'Sin resultados' };
+  const ORDEN = { nueva: 0, arrastrada: 1, skip: 2, none: 3, ok: 4 };
+  const ETIQUETA = { ok: 'Funciona', nueva: 'Falla nueva', arrastrada: 'Viene fallando', skip: 'No se ejecutó', none: 'Sin resultados' };
+  // Problema = algo que hay que mirar: una falla nueva (roja) o una que viene de antes (naranja).
+  const esProblema = (vis) => vis === 'nueva' || vis === 'arrastrada';
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -395,6 +399,13 @@
     if (min < 60) return `hace ${Math.max(1, min)} min`;
     const h = Math.round(min / 60);
     return h < 36 ? `hace ${h} h` : `hace ${Math.round(h / 24)} días`;
+  }
+  // Fecha (solo dia) de una corrida por su numero: para el tag "viene fallando desde...".
+  function fechaDeCorrida(n) {
+    const c = datos?.corridas?.find((x) => x.corrida === n);
+    if (!c) return null;
+    const d = new Date(c.fecha);
+    return `${p2(d.getDate())}-${p2(d.getMonth() + 1)}-${d.getFullYear()}`;
   }
 
   // --- Tema: mismo mecanismo que el admin (clase dark en <html>) ---------------
@@ -481,13 +492,20 @@
         while (n < h.length && h[n].estado === 'fallo') n++;
         racha = { corridas: n, desde: h[n - 1].corrida, antesPasaba: n < h.length };
       }
-      return { ...p, area: areaDe(p.archivo), res, racha, vis: estadoVisible(res) };
+      // Color segun el historial: una falla que antes pasaba es NUEVA (roja); una que ya
+      // venia fallando es ARRASTRADA (naranja). Un verde que en la corrida anterior fallaba
+      // queda marcado como CORREGIDO. Todo sale de las corridas publicadas, sin marcas a mano.
+      const base = estadoVisible(res);
+      let vis = base, corregido = false;
+      if (base === 'fail') vis = (racha?.antesPasaba && racha.corridas === 1) ? 'nueva' : 'arrastrada';
+      else if (base === 'ok') corregido = h[1]?.estado === 'fallo';
+      return { ...p, area: areaDe(p.archivo), res, racha, vis, corregido };
     }).filter((p) => p.area);
 
     const areas = catalogo.areas.map((a) => {
       const delArea = pruebas.filter((p) => p.area === a.id);
       const n = (e) => delArea.filter((p) => p.vis === e).length;
-      return { ...a, pruebas: delArea, total: delArea.length, ok: n('ok'), fail: n('fail'), skip: n('skip') + n('none') };
+      return { ...a, pruebas: delArea, total: delArea.length, ok: n('ok'), nuevas: n('nueva'), arrastradas: n('arrastrada'), fail: n('nueva') + n('arrastrada'), skip: n('skip') + n('none') };
     });
     const ultima = corridas[0];
     const detUltima = detalles.find((d) => d.corrida === ultima?.corrida);
@@ -514,7 +532,7 @@
     for (const a of areas) {
       const link = document.querySelector(`.sf-menu a[data-vista="${a.id}"]`);
       link.querySelector('.count')?.remove();
-      if (a.fail) link.insertAdjacentHTML('beforeend', `<span class="count" title="Fallan">${a.fail}</span>`);
+      if (a.fail) link.insertAdjacentHTML('beforeend', `<span class="count ${a.nuevas ? '' : 'count-known'}" title="${a.nuevas ? 'Con fallas nuevas' : 'Vienen fallando de antes'}">${a.fail}</span>`);
     }
 
     let html;
@@ -545,30 +563,32 @@
   function resumen() {
     const { pruebas, ultima } = datos;
     const ok = pruebas.filter((p) => p.vis === 'ok').length;
-    const fallan = pruebas.filter((p) => p.vis === 'fail');
-    const dejaron = fallan.filter((p) => p.racha?.antesPasaba && p.racha.corridas === 1).length;
-    const siguen = fallan.length - dejaron;
+    const nuevas = pruebas.filter((p) => p.vis === 'nueva').length;
+    const arrastradas = pruebas.filter((p) => p.vis === 'arrastrada').length;
+    const corregidas = pruebas.filter((p) => p.corregido).length;
+    const completa = datos.corridas.find((c) => c.suite === 'todas');
 
     let vClase = '', vIco = 'ph-check', vTit = 'Todas las pruebas funcionan', vSub = 'Ninguna falla en su última corrida.';
-    if (dejaron) {
+    if (nuevas) {
       vClase = 'fail'; vIco = 'ph-warning';
-      vTit = `${dejaron} prueba${dejaron > 1 ? 's' : ''} dej${dejaron > 1 ? 'aron' : 'ó'} de funcionar`;
-      vSub = 'Pasaban en la corrida anterior y ahora fallan. Conviene revisarlas.';
-    } else if (siguen) {
-      vClase = 'fail'; vIco = 'ph-warning';
-      vTit = `${siguen} prueba${siguen > 1 ? 's siguen' : ' sigue'} fallando`;
-      vSub = 'Ya fallaban en la corrida anterior: no hay fallas nuevas.';
+      vTit = `${nuevas} prueba${nuevas > 1 ? 's' : ''} dej${nuevas > 1 ? 'aron' : 'ó'} de funcionar`;
+      vSub = 'Fallan y antes pasaban: son nuevas. Conviene revisarlas.';
+    } else if (arrastradas) {
+      vClase = 'known'; vIco = 'ph-clock';
+      vTit = 'Sin fallas nuevas';
+      vSub = `${arrastradas} prueba${arrastradas > 1 ? 's vienen' : ' viene'} fallando de antes; ninguna falla nueva.`;
     }
+    if (corregidas) vSub += ` ${corregidas} ${corregidas > 1 ? 'corregidas' : 'corregida'} respecto de la corrida anterior.`;
     if (!pruebas.some((p) => p.res)) { vClase = 'empty'; vIco = 'ph-hourglass'; vTit = 'Sin resultados'; vSub = 'Las corridas publicadas no traen pruebas.'; }
 
     const stat = (k, v, d, cls = '') => `<div class="card-panel stat ${cls}"><span class="k">${k}</span><span class="v num">${v}</span><span class="d">${d}</span></div>`;
     return `<section class="stats">
       <div class="card-panel verdict ${vClase}"><div class="verdict-ico"><i class="ph-bold ${vIco}"></i></div>
         <div><h2>${vTit}</h2><p>${vSub}</p>${ultima ? `<p>Última corrida #${ultima.corrida}, ${hace(ultima.fecha)}.</p>` : ''}</div></div>
-      ${stat('Funcionan', `${ok} <small>de ${pruebas.length}</small>`, 'según su última corrida')}
-      ${stat('Dejaron de funcionar', dejaron, 'pasaban en la corrida anterior', dejaron ? 'is-fail' : '')}
-      ${stat('Siguen fallando', siguen, 'ya fallaban en la corrida anterior', siguen ? 'is-known' : '')}
-      ${stat('Última corrida', ultima ? `#${ultima.corrida}` : '—', ultima ? `${esc(AREA_DE_SUITE[ultima.suite] ?? ultima.suite ?? '')} · ${duracion(ultima.duracionMs)}` : '')}
+      ${stat('Funcionan', `${ok} <small>de ${pruebas.length}</small>`, 'en su última corrida')}
+      ${stat('Fallas nuevas', nuevas, 'antes pasaban', nuevas ? 'is-fail' : '')}
+      ${stat('Vienen fallando', arrastradas, 'ya fallaban de antes', arrastradas ? 'is-known' : '')}
+      ${stat('Suite completa', completa ? `#${completa.corrida}` : '—', completa ? `probó todo ${hace(completa.fecha)}` : 'todavía no corrió entera')}
     </section>`;
   }
 
@@ -582,12 +602,24 @@
 
   function detalle(p) {
     const r = p.racha;
-    if (p.vis === 'fail') {
-      let tag;
-      if (r.antesPasaba && r.corridas === 1) tag = `<span class="admin-tag admin-tag-error">Dejó de funcionar en #${p.res.corrida}</span>`;
-      // Sin un resultado anterior que pasara, "desde" es la corrida mas vieja publicada: puede venir de antes.
-      else tag = `<span class="admin-tag admin-tag-warn" title="${r.antesPasaba ? `La última vez que pasó fue antes de #${r.desde}` : 'No pasó en ninguna de las corridas publicadas: puede venir fallando de antes'}">Falla desde #${r.desde}${r.antesPasaba ? '' : ' o antes'}</span>`;
-      return `${tag}${p.res?.error ? `<span class="why">${esc(p.res.error)}</span>` : ''}`;
+    const err = p.res?.error ? `<span class="why">${esc(p.res.error)}</span>` : '';
+    // Falla nueva (roja): antes pasaba, ahora falla.
+    if (p.vis === 'nueva') {
+      return `<span class="admin-tag admin-tag-error">Falla nueva (dejó de funcionar en #${p.res.corrida})</span>${err}`;
+    }
+    // Falla arrastrada (naranja): ya venia fallando. El tag dice desde cuando.
+    if (p.vis === 'arrastrada') {
+      const dia = fechaDeCorrida(r.desde);
+      const texto = dia ? `Viene fallando desde el ${dia}` : 'Viene fallando';
+      const titulo = r.antesPasaba
+        ? `Empezó a fallar en la corrida #${r.desde}`
+        : `Ya fallaba en la corrida más vieja publicada (#${r.desde}): puede venir de antes`;
+      return `<span class="admin-tag admin-tag-warn" title="${titulo}">${texto} (#${r.desde}${r.antesPasaba ? '' : ' o antes'})</span>${err}`;
+    }
+    // Verde que en la corrida anterior fallaba: corregido.
+    if (p.corregido) {
+      const reintento = p.res?.estado === 'inestable' ? ' <span class="admin-tag admin-tag-info">Pasó al reintentar</span>' : '';
+      return `<span class="admin-tag admin-tag-ok" title="En la corrida anterior esta prueba fallaba">Corregido</span>${reintento}`;
     }
     if (p.vis === 'ok' && p.res?.estado === 'inestable') return '<span class="admin-tag admin-tag-info">Pasó al reintentar</span>';
     if (p.vis === 'skip') return '<span class="admin-tag">No se ejecutó</span>';
@@ -595,14 +627,14 @@
     return '<span class="why">—</span>';
   }
 
-  const leyenda = () => `<div class="legend"><span><i class="dot ok"></i>Funciona</span><span><i class="dot fail"></i>Falla</span><span><i class="dot skip"></i>Sin resultados</span></div>`;
+  const leyenda = () => `<div class="legend"><span><i class="dot ok"></i>Funciona</span><span><i class="dot nueva"></i>Falla nueva</span><span><i class="dot arrastrada"></i>Viene fallando</span><span><i class="dot skip"></i>No se ejecutó</span></div>`;
 
   function tablaArea(a) {
     const t = a.total || 1;
     const pct = (n) => `${(n / t * 100).toFixed(2)}%`;
     const conTiempo = (p) => p.res && p.res.estado !== 'omitida';
     const filas = a.pruebas
-      .filter((p) => !soloProblemas || p.vis === 'fail')
+      .filter((p) => !soloProblemas || esProblema(p.vis))
       .sort((x, y) => ORDEN[x.vis] - ORDEN[y.vis])
       .map((p) => `<tr>
         <td><i class="dot ${p.vis}" title="${ETIQUETA[p.vis]}" aria-label="${ETIQUETA[p.vis]}"></i></td>
@@ -621,7 +653,7 @@
           <div><h3 class="card-header-title"><i class="ph ${esc(a.icono)}"></i>${esc(a.nombre)}</h3><p class="card-header-subtitle">${esc(a.descripcion)}</p></div>
           <div class="area-score"><b class="num">${a.ok}</b> de ${a.total} funcionan${total ? `<br>${duracion(total)} en total` : ''}</div>
         </div>
-        <div class="meter" aria-hidden="true"><i class="m-ok" style="width:${pct(a.ok)}"></i><i class="m-fail" style="width:${pct(a.fail)}"></i><i class="m-skip" style="width:${pct(a.skip)}"></i></div>
+        <div class="meter" aria-hidden="true"><i class="m-ok" style="width:${pct(a.ok)}"></i><i class="m-fail" style="width:${pct(a.nuevas)}"></i><i class="m-known" style="width:${pct(a.arrastradas)}"></i><i class="m-skip" style="width:${pct(a.skip)}"></i></div>
       </div>
       <div class="grid-wrap"><table class="tablestyle">
         <thead><tr><th>Estado</th><th class="left">Prueba</th><th class="left">Detalle</th><th>Duración</th><th>Corrida</th><th>Cuándo</th></tr></thead>
