@@ -244,6 +244,8 @@
   .dot.ok { background: var(--ok); } .dot.fail, .dot.nueva { background: var(--fail); } .dot.known, .dot.arrastrada { background: var(--known); } .dot.skip, .dot.none { background: var(--skip); }
   .detail { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; max-width: 520px; }
   .detail .why { font-size: 12px; color: var(--color-text-muted); overflow-wrap: anywhere; }
+  a.corrida-link { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; opacity: .8; }
+  a.corrida-link:hover { opacity: 1; }
   /* Icono de info por prueba + tooltip (el tooltip va en el body para no cortarse con el overflow de la card/grilla). */
   .info-ico { color: var(--color-text-muted); font-size: 14px; margin-left: 6px; cursor: help; opacity: .6; vertical-align: -1px; transition: color .15s ease, opacity .15s ease; }
   .info-ico:hover, .info-ico:focus { color: var(--color-text); opacity: 1; outline: none; }
@@ -406,6 +408,18 @@
     if (!c) return null;
     const d = new Date(c.fecha);
     return `${p2(d.getDate())}-${p2(d.getMonth() + 1)}-${d.getFullYear()}`;
+  }
+  // Link a la corrida en GitHub (logs + descarga del reporte): evidencia que no se
+  // pierde, a diferencia del reporte Allure que solo conserva el de la ultima corrida.
+  function runUrlDe(n) {
+    return datos?.detalles?.find((d) => d.corrida === n)?.enlaces?.github ?? null;
+  }
+  function celdaCorrida(res) {
+    if (!res) return '—';
+    const url = runUrlDe(res.corrida);
+    return url
+      ? `<a class="corrida-link" href="${esc(url)}" target="_blank" rel="noopener" title="Ver esta corrida en GitHub (logs y descarga del reporte)">#${res.corrida}</a>`
+      : `#${res.corrida}`;
   }
 
   // --- Tema: mismo mecanismo que el admin (clase dark en <html>) ---------------
@@ -602,7 +616,12 @@
 
   function detalle(p) {
     const r = p.racha;
-    const err = p.res?.error ? `<span class="why">${esc(p.res.error)}</span>` : '';
+    // El error va crudo (QA quiere el detalle), pero si es un timeout se aclara que puede
+    // ser lentitud del ambiente y no un error del sistema, sin tapar el mensaje original.
+    const infra = p.res?.error && /timeout|timed out|exceeded/i.test(p.res.error);
+    const err = p.res?.error
+      ? `<span class="why">${esc(p.res.error)}${infra ? ' — posible lentitud del ambiente de QA, no necesariamente un error del sistema' : ''}</span>`
+      : '';
     // Falla nueva (roja): antes pasaba, ahora falla.
     if (p.vis === 'nueva') {
       return `<span class="admin-tag admin-tag-error">Falla nueva (dejó de funcionar en #${p.res.corrida})</span>${err}`;
@@ -641,7 +660,7 @@
         <td class="left strong" title="${esc(p.titulo)}">${esc(p.nombre)}${p.descripcion ? ` <i class="ph ph-info info-ico" data-tip="${esc(p.descripcion)}" title="" tabindex="0" role="button" aria-label="Qué verifica este test"></i>` : ''}</td>
         <td class="left"><div class="detail">${detalle(p)}</div></td>
         <td class="num">${conTiempo(p) ? duracion(p.res.duracionMs) : '—'}${p.res?.intentos > 1 ? `<br><span class="why">${p.res.intentos} intentos</span>` : ''}</td>
-        <td class="num">${p.res ? `#${p.res.corrida}` : '—'}</td>
+        <td class="num">${celdaCorrida(p.res)}</td>
         <td class="num muted" title="${p.res ? fecha(p.res.fecha) : ''}">${p.res ? hace(p.res.fecha) : '—'}</td>
       </tr>`).join('');
     const vacio = soloProblemas ? 'Sin problemas en esta área.' : 'Sin pruebas.';
