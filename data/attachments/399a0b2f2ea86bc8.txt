@@ -1,0 +1,2 @@
+AUTO-QA NO TOCAR - CAJA USD: {"inicial":0,"ingreso":1056,"salida":0,"balance":1056,"final":1056}
+AUTO-QA NO TOCAR - CAJA ARS: {"inicial":0,"ingreso":0,"salida":-1513600,"balance":-1513600,"final":-1513600}

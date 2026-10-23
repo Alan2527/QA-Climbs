@@ -1,0 +1,12 @@
+{
+ "id": "25825",
+ "codigo": "BO00025825",
+ "referencia": "AUTO-QA 20261023201946",
+ "agencia": "AMV. TRAVEL",
+ "marcas": [
+  "BO00025825",
+  "AUTO-QA 20261023201946",
+  "PasajeroUno RegresionCABJEG",
+  "PasajeroDos RegresionCABJEG"
+ ]
+}

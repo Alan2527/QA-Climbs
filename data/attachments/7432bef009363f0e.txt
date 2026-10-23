@@ -1,0 +1,32 @@
+markup por producto 1 -> 0,50
+
+OK   <HOY> - 11/12/2026 Todos los días | columna 2  ->  antes 625  /  esperado 1247..1251  /  obtenido 1250
+OK   <HOY> - 11/12/2026 Todos los días | columna 3  ->  antes 313  /  esperado 623..627  /  obtenido 625
+OK   <HOY> - 11/12/2026 Todos los días | columna 4  ->  antes 242  /  esperado 481..485  /  obtenido 484
+OK   12/12/2026 - 15/12/2026 Lunes, martes, sábado, domingo | columna 2  ->  antes 250  /  esperado 497..501  /  obtenido 500
+OK   12/12/2026 - 15/12/2026 Lunes, martes, sábado, domingo | columna 3  ->  antes 188  /  esperado 373..377  /  obtenido 375
+OK   12/12/2026 - 15/12/2026 Lunes, martes, sábado, domingo | columna 4  ->  antes 150  /  esperado 297..301  /  obtenido 300
+OK   16/12/2026 - 17/12/2026 Miércoles y jueves | columna 2  ->  antes 625  /  esperado 1247..1251  /  obtenido 1250
+OK   16/12/2026 - 17/12/2026 Miércoles y jueves | columna 3  ->  antes 313  /  esperado 623..627  /  obtenido 625
+OK   16/12/2026 - 17/12/2026 Miércoles y jueves | columna 4  ->  antes 242  /  esperado 481..485  /  obtenido 484
+OK   18/12/2026 - 24/12/2026 Todos los días | columna 2  ->  antes 250  /  esperado 497..501  /  obtenido 500
+OK   18/12/2026 - 24/12/2026 Todos los días | columna 3  ->  antes 188  /  esperado 373..377  /  obtenido 375
+OK   18/12/2026 - 24/12/2026 Todos los días | columna 4  ->  antes 150  /  esperado 297..301  /  obtenido 300
+OK   25/12/2026 - 27/12/2026 Viernes a domingo | columna 2  ->  antes 625  /  esperado 1247..1251  /  obtenido 1250
+OK   25/12/2026 - 27/12/2026 Viernes a domingo | columna 3  ->  antes 313  /  esperado 623..627  /  obtenido 625
+OK   25/12/2026 - 27/12/2026 Viernes a domingo | columna 4  ->  antes 242  /  esperado 481..485  /  obtenido 484
+OK   03/01/2027 - 31/03/2027 Todos los días | columna 2  ->  antes 625  /  esperado 1247..1251  /  obtenido 1250
+OK   03/01/2027 - 31/03/2027 Todos los días | columna 3  ->  antes 313  /  esperado 623..627  /  obtenido 625
+OK   03/01/2027 - 31/03/2027 Todos los días | columna 4  ->  antes 242  /  esperado 481..485  /  obtenido 484
+OK   01/01/2028 - 31/01/2028 Todos los días | columna 2  ->  antes 125  /  esperado 247..251  /  obtenido 250
+OK   01/01/2028 - 31/01/2028 Todos los días | columna 3  ->  antes 75  /  esperado 147..151  /  obtenido 150
+OK   01/01/2028 - 31/01/2028 Todos los días | columna 4  ->  antes 63  /  esperado 123..127  /  obtenido 125
+OK   01/03/2028 - 31/03/2028 Todos los días | columna 2  ->  antes 138  /  esperado 273..277  /  obtenido 275
+OK   01/03/2028 - 31/03/2028 Todos los días | columna 3  ->  antes 83  /  esperado 163..167  /  obtenido 165
+OK   01/03/2028 - 31/03/2028 Todos los días | columna 4  ->  antes 69  /  esperado 135..139  /  obtenido 138
+OK   01/05/2028 - 31/05/2028 Todos los días | columna 2  ->  antes 152  /  esperado 301..305  /  obtenido 303
+OK   01/05/2028 - 31/05/2028 Todos los días | columna 3  ->  antes 91  /  esperado 179..183  /  obtenido 182
+OK   01/05/2028 - 31/05/2028 Todos los días | columna 4  ->  antes 76  /  esperado 149..153  /  obtenido 152
+OK   01/08/2028 - 15/08/2028 Todos los días | columna 2  ->  antes 250  /  esperado 497..501  /  obtenido 500
+OK   01/08/2028 - 15/08/2028 Todos los días | columna 3  ->  antes 188  /  esperado 373..377  /  obtenido 375
+OK   01/08/2028 - 15/08/2028 Todos los días | columna 4  ->  antes 150  /  esperado 297..301  /  obtenido 300

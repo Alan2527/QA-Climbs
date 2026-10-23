@@ -1,0 +1,18 @@
+{
+ "costo": {
+  "moneda": "USD",
+  "valor": 63.067
+ },
+ "venta": {
+  "moneda": "USD",
+  "valor": 96
+ },
+ "over": {
+  "moneda": "USD",
+  "valor": 0
+ },
+ "utilidad": {
+  "moneda": "USD",
+  "valor": 32.933
+ }
+}

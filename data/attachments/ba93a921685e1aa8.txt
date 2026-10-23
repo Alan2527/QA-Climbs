@@ -1,0 +1,3 @@
+La fecha de vencimiento ingresada, es mayor al checkin del file
+Check In: 30.10.2026
+Fecha de vencimiento ingresada: 02.11.2026

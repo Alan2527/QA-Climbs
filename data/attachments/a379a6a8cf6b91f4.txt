@@ -1,0 +1,4 @@
+{
+ "estado": "70",
+ "estadoTexto": "A FACTURAR"
+}

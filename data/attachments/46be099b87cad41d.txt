@@ -1,0 +1,4 @@
+Endpoint: /bookingservice/getbookpassengers/?book=25513
+HTTP 200
+Tamano de la respuesta: 1351 caracteres
+Trae los pasajeros (nombre "PasajeroSix"): SI

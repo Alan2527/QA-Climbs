@@ -1,0 +1,1 @@
+[{"value":10,"name":"USD"},{"value":20,"name":"ARS"},{"value":30,"name":"COP"},{"value":40,"name":"CLP"},{"value":50,"name":"EUR"},{"value":60,"name":"MXN"},{"value":70,"name":"R$"},{"value":80,"name":"PYG"},{"value":90,"name":"GTQ"},{"value":100,"name":"PEN"},{"value":110,"name":"CRC"}]

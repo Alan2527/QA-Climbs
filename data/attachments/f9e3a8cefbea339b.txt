@@ -1,0 +1,11 @@
+FECHAS | SGL | DBL | TPL
+<HOY> - 11/12/2026 Todos los días | USD 625 | USD 313 | USD 242
+12/12/2026 - 15/12/2026 Lunes, martes, sábado, domingo | USD 250 | USD 188 | USD 150
+16/12/2026 - 17/12/2026 Miércoles y jueves | USD 625 | USD 313 | USD 242
+18/12/2026 - 24/12/2026 Todos los días | USD 250 | USD 188 | USD 150
+25/12/2026 - 27/12/2026 Viernes a domingo | USD 625 | USD 313 | USD 242
+03/01/2027 - 31/03/2027 Todos los días | USD 625 | USD 313 | USD 242
+01/01/2028 - 31/01/2028 Todos los días | USD 125 | USD 75 | USD 63
+01/03/2028 - 31/03/2028 Todos los días | USD 138 | USD 83 | USD 69
+01/05/2028 - 31/05/2028 Todos los días | USD 152 | USD 91 | USD 76
+01/08/2028 - 15/08/2028 Todos los días | USD 250 | USD 188 | USD 150

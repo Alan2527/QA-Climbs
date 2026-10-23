@@ -1,0 +1,8 @@
+ficha (total)                USD 1000
+carrito (total del item)     USD 1000
+historial (total)            USD 500
+bandeja (columna V)          USD 500
+detalle (Venta del item)     USD 500
+detalle (V. Markup del item) USD 1000
+file (Venta del item)        USD 500
+file (Venta en Totales)      USD 500

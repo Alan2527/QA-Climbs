@@ -1,0 +1,2 @@
+Factura de proveedor: 0001-23201646 (id 89210), sin imputar
+Orden de pago: id 38279, sin aprobar

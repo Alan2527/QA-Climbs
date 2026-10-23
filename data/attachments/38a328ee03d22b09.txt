@@ -1,0 +1,1 @@
+cantidad 2 | unitario 48 | total 96

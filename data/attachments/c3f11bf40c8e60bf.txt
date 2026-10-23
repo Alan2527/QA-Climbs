@@ -1,0 +1,5 @@
+Reserva: BO00025817
+File: AMV-AR-30433 (id 33651)
+Factura de proveedor: 0001-23200639 (id 89206)
+Proveedor: GRUPO SUMMA SRL
+Total imputado: ARS 94600,00

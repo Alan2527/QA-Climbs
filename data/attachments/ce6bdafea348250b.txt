@@ -1,0 +1,38 @@
+[al abrir]
+  1 City Tour: Regular 66 / Privado 292
+  4 Fiesta Gaucha Estancia Santa Susana: Regular 418 / Privado -
+  5 AUTO-QA NO TOCAR - Tigre y Delta: Regular 96 / Privado 418
+  16 Buenos Aires y sus personajes: Regular 2860 / Privado -
+  20 Full Day Montevideo - Privado: Regular - / Privado 894
+  21 Full Day Colonia - Privado: Regular - / Privado 596
+  107 La Plata: Regular 292 / Privado -
+  110 Delta Premium: Regular 176 / Privado 518
+  147 City Tour Full Day: Regular 374 / Privado 676
+  149 Parque de la Costa: Regular 158 / Privado -
+[pagina 2]
+  158 El Viejo Almacén: Regular 128 / Privado 132
+  159 Gala Tango: Regular 258 / Privado -
+  160 Rojo Tango: Regular - / Privado 474
+  162 La Ventana: Regular 148 / Privado -
+  163 AUTO-QA NO TOCAR - Café de los Angelitos: Regular 138 / Privado -
+  164 Tango Porteño: Regular 158 / Privado -
+  167 Temaikén - Bioparque: Regular 188 / Privado -
+  1180 Hora adicional a disposición / espera: Regular - / Privado 40
+  1223 AUTO-QA NO TOCAR - Aeropuerto Internacional / Hotel céntrico con servicio de guía: Regular - / Privado 2
+  1224 Hotel céntrico/ Aeropuerto Internacional con servicio de guía: Regular - / Privado 76
+[vuelta a la pagina 1]
+  1 City Tour: Regular 66 / Privado 292
+  4 Fiesta Gaucha Estancia Santa Susana: Regular 418 / Privado -
+  5 AUTO-QA NO TOCAR - Tigre y Delta: Regular 96 / Privado 418
+  16 Buenos Aires y sus personajes: Regular 2860 / Privado -
+  20 Full Day Montevideo - Privado: Regular - / Privado 894
+  21 Full Day Colonia - Privado: Regular - / Privado 596
+  107 La Plata: Regular 292 / Privado -
+  110 Delta Premium: Regular 176 / Privado 518
+  147 City Tour Full Day: Regular 374 / Privado 676
+  149 Parque de la Costa: Regular 158 / Privado -
+[busqueda "Tigre y Delta"]
+  5 AUTO-QA NO TOCAR - Tigre y Delta: Regular 96 / Privado 418
+  1245 Tigre y Delta con Almuerzo en Centro de la Ciudad: Regular 176 / Privado 564
+  6390 Tigre y Delta con brunch en Tigre: Regular 286 / Privado -
+  7643 Tigre y Delta con almuerzo en la Isla: Regular 352 / Privado -

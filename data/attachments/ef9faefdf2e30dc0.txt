@@ -1,0 +1,25 @@
+{
+  "agencia": {
+    "valor": "6334",
+    "texto": "AUTO-QA NO TOCAR - Markups [6334] Ciudad: Buenos Aires, Argentina"
+  },
+  "pais": {
+    "valor": "10",
+    "texto": "Argentina"
+  },
+  "estado": {
+    "valor": "40",
+    "texto": "Pendiente blanqueo de clave"
+  },
+  "estadoHabilitado": false,
+  "tipo": {
+    "valor": "3",
+    "texto": "Agencia - Vendedor"
+  },
+  "moneda": {
+    "valor": "8",
+    "texto": "Peso"
+  },
+  "publicado": true,
+  "guardarHabilitado": false
+}

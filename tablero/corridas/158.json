@@ -1,0 +1,232 @@
+{
+  "corrida": 158,
+  "fecha": "2026-10-23T16:11:40.575Z",
+  "duracionMs": 325555.783,
+  "estado": "con-fallas",
+  "suite": "bloque-a",
+  "filtro": null,
+  "evento": "push",
+  "commit": "d0af7dd0d0bc2fc510f610ae284db00c9145abe4",
+  "enlaces": {
+    "allure": "https://alan2527.github.io/QA-Climbs/158/",
+    "github": "https://github.com/Alan2527/QA-Climbs/actions/runs/39984642665"
+  },
+  "totales": {
+    "total": 16,
+    "paso": 15,
+    "fallo": 1,
+    "inestable": 0,
+    "omitida": 0
+  },
+  "areas": {
+    "tarifario": {
+      "total": 14,
+      "paso": 13,
+      "fallo": 1,
+      "inestable": 0,
+      "omitida": 0
+    },
+    "preparacion": {
+      "total": 2,
+      "paso": 2,
+      "fallo": 0,
+      "inestable": 0,
+      "omitida": 0
+    }
+  },
+  "erroresGlobales": [],
+  "pruebas": [
+    {
+      "area": "preparacion",
+      "archivo": "auth.setup.ts",
+      "linea": 10,
+      "grupo": "",
+      "titulo": "Login en el front de QA",
+      "proyecto": "Login",
+      "estado": "paso",
+      "duracionMs": 3243,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "preparacion",
+      "archivo": "precondiciones.setup.ts",
+      "linea": 80,
+      "grupo": "",
+      "titulo": "Precondiciones: los datos AUTO-QA estan en QA",
+      "proyecto": "Precondiciones - Bloque A",
+      "estado": "paso",
+      "duracionMs": 12657,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/calendario.spec.ts",
+      "linea": 56,
+      "grupo": "Tarifario — operatividad del calendario",
+      "titulo": "El calendario opera todos los dias que declaran sus reglas",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "paso",
+      "duracionMs": 8958,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/filtros-y-card.spec.ts",
+      "linea": 74,
+      "grupo": "Tarifario — filtros y card",
+      "titulo": "Cabecera: el contador, los chips de categoria y Limpiar acompanan al listado",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "paso",
+      "duracionMs": 7015,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/filtros-y-card.spec.ts",
+      "linea": 201,
+      "grupo": "Tarifario — filtros y card",
+      "titulo": "Card: el carrusel trae todas las imagenes del hotel",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "paso",
+      "duracionMs": 7629,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/markups.spec.ts",
+      "linea": 84,
+      "grupo": "Markups por tipo de producto",
+      "titulo": "Hoteles: aplica el markup de hoteles del mercado",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "paso",
+      "duracionMs": 15878,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/markups.spec.ts",
+      "linea": 88,
+      "grupo": "Markups por tipo de producto",
+      "titulo": "Servicios: aplica el markup de servicios del mercado",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "paso",
+      "duracionMs": 15720,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/multiidioma.spec.ts",
+      "linea": 87,
+      "grupo": "Tarifario — multiidioma del encabezado",
+      "titulo": "El contenido del tarifario se muestra en el idioma elegido",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "paso",
+      "duracionMs": 20324,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/multiidioma.spec.ts",
+      "linea": 187,
+      "grupo": "Tarifario — multiidioma del encabezado",
+      "titulo": "El tarifario muestra hoteles, paquetes y ofertas en el idioma elegido",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "paso",
+      "duracionMs": 45708,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/tarifario.spec.ts",
+      "linea": 1078,
+      "grupo": "Tarifario",
+      "titulo": "Paquetes: trae tarifas y muestra el paquete esperado",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "paso",
+      "duracionMs": 13684,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/tarifario.spec.ts",
+      "linea": 1093,
+      "grupo": "Tarifario",
+      "titulo": "Excursiones: trae tarifas y muestra la excursion esperada",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "paso",
+      "duracionMs": 37696,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/tarifario.spec.ts",
+      "linea": 1101,
+      "grupo": "Tarifario",
+      "titulo": "Hoteles: trae tarifas y muestra el hotel esperado",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "paso",
+      "duracionMs": 16798,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/tarifario.spec.ts",
+      "linea": 1109,
+      "grupo": "Tarifario",
+      "titulo": "Traslados: trae tarifas y muestra el traslado esperado",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "paso",
+      "duracionMs": 37471,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/tarifario.spec.ts",
+      "linea": 1117,
+      "grupo": "Tarifario",
+      "titulo": "Cena Show: trae tarifas y coinciden con las de la base",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "paso",
+      "duracionMs": 37890,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/tarifario.spec.ts",
+      "linea": 1202,
+      "grupo": "Tarifario",
+      "titulo": "Cruceros: trae tarifas y muestra el crucero esperado",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "fallo",
+      "duracionMs": 23402,
+      "intentos": 2,
+      "error": "Error: El titulo de la card tiene que ser \"AUTO-QA NO TOCAR - Fiordos de Tierra del Fuego - Ventus Australis 4 noches\""
+    },
+    {
+      "area": "tarifario",
+      "archivo": "bloque-a/tarifario.spec.ts",
+      "linea": 1212,
+      "grupo": "Tarifario",
+      "titulo": "Ofertas: trae tarifas y muestra la oferta esperada",
+      "proyecto": "Climbs - Bloque A: Tarifario",
+      "estado": "paso",
+      "duracionMs": 12601,
+      "intentos": 1,
+      "error": null
+    }
+  ]
+}

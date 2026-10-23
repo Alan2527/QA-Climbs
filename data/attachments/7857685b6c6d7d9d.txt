@@ -1,0 +1,1 @@
+{"ofrecida":false,"tarifa":0,"cupo":0,"mes":"Noviembre 2026","clase":"scal-cell departure-no-price"}

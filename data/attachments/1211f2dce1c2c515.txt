@@ -1,0 +1,14 @@
+ID 9887
+{
+  "agencia": "6334",
+  "ejecutivo": "15813",
+  "sucursal": "1",
+  "itinerario": "5059",
+  "referencia": "AUTO-QA MKT 20261023200645",
+  "titulo": "AUTO-QA NO TOCAR - Cotizacion markup 20261023200645",
+  "pax": 2,
+  "sgl": 0,
+  "dbl": 1,
+  "tpl": 0,
+  "inicio": "22/11/2026"
+}

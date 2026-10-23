@@ -1,0 +1,5 @@
+sin filtro: 1 filas, la cotizacion de pablo1: 0, filas de la agencia "AMV. TRAVEL": 0
+por codigo: 0 filas, la cotizacion de pablo1: 0, filas de la agencia "AMV. TRAVEL": 0
+por numero: 0 filas, la cotizacion de pablo1: 0, filas de la agencia "AMV. TRAVEL": 0
+forzando la agencia de pablo1 en la URL: 0 filas, la cotizacion de pablo1: 0, filas de la agencia "AMV. TRAVEL": 0
+por referencia: 0 filas, la cotizacion de pablo1: 0, filas de la agencia "AMV. TRAVEL": 0

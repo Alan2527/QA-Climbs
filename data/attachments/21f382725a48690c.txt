@@ -1,0 +1,7 @@
+Reserva: BO00025821
+File: AMV-AR-30436 (id 33654)
+Servicio: AUTO-QA NO TOCAR - Tigre y Delta
+Pasajero: PasajeroUno RegresionCABEAD
+Cliente: MULTIVIAJES ARGENTINA SRL
+Costo del item: ARS 94.600
+Venta del item: USD 96

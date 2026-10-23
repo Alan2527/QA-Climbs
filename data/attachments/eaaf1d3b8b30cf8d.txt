@@ -1,0 +1,5 @@
+URL: https://qa.bo.amv.travel/booking/files/destination/33642/68450
+"Traer costo de servicios" venia marcado: si
+Destino: 30/10/2026 a 30/10/2026
+Buscador: Desde 30/10/2026 / Hasta 30/10/2026
+Fecha del servicio reservado: 30/10/2026

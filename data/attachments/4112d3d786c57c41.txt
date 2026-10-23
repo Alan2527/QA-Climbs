@@ -1,0 +1,18 @@
+{
+ "id": "367735",
+ "orden": "1",
+ "detalle": "TIG/DEL AUTO-QA NO TOCAR - Tigre y Delta",
+ "tarifa": "REGULAR",
+ "checkin": "30/10/2026",
+ "checkout": "",
+ "rooming": "1-2",
+ "proveedor": "GRUPO SUMMA",
+ "costo": {
+  "moneda": "ARS",
+  "valor": 94600
+ },
+ "venta": {
+  "moneda": "USD",
+  "valor": 96
+ }
+}

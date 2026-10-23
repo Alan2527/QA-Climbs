@@ -1,0 +1,256 @@
+{
+  "corrida": 157,
+  "fecha": "2026-10-23T15:00:10.627Z",
+  "duracionMs": 1089412.707,
+  "estado": "con-fallas",
+  "suite": "webadmin",
+  "filtro": null,
+  "evento": "workflow_dispatch",
+  "commit": "56a459b7221f4fd6df6fb9d1b98e2bc0b49b9df1",
+  "enlaces": {
+    "allure": "https://alan2527.github.io/QA-Climbs/157/",
+    "github": "https://github.com/Alan2527/QA-Climbs/actions/runs/39974363039"
+  },
+  "totales": {
+    "total": 18,
+    "paso": 15,
+    "fallo": 3,
+    "inestable": 0,
+    "omitida": 0
+  },
+  "areas": {
+    "webadmin": {
+      "total": 16,
+      "paso": 13,
+      "fallo": 3,
+      "inestable": 0,
+      "omitida": 0
+    },
+    "preparacion": {
+      "total": 2,
+      "paso": 2,
+      "fallo": 0,
+      "inestable": 0,
+      "omitida": 0
+    }
+  },
+  "erroresGlobales": [],
+  "pruebas": [
+    {
+      "area": "preparacion",
+      "archivo": "auth.setup.ts",
+      "linea": 10,
+      "grupo": "",
+      "titulo": "Login en el front de QA",
+      "proyecto": "Login",
+      "estado": "paso",
+      "duracionMs": 37740,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "preparacion",
+      "archivo": "precondiciones.setup.ts",
+      "linea": 80,
+      "grupo": "",
+      "titulo": "Precondiciones: los datos AUTO-QA estan en QA",
+      "proyecto": "Precondiciones - Bloque A",
+      "estado": "paso",
+      "duracionMs": 19405,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/alta-usuario-agencia.spec.ts",
+      "linea": 78,
+      "grupo": "WebAdmin — alta de usuario de agencia",
+      "titulo": "El alta crea el usuario, aparece en el listado, rechaza el email duplicado, entra al portal y se da de baja",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "paso",
+      "duracionMs": 59134,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/cargar-tarifas.spec.ts",
+      "linea": 37,
+      "grupo": "WebAdmin — carga de tarifas de habitacion",
+      "titulo": "Lo que se carga en Gestion de Tarifas llega al Tarifario al generarlo y al precio del portal",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "paso",
+      "duracionMs": 27291,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/condiciones-comerciales.spec.ts",
+      "linea": 74,
+      "grupo": "WebAdmin — condiciones comerciales por producto",
+      "titulo": "Un markup por producto cambia el precio del hotel y \"Excluido\" lo deja sin tarifas para la agencia",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "paso",
+      "duracionMs": 89143,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/cotizacion-a-reserva.spec.ts",
+      "linea": 29,
+      "grupo": "WebAdmin — cotizacion de grupo a reserva",
+      "titulo": "Una cotizacion de grupo se convierte en reserva y llega a la bandeja del BO",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "paso",
+      "duracionMs": 60019,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/cotizacion-markup-agencia.spec.ts",
+      "linea": 52,
+      "grupo": "WebAdmin — cotizacion de grupo: markup y tipo de cambio de la agencia",
+      "titulo": "La cotizacion carga el markup de hoteles y el tipo de cambio de la agencia y los conserva al crear la reserva",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "paso",
+      "duracionMs": 33969,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/cupo-y-publicacion.spec.ts",
+      "linea": 87,
+      "grupo": "WebAdmin — cupo y publicacion de habitacion",
+      "titulo": "Con cupo se vende disponible, sin cupo pasa a requerir y despublicada no se ofrece",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "fallo",
+      "duracionMs": 133801,
+      "intentos": 1,
+      "error": "Error: Guardar Freesale tiene que confirmar"
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/extender-tarifas.spec.ts",
+      "linea": 57,
+      "grupo": "WebAdmin — extension de tarifas de habitacion",
+      "titulo": "Extender un corte con incremento crea las tarifas del rango y se puede volver a extender",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "paso",
+      "duracionMs": 21234,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/extension-masiva.spec.ts",
+      "linea": 40,
+      "grupo": "WebAdmin — extension masiva de tarifas",
+      "titulo": "Extender el ultimo corte de un solo hotel crea las tarifas hasta la fecha pedida",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "fallo",
+      "duracionMs": 36892,
+      "intentos": 1,
+      "error": "TimeoutError: locator.isChecked: Timeout 30000ms exceeded."
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/humo-pantallas.spec.ts",
+      "linea": 182,
+      "grupo": "WebAdmin — humo de pantallas",
+      "titulo": "Todas las pantallas del menu abren sin error",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "paso",
+      "duracionMs": 143679,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/humo-pantallas.spec.ts",
+      "linea": 198,
+      "grupo": "WebAdmin — humo de pantallas",
+      "titulo": "Las fichas de los datos propios abren todas sus solapas, en claro y en oscuro",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "paso",
+      "duracionMs": 150104,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/markups-mercado.spec.ts",
+      "linea": 78,
+      "grupo": "WebAdmin — markups de mercado y agencia",
+      "titulo": "Mercado: cambiar el markup de hoteles mueve solo los precios de hoteles",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "paso",
+      "duracionMs": 36779,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/markups-mercado.spec.ts",
+      "linea": 112,
+      "grupo": "WebAdmin — markups de mercado y agencia",
+      "titulo": "Agencia: el markup propio de servicios gana sobre el del mercado y al vaciarlo vuelve al mercado",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "paso",
+      "duracionMs": 47576,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/observaciones-y-regimen.spec.ts",
+      "linea": 62,
+      "grupo": "WebAdmin — observaciones y regimen de habitacion",
+      "titulo": "La observacion del periodo y el regimen de la habitacion se ven en el tarifario del portal",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "paso",
+      "duracionMs": 34399,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/series.spec.ts",
+      "linea": 56,
+      "grupo": "WebAdmin — series: cupo, salidas y tarifas",
+      "titulo": "El cupo, las salidas y las tarifas de una salida se reflejan en el portal",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "paso",
+      "duracionMs": 39696,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/tarifas-servicio.spec.ts",
+      "linea": 54,
+      "grupo": "WebAdmin — extension de tarifas de servicio",
+      "titulo": "Extender las tarifas de un servicio con incremento crea las del rango y el portal las cobra",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "paso",
+      "duracionMs": 41611,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "webadmin",
+      "archivo": "webadmin/tipo-de-cambio.spec.ts",
+      "linea": 80,
+      "grupo": "WebAdmin — tipo de cambio manual por agencia",
+      "titulo": "Una cotizacion manual cambia el precio de lo que esta en pesos y al desactivarla vuelve a la del pais",
+      "proyecto": "Climbs - WebAdmin",
+      "estado": "fallo",
+      "duracionMs": 51303,
+      "intentos": 1,
+      "error": "Error: excursion: tarifas fuera de lo esperado"
+    }
+  ]
+}

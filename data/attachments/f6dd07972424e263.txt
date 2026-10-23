@@ -1,0 +1,2 @@
+documento de la cotizacion (PDF/Word): HTTP 200, marcas visibles: CC00054806 | AUTO-QA COT 20261023202124 | Pasajero Cotizacion 202124
+Ver detalle de la cotizacion: HTTP 200, marcas visibles: AUTO-QA COT 20261023202124 | Pasajero Cotizacion 202124

@@ -1,0 +1,15 @@
+{
+  "mercado": {
+    "hotel": 0.8,
+    "servicio": 0.6
+  },
+  "markups": {
+    "hotel": null,
+    "servicio": null
+  },
+  "cambio": {
+    "manual": false,
+    "general": 1000,
+    "oportunidad": 1000
+  }
+}

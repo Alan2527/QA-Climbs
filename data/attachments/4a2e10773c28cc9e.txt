@@ -1,0 +1,1 @@
+{"ofrecida":true,"tarifa":330,"cupo":10,"mes":"Noviembre 2026","clase":"scal-cell departure-has-price"}

@@ -1,0 +1,55 @@
+COMPROBANTES Y SALDOS
+4
+Cliente
+USD
+100% cobrado
+Venta del file
+96
+Facturado
+96
+Cobrado
+96
+Falta cobrar
+0
+Al día
+FACTURAS
+1
+CC00010-00058534
+Carta de Cobranza · 23/10/2026
+96,00
+USD
+Cobrada
+ÓRDENES DE COBRO
+1
+OC0000020275
+23/10/2026
+96,00
+USD
+Restante 0,00
+Pagado
+Proveedores
+USD
+100% pagado
+Costo del file
+63,067
+Facturado
+63,067
+Pagado
+63,067
+Falta pagar
+0
+Al día
+FACTURAS DE PROVEEDOR
+1
+GRUPO SUMMA
+FCA0001-23200325 · 23/10/2026
+94.600,00
+ARS
+Pagada
+ÓRDENES DE PAGO
+1
+OP0000038275
+GRUPO SUMMA · 23/10/2026
+94.600,00
+ARS
+Pagado

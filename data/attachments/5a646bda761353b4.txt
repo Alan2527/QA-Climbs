@@ -1,0 +1,7 @@
+FECHAS | TIPO DE SERVICIO | PAX | PRECIO POR PERSONA
+01/07/2026 - 31/12/2031 Recargo por idioma 10% | Regular | Mínimo 2 pasajeros | USD 119
+01/07/2026 - 31/12/2031 | Privado | 1 | USD 991
+01/07/2026 - 31/12/2031 | Privado | 2 | USD 521
+01/07/2026 - 31/12/2031 | Privado | 3 | USD 410
+01/07/2026 - 31/12/2031 | Privado | 4 - 6 | USD 320
+01/07/2026 - 31/12/2031 | Privado | 7 - 9 | USD 204

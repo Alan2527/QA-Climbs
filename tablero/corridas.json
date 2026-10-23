@@ -1,0 +1,1032 @@
+{
+  "actualizado": "2026-10-23T20:32:32.379Z",
+  "corridas": [
+    {
+      "corrida": 165,
+      "fecha": "2026-10-23T19:57:13.997Z",
+      "duracionMs": 1978230.2390136719,
+      "estado": "con-fallas",
+      "suite": "todas",
+      "filtro": null,
+      "evento": "workflow_dispatch",
+      "commit": "ddd1bade2cb5d5c945f5b347beca5c9db4d0fe36",
+      "totales": {
+        "total": 89,
+        "paso": 75,
+        "fallo": 14,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "reservas": {
+          "total": 19,
+          "paso": 14,
+          "fallo": 5,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "cobranzas": {
+          "total": 18,
+          "paso": 17,
+          "fallo": 1,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "webadmin": {
+          "total": 16,
+          "paso": 14,
+          "fallo": 2,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "six": {
+          "total": 8,
+          "paso": 5,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "seguridad": {
+          "total": 6,
+          "paso": 3,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 8,
+          "paso": 8,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/165.json"
+    },
+    {
+      "corrida": 164,
+      "fecha": "2026-10-23T19:17:08.545Z",
+      "duracionMs": 1646259.6000976562,
+      "estado": "con-fallas",
+      "suite": "todas",
+      "filtro": null,
+      "evento": "workflow_dispatch",
+      "commit": "ddd1bade2cb5d5c945f5b347beca5c9db4d0fe36",
+      "totales": {
+        "total": 89,
+        "paso": 59,
+        "fallo": 10,
+        "inestable": 1,
+        "omitida": 19
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "reservas": {
+          "total": 19,
+          "paso": 0,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 19
+        },
+        "cobranzas": {
+          "total": 18,
+          "paso": 17,
+          "fallo": 0,
+          "inestable": 1,
+          "omitida": 0
+        },
+        "webadmin": {
+          "total": 16,
+          "paso": 13,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "six": {
+          "total": 8,
+          "paso": 5,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "seguridad": {
+          "total": 6,
+          "paso": 3,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 8,
+          "paso": 7,
+          "fallo": 1,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/164.json"
+    },
+    {
+      "corrida": 163,
+      "fecha": "2026-10-23T19:08:46.395Z",
+      "duracionMs": 385048.3200683594,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "ddd1bade2cb5d5c945f5b347beca5c9db4d0fe36",
+      "totales": {
+        "total": 16,
+        "paso": 16,
+        "fallo": 0,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/163.json"
+    },
+    {
+      "corrida": 162,
+      "fecha": "2026-10-23T18:42:37.980Z",
+      "duracionMs": 358176.003,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "f588f8c6ccd2ff789d71f6e72fc19eb47e5e7ea7",
+      "totales": {
+        "total": 16,
+        "paso": 16,
+        "fallo": 0,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/162.json"
+    },
+    {
+      "corrida": 161,
+      "fecha": "2026-10-23T18:11:04.177Z",
+      "duracionMs": 454922.777,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "e99a1f15dc02c00188f48f65eb0c8049b36d6665",
+      "totales": {
+        "total": 16,
+        "paso": 15,
+        "fallo": 0,
+        "inestable": 1,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 13,
+          "fallo": 0,
+          "inestable": 1,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/161.json"
+    },
+    {
+      "corrida": 160,
+      "fecha": "2026-10-23T18:02:20.790Z",
+      "duracionMs": 384569.597,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "2353e31c74f2a8f81a792a14b35f8ff73f3c8e5e",
+      "totales": {
+        "total": 16,
+        "paso": 16,
+        "fallo": 0,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/160.json"
+    },
+    {
+      "corrida": 159,
+      "fecha": "2026-10-23T17:41:08.816Z",
+      "duracionMs": 383238.76,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "d9bf0ffda23fee1f1a8aca6b9e1e668ec87690bc",
+      "totales": {
+        "total": 16,
+        "paso": 16,
+        "fallo": 0,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/159.json"
+    },
+    {
+      "corrida": 158,
+      "fecha": "2026-10-23T16:11:40.575Z",
+      "duracionMs": 325555.783,
+      "estado": "con-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "d0af7dd0d0bc2fc510f610ae284db00c9145abe4",
+      "totales": {
+        "total": 16,
+        "paso": 15,
+        "fallo": 1,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 13,
+          "fallo": 1,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/158.json"
+    },
+    {
+      "corrida": 157,
+      "fecha": "2026-10-23T15:00:10.627Z",
+      "duracionMs": 1089412.707,
+      "estado": "con-fallas",
+      "suite": "webadmin",
+      "filtro": null,
+      "evento": "workflow_dispatch",
+      "commit": "56a459b7221f4fd6df6fb9d1b98e2bc0b49b9df1",
+      "totales": {
+        "total": 18,
+        "paso": 15,
+        "fallo": 3,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "webadmin": {
+          "total": 16,
+          "paso": 13,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/157.json"
+    },
+    {
+      "corrida": 156,
+      "fecha": "2026-10-23T13:41:12.925Z",
+      "duracionMs": 382786.87700000004,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "56a459b7221f4fd6df6fb9d1b98e2bc0b49b9df1",
+      "totales": {
+        "total": 16,
+        "paso": 16,
+        "fallo": 0,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/156.json"
+    },
+    {
+      "corrida": 155,
+      "fecha": "2026-10-23T12:41:29.417Z",
+      "duracionMs": 3394819.4990000003,
+      "estado": "con-fallas",
+      "suite": "todas",
+      "filtro": null,
+      "evento": "workflow_dispatch",
+      "commit": "6c1314765810551ef6a2ace6223072ac85f89a9c",
+      "totales": {
+        "total": 85,
+        "paso": 69,
+        "fallo": 15,
+        "inestable": 1,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "reservas": {
+          "total": 19,
+          "paso": 14,
+          "fallo": 5,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "cobranzas": {
+          "total": 18,
+          "paso": 16,
+          "fallo": 1,
+          "inestable": 1,
+          "omitida": 0
+        },
+        "webadmin": {
+          "total": 16,
+          "paso": 13,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "six": {
+          "total": 8,
+          "paso": 5,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "seguridad": {
+          "total": 6,
+          "paso": 3,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 4,
+          "paso": 4,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/155.json"
+    },
+    {
+      "corrida": 154,
+      "fecha": "2026-10-23T12:32:45.591Z",
+      "duracionMs": 453610.822,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "6c1314765810551ef6a2ace6223072ac85f89a9c",
+      "totales": {
+        "total": 16,
+        "paso": 16,
+        "fallo": 0,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/154.json"
+    },
+    {
+      "corrida": 153,
+      "fecha": "2026-10-22T20:49:28.250Z",
+      "duracionMs": 414332.81700000004,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "33d88705eeddccb2ed466a855d77e43af1a563e7",
+      "totales": {
+        "total": 16,
+        "paso": 16,
+        "fallo": 0,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/153.json"
+    },
+    {
+      "corrida": 151,
+      "fecha": "2026-10-22T20:00:39.670Z",
+      "duracionMs": 328229.523,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "4e2bec15934a4bac1d231f351520c930120e0f5e",
+      "totales": {
+        "total": 16,
+        "paso": 16,
+        "fallo": 0,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/151.json"
+    },
+    {
+      "corrida": 150,
+      "fecha": "2026-10-22T19:52:54.425Z",
+      "duracionMs": 378437.775,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "346109c73e93758d7e8ce7756e48fcb6d27ff54d",
+      "totales": {
+        "total": 16,
+        "paso": 16,
+        "fallo": 0,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/150.json"
+    },
+    {
+      "corrida": 148,
+      "fecha": "2026-10-22T18:53:36.891Z",
+      "duracionMs": 3095294.499,
+      "estado": "con-fallas",
+      "suite": "todas",
+      "filtro": null,
+      "evento": "workflow_dispatch",
+      "commit": "7195c288ffed20e20c7c5e29b23de4af49167f00",
+      "totales": {
+        "total": 85,
+        "paso": 69,
+        "fallo": 16,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "reservas": {
+          "total": 19,
+          "paso": 14,
+          "fallo": 5,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "cobranzas": {
+          "total": 18,
+          "paso": 14,
+          "fallo": 4,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "webadmin": {
+          "total": 16,
+          "paso": 15,
+          "fallo": 1,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "six": {
+          "total": 8,
+          "paso": 5,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "seguridad": {
+          "total": 6,
+          "paso": 3,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 4,
+          "paso": 4,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/148.json"
+    },
+    {
+      "corrida": 146,
+      "fecha": "2026-10-22T17:24:22.093Z",
+      "duracionMs": 3192490.263,
+      "estado": "con-fallas",
+      "suite": "todas",
+      "filtro": null,
+      "evento": "workflow_dispatch",
+      "commit": "b9cf189b8e5286e22f64745283a8a6e847c05d29",
+      "totales": {
+        "total": 85,
+        "paso": 71,
+        "fallo": 14,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "reservas": {
+          "total": 19,
+          "paso": 14,
+          "fallo": 5,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "cobranzas": {
+          "total": 18,
+          "paso": 16,
+          "fallo": 2,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "webadmin": {
+          "total": 16,
+          "paso": 15,
+          "fallo": 1,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "six": {
+          "total": 8,
+          "paso": 5,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "seguridad": {
+          "total": 6,
+          "paso": 3,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 4,
+          "paso": 4,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/146.json"
+    },
+    {
+      "corrida": 144,
+      "fecha": "2026-10-22T15:58:50.298Z",
+      "duracionMs": 3323803.29,
+      "estado": "con-fallas",
+      "suite": "todas",
+      "filtro": null,
+      "evento": "workflow_dispatch",
+      "commit": "817229b0ece636e675fbede5ddfc16fdf4cb5e01",
+      "totales": {
+        "total": 85,
+        "paso": 67,
+        "fallo": 16,
+        "inestable": 0,
+        "omitida": 2
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 12,
+          "fallo": 1,
+          "inestable": 0,
+          "omitida": 1
+        },
+        "reservas": {
+          "total": 19,
+          "paso": 14,
+          "fallo": 5,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "cobranzas": {
+          "total": 18,
+          "paso": 16,
+          "fallo": 2,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "webadmin": {
+          "total": 16,
+          "paso": 13,
+          "fallo": 2,
+          "inestable": 0,
+          "omitida": 1
+        },
+        "six": {
+          "total": 8,
+          "paso": 5,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "seguridad": {
+          "total": 6,
+          "paso": 3,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 4,
+          "paso": 4,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/144.json"
+    },
+    {
+      "corrida": 143,
+      "fecha": "2026-10-22T15:35:37.523Z",
+      "duracionMs": 379501.749,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "817229b0ece636e675fbede5ddfc16fdf4cb5e01",
+      "totales": {
+        "total": 16,
+        "paso": 16,
+        "fallo": 0,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/143.json"
+    },
+    {
+      "corrida": 142,
+      "fecha": "2026-10-22T14:56:09.728Z",
+      "duracionMs": 372181.468,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "43dc8ab798de100e95d27a18ae33fa97b5893d8c",
+      "totales": {
+        "total": 16,
+        "paso": 16,
+        "fallo": 0,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/142.json"
+    },
+    {
+      "corrida": 141,
+      "fecha": "2026-10-22T13:50:56.663Z",
+      "duracionMs": 2822062.224,
+      "estado": "con-fallas",
+      "suite": "todas",
+      "filtro": null,
+      "evento": "workflow_dispatch",
+      "commit": "cb67bfa9c95d9d696a92abef67586e2119beef08",
+      "totales": {
+        "total": 85,
+        "paso": 70,
+        "fallo": 14,
+        "inestable": 0,
+        "omitida": 1
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "reservas": {
+          "total": 19,
+          "paso": 14,
+          "fallo": 5,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "cobranzas": {
+          "total": 18,
+          "paso": 16,
+          "fallo": 1,
+          "inestable": 0,
+          "omitida": 1
+        },
+        "webadmin": {
+          "total": 16,
+          "paso": 14,
+          "fallo": 2,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "six": {
+          "total": 8,
+          "paso": 5,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "seguridad": {
+          "total": 6,
+          "paso": 3,
+          "fallo": 3,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 4,
+          "paso": 4,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/141.json"
+    },
+    {
+      "corrida": 138,
+      "fecha": "2026-10-22T13:30:11.234Z",
+      "duracionMs": 333089.41,
+      "estado": "sin-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "3f22bc0fe51a55d16b7f9152e696cdee51f81f03",
+      "totales": {
+        "total": 16,
+        "paso": 16,
+        "fallo": 0,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 14,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/138.json"
+    },
+    {
+      "corrida": 135,
+      "fecha": "2026-10-22T12:51:48.759Z",
+      "duracionMs": 561783.498,
+      "estado": "con-fallas",
+      "suite": "bloque-a",
+      "filtro": null,
+      "evento": "push",
+      "commit": "e7b11f94073aa7f34bae43324538785bd6f36a4a",
+      "totales": {
+        "total": 16,
+        "paso": 15,
+        "fallo": 1,
+        "inestable": 0,
+        "omitida": 0
+      },
+      "areas": {
+        "tarifario": {
+          "total": 14,
+          "paso": 13,
+          "fallo": 1,
+          "inestable": 0,
+          "omitida": 0
+        },
+        "preparacion": {
+          "total": 2,
+          "paso": 2,
+          "fallo": 0,
+          "inestable": 0,
+          "omitida": 0
+        }
+      },
+      "detalle": "corridas/135.json"
+    }
+  ]
+}

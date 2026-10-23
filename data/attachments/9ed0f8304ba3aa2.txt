@@ -1,0 +1,2 @@
+hotel: pablo1 480 -> esperado 300.00 (markup 0.8), autoqa.markups 300
+servicio: pablo1 190 -> esperado 158.33 (markup 0.6), autoqa.markups 158

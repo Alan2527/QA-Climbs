@@ -1,0 +1,8 @@
+markup 0.6 -> 0.4
+
+OK   01/07/2026 - 31/12/2031 Recargo por idioma 10% | Regular | Mínimo 2 pasajeros | columna 4  ->  antes 79  /  esperado 116..120  /  obtenido 119
+OK   01/07/2026 - 31/12/2031 | Privado | 1 | columna 4  ->  antes 661  /  esperado 989..993  /  obtenido 991
+OK   01/07/2026 - 31/12/2031 | Privado | 2 | columna 4  ->  antes 347  /  esperado 518..522  /  obtenido 521
+OK   01/07/2026 - 31/12/2031 | Privado | 3 | columna 4  ->  antes 273  /  esperado 407..411  /  obtenido 410
+OK   01/07/2026 - 31/12/2031 | Privado | 4 - 6 | columna 4  ->  antes 213  /  esperado 317..321  /  obtenido 320
+OK   01/07/2026 - 31/12/2031 | Privado | 7 - 9 | columna 4  ->  antes 136  /  esperado 202..205  /  obtenido 204

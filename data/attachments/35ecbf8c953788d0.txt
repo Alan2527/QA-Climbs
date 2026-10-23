@@ -1,0 +1,4 @@
+Endpoint: /itinerary/userfiles/
+HTTP 200
+Tamano de la respuesta: 686 caracteres
+Trae el viaje del pasajero (reserva 30161): SI

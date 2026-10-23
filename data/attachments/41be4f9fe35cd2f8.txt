@@ -1,0 +1,11 @@
+[
+ {
+  "gestion": "Cobrar facturas",
+  "venta": 96,
+  "facturado": 96,
+  "cobrado": 0,
+  "faltaFacturar": 0,
+  "faltaCobrar": 96,
+  "moneda": "USD"
+ }
+]

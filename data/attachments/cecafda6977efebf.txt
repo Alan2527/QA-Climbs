@@ -1,0 +1,4 @@
+{
+ "cabecera": "King Deluxe - Edificio Posadas .. · Media Pensión Precio por noche por persona",
+ "observacion": "Observacion AUTO-QA 20261023201531: incluye traslado"
+}

@@ -1,0 +1,4 @@
+Movimientos sumados: 323
+Debe sumado: 287353900
+Haber sumado: 9461220
+Totales de la pantalla: 287.353.900 | 9.461.220 | 277.892.680 | -9.461.220 | 72.500 | 287.281.400 | 0

@@ -1,0 +1,7 @@
+{
+ "moneda": "USD",
+ "markupHoteles": "1",
+ "markupServicios": "1",
+ "tipoDeCambio": "1.000",
+ "tipoDeCambioDeCostos": "1.450"
+}

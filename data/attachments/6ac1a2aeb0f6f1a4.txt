@@ -1,0 +1,6 @@
+{
+ "Venta del file": "96",
+ "Facturado": "96",
+ "Cobrado": "96",
+ "Falta cobrar": "0 Al día"
+}

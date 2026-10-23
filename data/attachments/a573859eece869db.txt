@@ -1,0 +1,8 @@
+cotizacion 1000 -> 2000
+
+OK   01/07/2026 - 31/12/2031 Recargo por idioma 10% | Regular | Mínimo 2 pasajeros | columna 4  ->  antes 79  /  esperado 38..41  /  obtenido 40
+OK   01/07/2026 - 31/12/2031 | Privado | 1 | columna 4  ->  antes 661  /  esperado 329..332  /  obtenido 331
+OK   01/07/2026 - 31/12/2031 | Privado | 2 | columna 4  ->  antes 347  /  esperado 172..175  /  obtenido 174
+OK   01/07/2026 - 31/12/2031 | Privado | 3 | columna 4  ->  antes 273  /  esperado 135..138  /  obtenido 137
+OK   01/07/2026 - 31/12/2031 | Privado | 4 - 6 | columna 4  ->  antes 213  /  esperado 105..108  /  obtenido 107
+OK   01/07/2026 - 31/12/2031 | Privado | 7 - 9 | columna 4  ->  antes 136  /  esperado 67..69  /  obtenido 68

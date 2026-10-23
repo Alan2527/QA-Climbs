@@ -1,0 +1,1 @@
+Revisá los datos de los pasajeros: hay campos incompletos o con errores, marcados en rojo.

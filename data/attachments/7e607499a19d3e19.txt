@@ -1,0 +1,7 @@
+File: AMV-AR-30430 (id 33648)
+Costo del item: ARS 94600
+Venta del item: USD 96
+Factura de proveedor: 23200325 por ARS 94600
+Orden de pago: OP0000038275
+Carta de cobranza: CC00010-00058534 por 96
+Orden de cobro: OC0000020275

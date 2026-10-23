@@ -1,0 +1,8 @@
+{
+  "moneda": "ARS",
+  "ordenTotal": "37.840",
+  "ordenPendiente": "37.840",
+  "facturaTotal": "94.600",
+  "facturaPendiente": "94.600",
+  "montoPropuesto": ""
+}

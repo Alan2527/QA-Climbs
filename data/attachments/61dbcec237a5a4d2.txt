@@ -1,0 +1,6 @@
+OK   | Regular | Mínimo 2 pasajeros | columna 4  ->  antes 95  /  esperado 103..106  /  obtenido 105
+OK   | Privado | 1 | columna 4  ->  antes 793  /  esperado 871..874  /  obtenido 872
+OK   | Privado | 2 | columna 4  ->  antes 417  /  esperado 457..460  /  obtenido 458
+OK   | Privado | 3 | columna 4  ->  antes 328  /  esperado 359..362  /  obtenido 361
+OK   | Privado | 4 - 6 | columna 4  ->  antes 256  /  esperado 280..283  /  obtenido 281
+OK   | Privado | 7 - 9 | columna 4  ->  antes 164  /  esperado 179..182  /  obtenido 180

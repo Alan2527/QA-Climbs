@@ -1,0 +1,6 @@
+{
+ "Costo del file": "63,067",
+ "Facturado": "63,067",
+ "Pagado": "63,067",
+ "Falta pagar": "0 Al día"
+}

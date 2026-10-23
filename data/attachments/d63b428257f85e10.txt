@@ -1,0 +1,6 @@
+Cabina 1 (Desde USD 5.408 por persona): 40 salidas con importe
+Cabina 2 (Desde USD 5.078 por persona): 40 salidas con importe
+Cabina 3 (Desde USD 4.283 por persona): 40 salidas con importe
+Cabina 4 (Desde USD 3.968 por persona): 40 salidas con importe
+Cabina 5 (Desde USD 3.653 por persona): 40 salidas con importe
+Cabina 6 (Desde USD 2.933 por persona): 40 salidas con importe

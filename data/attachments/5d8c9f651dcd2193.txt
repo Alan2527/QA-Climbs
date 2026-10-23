@@ -1,0 +1,8 @@
+{
+  "moneda": "ARS",
+  "inicial": "0",
+  "ingreso": "0",
+  "salida": "-1.324.400",
+  "balance": "-1.324.400",
+  "final": "-1.324.400"
+}

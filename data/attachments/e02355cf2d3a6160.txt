@@ -1,0 +1,5 @@
+PasajeroUno | RegresionCACHCG | QA232027261 | Argentina | 01/03/1990 | -- | ADL
+PasajeroDos | RegresionCACHCG | QA232027262 | Argentina | 02/03/1990 | -- | ADL
+PasajeroTres | RegresionCACHCG | QA232027263 | Argentina | 03/03/1990 | -- | ADL
+PasajeroCuatro | RegresionCACHCG | QA232027264 | Argentina | 04/03/1990 | -- | ADL
+PasajeroCinco | RegresionCACHCG | QA232027265 | Argentina | 26/10/2018 | -- | CHD

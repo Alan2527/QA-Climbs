@@ -1,0 +1,9 @@
+ficha (precio unitario)      USD 95
+ficha (total)                USD 190
+carrito (total del item)     USD 190
+historial (total)            USD 96
+bandeja (columna V)          USD 96
+detalle (Venta del item)     USD 96
+detalle (V. Markup del item) USD 190
+file (Venta del item)        USD 96
+file (Venta en Totales)      USD 96

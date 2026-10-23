@@ -1,0 +1,1 @@
+{"ofrecida":false,"tarifa":null,"cupo":10,"mes":"Noviembre 2026","clase":"sin celda"}

@@ -1,0 +1,4 @@
+Orden: OP0000038277 (id 38277)
+Total: ARS 94600,00
+Factura a imputar despues: 0001-23201403
+File: AMV-AR-30436

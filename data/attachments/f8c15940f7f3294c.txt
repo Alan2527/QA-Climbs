@@ -1,0 +1,1 @@
+{"manual":false,"general":1000,"oportunidad":1000}

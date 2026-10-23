@@ -1,0 +1,3 @@
+Comprobante: 0001-23201300 (id 89207)
+Total: ARS 94600,00
+File: AMV-AR-30435

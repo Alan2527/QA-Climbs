@@ -1,0 +1,3 @@
+Medio origen: AUTO-QA NO TOCAR - CAJA USD
+Sucursal origen: Argentina
+Medio destino: QA CAJA USD COLOMBIA

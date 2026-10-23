@@ -1,0 +1,4 @@
+Movimientos sumados: 120
+Debe sumado: 8372
+Haber sumado: 7732
+Totales de la pantalla: 8.372 | 7.732 | 640 | -532 | 0 | 0 | 1.172

@@ -1,0 +1,4 @@
+Endpoint: /passenger/getroomingbyfileid/?fileid=33379
+HTTP 200
+Tamano de la respuesta: 658 caracteres
+Trae los pasajeros del file (nombre "PasajeroSix"): SI

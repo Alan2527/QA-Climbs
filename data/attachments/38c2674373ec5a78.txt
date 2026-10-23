@@ -1,0 +1,2 @@
+origen: {"copiar":true,"borrar":true,"editar":true,"ver":false}
+destino: {"copiar":false,"borrar":false,"editar":false,"ver":false}

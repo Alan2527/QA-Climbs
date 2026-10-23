@@ -1,0 +1,3 @@
+antes:   {"inicial":0,"ingreso":0,"salida":-1513600,"balance":-1513600,"final":-1513600}
+despues: {"inicial":0,"ingreso":15000,"salida":-1513600,"balance":-1498600,"final":-1498600}
+efecto esperado: entra 15000, sale 0

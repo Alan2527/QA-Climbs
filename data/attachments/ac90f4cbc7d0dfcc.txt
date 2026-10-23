@@ -1,0 +1,6 @@
+{
+ "estado": "80",
+ "estadoTexto": "FACTURADO",
+ "vencimiento": "",
+ "checkin": "30/10/2026"
+}

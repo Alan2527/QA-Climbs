@@ -1,0 +1,18 @@
+{
+ "orden": "2",
+ "detalle": "TIG/DEL AUTO-QA NO TOCAR - Tigre y Delta",
+ "tarifa": "REGULAR",
+ "checkin": "30/10/2026",
+ "checkout": "-",
+ "rooming": "1-2",
+ "pax": "2",
+ "costo": "94600",
+ "venta": "96",
+ "monedaDeVenta": "USD",
+ "monedaDeCostoValor": "20",
+ "monedaDeCostoTexto": "ARS",
+ "opcionesDeMoneda": [
+  "10=USD",
+  "20=ARS"
+ ]
+}

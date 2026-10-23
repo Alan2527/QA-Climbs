@@ -1,0 +1,38 @@
+[al abrir]
+  1 City Tour: Regular 83 / Privado 365
+  4 Fiesta Gaucha Estancia Santa Susana: Regular 523 / Privado -
+  5 AUTO-QA NO TOCAR - Tigre y Delta: Regular 120 / Privado 523
+  16 Buenos Aires y sus personajes: Regular 3575 / Privado -
+  20 Full Day Montevideo - Privado: Regular - / Privado 1118
+  21 Full Day Colonia - Privado: Regular - / Privado 745
+  107 La Plata: Regular 365 / Privado -
+  110 Delta Premium: Regular 220 / Privado 648
+  147 City Tour Full Day: Regular 468 / Privado 845
+  149 Parque de la Costa: Regular 198 / Privado -
+[pagina 2]
+  158 El Viejo Almacén: Regular 160 / Privado 165
+  159 Gala Tango: Regular 323 / Privado -
+  160 Rojo Tango: Regular - / Privado 593
+  162 La Ventana: Regular 185 / Privado -
+  163 AUTO-QA NO TOCAR - Café de los Angelitos: Regular 173 / Privado -
+  164 Tango Porteño: Regular 198 / Privado -
+  167 Temaikén - Bioparque: Regular 235 / Privado -
+  1180 Hora adicional a disposición / espera: Regular - / Privado 50
+  1223 AUTO-QA NO TOCAR - Aeropuerto Internacional / Hotel céntrico con servicio de guía: Regular - / Privado 3
+  1224 Hotel céntrico/ Aeropuerto Internacional con servicio de guía: Regular - / Privado 95
+[vuelta a la pagina 1]
+  1 City Tour: Regular 83 / Privado 365
+  4 Fiesta Gaucha Estancia Santa Susana: Regular 523 / Privado -
+  5 AUTO-QA NO TOCAR - Tigre y Delta: Regular 120 / Privado 523
+  16 Buenos Aires y sus personajes: Regular 3575 / Privado -
+  20 Full Day Montevideo - Privado: Regular - / Privado 1118
+  21 Full Day Colonia - Privado: Regular - / Privado 745
+  107 La Plata: Regular 365 / Privado -
+  110 Delta Premium: Regular 220 / Privado 648
+  147 City Tour Full Day: Regular 468 / Privado 845
+  149 Parque de la Costa: Regular 198 / Privado -
+[busqueda "Tigre y Delta"]
+  5 AUTO-QA NO TOCAR - Tigre y Delta: Regular 120 / Privado 523
+  1245 Tigre y Delta con Almuerzo en Centro de la Ciudad: Regular 220 / Privado 705
+  6390 Tigre y Delta con brunch en Tigre: Regular 358 / Privado -
+  7643 Tigre y Delta con almuerzo en la Isla: Regular 440 / Privado -

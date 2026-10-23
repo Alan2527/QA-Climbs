@@ -1,0 +1,1 @@
+{"markup":0.5,"tipoDeCambio":1234.56}

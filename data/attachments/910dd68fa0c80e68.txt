@@ -1,0 +1,1 @@
+Advertencia No es posible cancelar el File ni modificar el Cliente, ya que existen los siguientes documentos relacionados: ● Carta de cobranza / FCI ● Factura de Proveedores ! Not valid! Ok

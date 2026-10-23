@@ -1,0 +1,13 @@
+{
+ "id": "54806",
+ "codigo": "CC00054806",
+ "referencia": "AUTO-QA COT 20261023202124",
+ "pasajero": "Pasajero Cotizacion 202124",
+ "marcas": [
+  "CC00054806",
+  "AUTO-QA COT 20261023202124",
+  "Pasajero Cotizacion 202124"
+ ]
+}
+
+PDF propio: HTTP 200, marcas visibles: CC00054806 | AUTO-QA COT 20261023202124 | Pasajero Cotizacion 202124

@@ -1,0 +1,8 @@
+{
+  "moneda": "ARS",
+  "facturaTotal": "94.600",
+  "facturaPendiente": "94.600",
+  "servicioTotal": "94.600",
+  "servicioPendiente": "94.600",
+  "montoPropuesto": ""
+}

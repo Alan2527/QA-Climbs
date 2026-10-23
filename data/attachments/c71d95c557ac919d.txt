@@ -1,0 +1,3 @@
+Factura 0001-23200010: ARS 94600,00
+Primera orden (parcial): 37840,00
+Resto de la factura: 56760,00

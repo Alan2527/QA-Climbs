@@ -1,0 +1,7 @@
+{
+ "hotelFicha": 300,
+ "servicioFicha": 158,
+ "hotelLinea": 300,
+ "servicioLinea": 158,
+ "total": 458
+}

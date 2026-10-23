@@ -1,0 +1,1 @@
+POST https://qa.bo.amv.travel/api/filewebservice/priceservice -> 200

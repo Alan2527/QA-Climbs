@@ -1,0 +1,3 @@
+Español: ficha USD 274 -> carrito USD 276
+Inglés: ficha USD 304 -> carrito USD 306
+Total del carrito: USD 582

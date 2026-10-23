@@ -1,0 +1,14 @@
+ID 9886
+{
+  "agencia": "6334",
+  "ejecutivo": "15813",
+  "sucursal": "1",
+  "itinerario": "5059",
+  "referencia": "AUTO-QA 20261023200626",
+  "titulo": "AUTO-QA NO TOCAR - Cotizacion 20261023200626",
+  "pax": 2,
+  "sgl": 0,
+  "dbl": 1,
+  "tpl": 0,
+  "inicio": "22/11/2026"
+}

@@ -1,0 +1,18 @@
+{
+  "proveedor": "GRUPO SUMMA",
+  "razonSocial": "GRUPO SUMMA SRL",
+  "documento": "30-71422246-1",
+  "medioDePago": "Efectivo",
+  "tipo": "Factura A",
+  "sucursal": "Argentina",
+  "moneda": "ARS",
+  "monedaPorDefecto": "ARS",
+  "puntoDeVenta": "0001",
+  "numero": "23200639",
+  "plazoDePago": 30,
+  "comentario": "Factura de regresion automatica 20261023200639. No operar.",
+  "comentarioDeLaImputacion": "AUTO-QA 23200639",
+  "total": "94600,00",
+  "fecha": "23/10/2026",
+  "file": "AMV-AR-30433"
+}

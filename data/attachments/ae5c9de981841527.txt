@@ -1,0 +1,10 @@
+1 City Tour: Regular - / Privado - / aviso: Este servicio no opera el 03/11/2026. Opera lunes, de miércoles a domingo, de noviembre a septiembre. Test
+147 City Tour Full Day: Regular 374 / Privado 676 / aviso: (ninguno)
+1243 City Tour con Almuerzo: Regular - / Privado 512 / aviso: (ninguno)
+1244 City Tour Premium: Regular - / Privado - / aviso: Este servicio no opera el 03/11/2026. Opera todos los días, de agosto a octubre.
+5068 City Tour con visita al Teatro Colón: Regular - / Privado 426 / aviso: (ninguno)
+6738 City Tour con Degustación en Che Malbec: Regular - / Privado 502480 / aviso: (ninguno)
+6998 City Tour Platinum: Regular 132 / Privado - / aviso: (ninguno)
+7167 City Tour en italiano: Regular 128 / Privado 314 / aviso: (ninguno)
+7609 City Tour con Palacio Barolo: Regular - / Privado 522 / aviso: (ninguno)
+7725 City Tour con Mirador Obelisco: Regular - / Privado 466 / aviso: (ninguno)

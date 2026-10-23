@@ -1,0 +1,5 @@
+File: AMV-AR-30438
+Factura de proveedor: 0001-23201550
+Orden de pago: OP0000038278 (id 38278)
+Caja: AUTO-QA NO TOCAR - CAJA ARS
+Pagado: ARS 94600,00

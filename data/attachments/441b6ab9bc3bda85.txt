@@ -1,0 +1,11 @@
+[
+ {
+  "gestion": "Facturar ítems",
+  "venta": 96,
+  "facturado": 0,
+  "cobrado": 0,
+  "faltaFacturar": 96,
+  "faltaCobrar": 96,
+  "moneda": "USD"
+ }
+]

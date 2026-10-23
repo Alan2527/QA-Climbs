@@ -1,0 +1,4 @@
+Cliente: MULTIVIAJES ARGENTINA SRL (id 37)
+Titulo de la pantalla: Cta. Corriente del Cliente Adm. de Clientes AMV - MULTIVIAJES ARGENTINA (MULTIVIAJES ARGENTINA SRL) Plazo de pago: Manual, ajuste: -15 días - Límite de crédito: 0
+Vencimiento desde: 12/10/2026 (vencimiento de la carta: 2026-10-15)
+Movimientos en pantalla: 120

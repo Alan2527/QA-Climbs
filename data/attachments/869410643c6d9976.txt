@@ -1,0 +1,2 @@
+PasajeroUno | RegresionCACFFA | QA232025501 | Argentina | 01/03/1990 | +54 | ADL
+PasajeroDos | RegresionCACFFA | QA232025502 | Argentina | 02/03/1990 | +54 | ADL

@@ -1,0 +1,1 @@
+{"anulada":false,"estado":"PENDIENTE","pendiente":"ARS 0"}
