@@ -94,14 +94,34 @@ export const SITIOS = [
         nombre: `${c.nombre} · ${t.nombre}`,
         url: `${c[tipo].replace(/\/$/, '')}${t.ruta}`,
         contiene: t.contiene,
+        // El grupo junta las direcciones de un mismo cliente: si caen varias del mismo
+        // grupo es una caida real suya; si caen de grupos distintos a la vez, es la red.
+        grupo: c.id,
         activo: c.activo !== false,
       })),
   ),
-  ...OTROS.map((s) => ({ activo: true, ...s })),
+  ...OTROS.map((s) => ({ activo: true, grupo: s.id, ...s })),
 ];
 
 /** Fallas seguidas antes de avisar: una sola puede ser un corte de red del lado de Cloudflare. */
 export const FALLAS_PARA_AVISAR = 2;
+
+/**
+ * Intentos por chequeo antes de dar un sitio por caido. Un parpadeo momentaneo de red
+ * (un 522 o un timeout suelto) se absorbe reintentando en el acto, sin avisar.
+ */
+export const INTENTOS_POR_CHEQUEO = 2;
+
+/** Espera entre intentos de un mismo chequeo. */
+export const ESPERA_REINTENTO_MS = 3000;
+
+/**
+ * Cuantos grupos (clientes/sitios) distintos tienen que caer en la misma pasada para
+ * sospechar de la red del monitoreo y no de produccion. Si caen varias direcciones de
+ * UN mismo cliente es una caida real suya; si caen de 3+ grupos no relacionados a la
+ * vez, casi siempre es el camino de red del Worker, no que se cayo todo junto.
+ */
+export const UMBRAL_GRUPOS_CAIDA_MASIVA = 3;
 
 /** Cada cuanto se repite el aviso mientras un sitio siga caido. */
 export const REPETIR_AVISO_MIN = 30;

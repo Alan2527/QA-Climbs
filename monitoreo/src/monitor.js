@@ -2,7 +2,12 @@
  * Logica del monitoreo, sin nada de Cloudflare: se prueba en Node con un fetch
  * y un reloj falsos (test/monitor.test.mjs).
  */
-import { FALLAS_PARA_AVISAR, REPETIR_AVISO_MIN, TIMEOUT_MS, MAX_BYTES_A_LEER } from './sitios.js';
+import {
+  FALLAS_PARA_AVISAR, REPETIR_AVISO_MIN, TIMEOUT_MS, MAX_BYTES_A_LEER,
+  INTENTOS_POR_CHEQUEO, ESPERA_REINTENTO_MS, UMBRAL_GRUPOS_CAIDA_MASIVA,
+} from './sitios.js';
+
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * Busca un texto en el cuerpo de la respuesta leyendolo de a partes, y corta apenas
@@ -31,8 +36,23 @@ export async function cuerpoContiene(respuesta, texto, max = MAX_BYTES_A_LEER) {
   }
 }
 
-/** Consulta un sitio. Nunca tira: cualquier error es un sitio caido con su motivo. */
-export async function chequear(sitio, fetchImpl = fetch) {
+/**
+ * Consulta un sitio y, si falla, reintenta en el acto antes de darlo por caido: un
+ * parpadeo de red (un 522 o un timeout suelto) no cuenta. Devuelve el ultimo resultado
+ * con cuantos intentos hicieron falta. Nunca tira. `dormir` se inyecta para los tests.
+ */
+export async function chequear(sitio, fetchImpl = fetch, dormir = esperar) {
+  let ultimo;
+  for (let intento = 1; intento <= INTENTOS_POR_CHEQUEO; intento++) {
+    ultimo = await unChequeo(sitio, fetchImpl);
+    if (ultimo.ok) return { ...ultimo, intentos: intento };
+    if (intento < INTENTOS_POR_CHEQUEO) await dormir(ESPERA_REINTENTO_MS);
+  }
+  return { ...ultimo, intentos: INTENTOS_POR_CHEQUEO };
+}
+
+/** Un solo intento contra el sitio. Nunca tira: cualquier error es un caido con su motivo. */
+async function unChequeo(sitio, fetchImpl = fetch) {
   const inicio = Date.now();
   try {
     const r = await fetchImpl(sitio.url, {
@@ -97,6 +117,24 @@ export function evaluar(estadoAnterior, resultados, ahora) {
 }
 
 /**
+ * Caida masiva cruzada: en una misma pasada caen sitios de muchos grupos (clientes)
+ * distintos. Eso casi siempre es la red del monitoreo —el Worker no llega a ningun
+ * lado por un rato— y no que se cayeran a la vez servidores sin relacion entre si. En
+ * cambio, si caen varias direcciones de UN solo cliente, es una caida real suya y no
+ * entra aca. Devuelve cuantos grupos y cuantos sitios cayeron, para el aviso suave.
+ */
+export function caidaMasiva(resultados, sitios, umbral = UMBRAL_GRUPOS_CAIDA_MASIVA) {
+  const grupos = new Set();
+  let sitiosCaidos = 0;
+  for (const [id, res] of Object.entries(resultados)) {
+    if (res.ok) continue;
+    sitiosCaidos++;
+    grupos.add(sitios.find((s) => s.id === id)?.grupo ?? id);
+  }
+  return { masiva: grupos.size >= umbral, grupos: grupos.size, sitiosCaidos };
+}
+
+/**
  * Lo que se guarda en KV. El plan gratis permite 1.000 escrituras por dia: se
  * escribe solo si cambio algo mas que la hora y la demora del chequeo, asi que
  * con todo arriba no se escribe nunca.
@@ -157,6 +195,22 @@ export function mensajeDeAvisos(avisos, sitios, ahora) {
   });
   const titulo = hayCaidas ? 'Producción: hay sitios caídos' : 'Producción: todo volvió a responder';
   return tarjetaTeams(titulo, hayCaidas ? 'Attention' : 'Good', lineas, `Monitoreo AMV · ${hora(ahora)}`);
+}
+
+/**
+ * Aviso suave de caida masiva: en vez de N "se cayo" (que asusta y suele ser falso),
+ * un unico mensaje que dice que probablemente sea la red del monitoreo, no produccion.
+ */
+export function mensajeMasivo(grupos, sitiosCaidos, ahora) {
+  return tarjetaTeams(
+    '⚠️ Posible problema de red del monitoreo',
+    'Warning',
+    [
+      `${sitiosCaidos} sitios de ${grupos} clientes distintos no respondieron a la vez.`,
+      'Cuando caen muchos sitios no relacionados al mismo tiempo, casi siempre es la red del monitoreo (Cloudflare) y no una caida real de produccion. Si dudás, verificá a mano.',
+    ],
+    `Monitoreo AMV · ${hora(ahora)}`,
+  );
 }
 
 /** Resumen diario: confirma que el monitoreo sigue vivo. Si un dia no llega, el que se cayo es el vigilante. */

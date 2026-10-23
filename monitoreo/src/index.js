@@ -12,8 +12,8 @@
  * Secretos (wrangler secret put): TEAMS_WEBHOOK y CLAVE.
  * KV: ESTADO, con una sola clave "estado".
  */
-import { SITIOS } from './sitios.js';
-import { chequear, evaluar, cambioRelevante, mensajeDeAvisos, mensajeDiario, tarjetaTeams, hora } from './monitor.js';
+import { SITIOS, REPETIR_AVISO_MIN } from './sitios.js';
+import { chequear, evaluar, caidaMasiva, cambioRelevante, mensajeDeAvisos, mensajeMasivo, mensajeDiario, tarjetaTeams, hora } from './monitor.js';
 
 const CRON_DIARIO = '0 12 * * *'; // 9:00 en Argentina
 
@@ -37,6 +37,21 @@ async function pasada(env) {
   const activos = SITIOS.filter((s) => s.activo);
   const resultados = Object.fromEntries(await Promise.all(activos.map(async (s) => [s.id, await chequear(s)])));
   const anterior = await leerEstado(env);
+
+  // Si cae de todo a la vez (muchos clientes no relacionados), es la red del monitoreo,
+  // no produccion: no se escala ningun sitio ni se cuenta su falla. Se manda un unico
+  // aviso suave, y no mas de uno cada REPETIR_AVISO_MIN para no repetir el ruido.
+  const { masiva, grupos, sitiosCaidos } = caidaMasiva(resultados, activos);
+  if (masiva) {
+    const prevAviso = anterior._masivo?.ultimoAviso ?? 0;
+    if (ahora - prevAviso >= REPETIR_AVISO_MIN * 60000) {
+      await avisarTeams(env, mensajeMasivo(grupos, sitiosCaidos, ahora));
+      await env.ESTADO.put('estado', JSON.stringify({ ...anterior, _masivo: { ultimoAviso: ahora } }));
+    }
+    console.log(JSON.stringify({ ahora, masiva: true, grupos, sitiosCaidos }));
+    return;
+  }
+
   const { estado, avisos } = evaluar(anterior, resultados, ahora);
 
   const mensaje = mensajeDeAvisos(avisos, SITIOS, ahora);

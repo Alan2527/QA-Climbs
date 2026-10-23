@@ -1,8 +1,11 @@
 // node --test monitoreo/test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chequear, cuerpoContiene, evaluar, cambioRelevante, mensajeDeAvisos, mensajeDiario, duracion } from '../src/monitor.js';
+import { chequear, cuerpoContiene, evaluar, caidaMasiva, cambioRelevante, mensajeDeAvisos, mensajeDiario, duracion } from '../src/monitor.js';
 import { SITIOS } from '../src/sitios.js';
+
+/** En los tests no se espera de verdad entre reintentos. */
+const noDormir = () => {};
 
 const MIN = 60000;
 const T0 = Date.UTC(2026, 8, 21, 13, 0);
@@ -58,12 +61,50 @@ test('con todo arriba no se escribe en KV', () => {
 test('chequear: 200 con el login, 200 sin el login, 500, error de red y timeout', async () => {
   const sitio = { url: 'https://x/', contiene: 'txtPassword' };
   const resp = (status, body) => async () => new Response(body, { status });
-  assert.equal((await chequear(sitio, resp(200, '<input id="txtPassword">'))).ok, true);
-  assert.match((await chequear(sitio, resp(200, 'Sitio en mantenimiento'))).motivo, /sin el contenido esperado/);
-  assert.match((await chequear(sitio, resp(500, 'error'))).motivo, /respondió 500/);
-  assert.match((await chequear(sitio, async () => { throw new TypeError('fetch failed'); })).motivo, /no se pudo conectar/);
+  assert.equal((await chequear(sitio, resp(200, '<input id="txtPassword">'), noDormir)).ok, true);
+  assert.match((await chequear(sitio, resp(200, 'Sitio en mantenimiento'), noDormir)).motivo, /sin el contenido esperado/);
+  assert.match((await chequear(sitio, resp(500, 'error'), noDormir)).motivo, /respondió 500/);
+  assert.match((await chequear(sitio, async () => { throw new TypeError('fetch failed'); }, noDormir)).motivo, /no se pudo conectar/);
   const timeout = async () => { const e = new Error('t'); e.name = 'TimeoutError'; throw e; };
-  assert.match((await chequear(sitio, timeout)).motivo, /no respondió en 30 s/);
+  assert.match((await chequear(sitio, timeout, noDormir)).motivo, /no respondió en 30 s/);
+});
+
+test('chequear: un parpadeo suelto se reintenta y no cuenta como caido', async () => {
+  const sitio = { url: 'https://x/', contiene: 'txtPassword' };
+  let llamadas = 0;
+  // Falla el primer intento (522) y responde bien el segundo.
+  const fetchImpl = async () => {
+    llamadas++;
+    return llamadas === 1 ? new Response('error', { status: 522 }) : new Response('<input id="txtPassword">');
+  };
+  const r = await chequear(sitio, fetchImpl, noDormir);
+  assert.equal(r.ok, true);
+  assert.equal(r.intentos, 2);
+  assert.equal(llamadas, 2);
+});
+
+test('chequear: si falla en todos los intentos, queda caido', async () => {
+  const sitio = { url: 'https://x/', contiene: 'txtPassword' };
+  let llamadas = 0;
+  const r = await chequear(sitio, async () => { llamadas++; return new Response('error', { status: 522 }); }, noDormir);
+  assert.equal(r.ok, false);
+  assert.equal(r.intentos, 2);
+  assert.equal(llamadas, 2);
+});
+
+test('caida masiva: muchos clientes distintos a la vez es la red, un solo cliente es real', () => {
+  const sitios = SITIOS.filter((s) => s.activo);
+  const caido = { ok: false, motivo: 'respondió 522' };
+  const arriba = { ok: true, status: 200, ms: 500 };
+  // Tres clientes distintos caen a la vez -> sospecha de la red del monitoreo.
+  const cruzada = caidaMasiva({ 'amv-portal': caido, 'gps-sherpa': caido, 'climbs-web': caido }, sitios);
+  assert.equal(cruzada.masiva, true);
+  assert.equal(cruzada.grupos, 3);
+  assert.equal(cruzada.sitiosCaidos, 3);
+  // Varias direcciones de un mismo cliente -> caida real suya, no masiva.
+  const unCliente = caidaMasiva({ 'gps-portal': caido, 'gps-sherpa': caido, 'gps-api': caido, 'amv-portal': arriba }, sitios);
+  assert.equal(unCliente.masiva, false);
+  assert.equal(unCliente.grupos, 1);
 });
 
 test('mensajes de Teams', () => {
