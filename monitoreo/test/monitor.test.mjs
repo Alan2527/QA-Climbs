@@ -69,7 +69,7 @@ test('chequear: 200 con el login, 200 sin el login, 500, error de red y timeout'
   assert.match((await chequear(sitio, resp(500, 'error'), noDormir)).motivo, /respondió 500/);
   assert.match((await chequear(sitio, async () => { throw new TypeError('fetch failed'); }, noDormir)).motivo, /no se pudo conectar/);
   const timeout = async () => { const e = new Error('t'); e.name = 'TimeoutError'; throw e; };
-  assert.match((await chequear(sitio, timeout, noDormir)).motivo, /no respondió en 30 s/);
+  assert.match((await chequear(sitio, timeout, noDormir)).motivo, /no respondió en 10 s, también al reintentar/);
 });
 
 test('chequear: un parpadeo suelto se reintenta y no cuenta como caido', async () => {
@@ -86,12 +86,24 @@ test('chequear: un parpadeo suelto se reintenta y no cuenta como caido', async (
   assert.equal(llamadas, 2);
 });
 
-test('chequear: un timeout no se reintenta (ya espero 30 s)', async () => {
+test('chequear: un pedido que quedo colgado se reintenta una vez y si entra no cuenta', async () => {
+  const sitio = { url: 'https://x/', contiene: 'txtPassword' };
   let llamadas = 0;
-  const timeout = async () => { llamadas++; const e = new Error('t'); e.name = 'TimeoutError'; throw e; };
-  const r = await chequear({ url: 'https://x/', contiene: 'txtPassword' }, timeout, noDormir);
-  assert.equal(r.ok, false);
-  assert.equal(llamadas, 1);
+  const colgadoUnaVez = async () => {
+    llamadas++;
+    if (llamadas === 1) { const e = new Error('t'); e.name = 'TimeoutError'; throw e; }
+    return new Response('<input id="txtPassword">');
+  };
+  const r = await chequear(sitio, colgadoUnaVez, noDormir);
+  assert.equal(r.ok, true);
+  assert.equal(r.intentos, 2);
+  // Si el servidor esta caido, falla las dos veces y queda caido.
+  let veces = 0;
+  const siempre = async () => { veces++; const e = new Error('t'); e.name = 'TimeoutError'; throw e; };
+  const caido = await chequear(sitio, siempre, noDormir);
+  assert.equal(caido.ok, false);
+  assert.equal(veces, 2);
+  assert.match(caido.motivo, /no respondió en 10 s, también al reintentar/);
 });
 
 test('chequear: si falla en todos los intentos, queda caido', async () => {

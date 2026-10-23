@@ -113,6 +113,14 @@ export const INTENTOS_POR_CHEQUEO = 2;
 export const ESPERA_REINTENTO_MS = 3000;
 
 /**
+ * Limite del reintento. Desde el 23/10/2026 el servidor deja sin respuesta, al azar, mas o
+ * menos 1 de cada 4 pedidos que le llegan desde Cloudflare (desde afuera responde todos en
+ * ~1 s): un timeout suelto se reintenta, pero con un limite corto para no alargar la pasada.
+ * Un sitio sano responde en menos de 2 s; uno caido falla las dos veces.
+ */
+export const TIMEOUT_REINTENTO_MS = 10_000;
+
+/**
  * Sitios de control, fuera del servidor de produccion. Todos los sitios vigilados viven en
  * el mismo servidor (104.215.85.118, verificado el 23/10/2026), asi que muchos caidos a la
  * vez NO prueban que el problema sea del monitoreo. Lo que lo prueba es que tampoco llegue
@@ -133,7 +141,8 @@ export const PASADAS_SIN_SALIDA_PARA_AVISAR = 6;
 /**
  * Cuantos sitios se consultan a la vez. Todos estan en el mismo servidor: consultarlos de
  * a pocos evita mandarle una rafaga de pedidos cada 5 minutos. Con 18 sitios son 3 tandas:
- * si el servidor no responde, la pasada dura unos 2 minutos y no se pisa con la siguiente.
+ * si el servidor no responde (30 s + 3 s + 10 s por sitio), la pasada dura unos 2 minutos y
+ * no se pisa con la siguiente.
  */
 export const CONCURRENCIA = 6;
 

@@ -16,6 +16,10 @@ si dura 30 minutos, avisa una sola vez que el monitoreo está ciego. Si el contr
 una caída es real y se avisa a la segunda falla seguida. Los sitios se consultan de a 6 para
 no mandarle una ráfaga al servidor, y si caen 4 o más juntos van en una sola línea.
 
+Desde el 23/10/2026 el servidor deja sin respuesta, al azar, más o menos 1 de cada 4 pedidos
+que le llegan desde Cloudflare (desde afuera responde todos en ~1 s; causa sin confirmar). Por
+eso cada falla se reintenta una vez, con un límite de 10 s, antes de contarla.
+
 Qué se vigila y con qué criterio: `src/sitios.js`. El portal se chequea en `/login.aspx` y no en `/online/`, que en producción redirige a `/home/` y no trae el formulario en el HTML. La API está declarada pero
 desactivada hasta tener un endpoint liviano confirmado por el dev.
 

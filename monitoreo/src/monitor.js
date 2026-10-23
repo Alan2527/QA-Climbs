@@ -4,7 +4,7 @@
  */
 import {
   FALLAS_PARA_AVISAR, REPETIR_AVISO_MIN, TIMEOUT_MS, MAX_BYTES_A_LEER,
-  INTENTOS_POR_CHEQUEO, ESPERA_REINTENTO_MS, CONTROLES, TIMEOUT_CONTROL_MS,
+  INTENTOS_POR_CHEQUEO, ESPERA_REINTENTO_MS, TIMEOUT_REINTENTO_MS, CONTROLES, TIMEOUT_CONTROL_MS,
   PASADAS_SIN_SALIDA_PARA_AVISAR, AGRUPAR_DESDE,
 } from './sitios.js';
 
@@ -39,28 +39,29 @@ export async function cuerpoContiene(respuesta, texto, max = MAX_BYTES_A_LEER) {
 
 /**
  * Consulta un sitio y, si falla, reintenta en el acto antes de darlo por caido: un
- * parpadeo de red (un 522 o un timeout suelto) no cuenta. Devuelve el ultimo resultado
- * con cuantos intentos hicieron falta. Nunca tira. `dormir` se inyecta para los tests.
+ * parpadeo de red (un 522 o un pedido que quedo colgado) no cuenta. El reintento tiene un
+ * limite mas corto (TIMEOUT_REINTENTO_MS) para que un servidor caido no alargue la pasada.
+ * Devuelve el ultimo resultado con cuantos intentos hicieron falta. Nunca tira.
+ * `dormir` se inyecta para los tests.
  */
 export async function chequear(sitio, fetchImpl = fetch, dormir = esperar) {
   let ultimo;
   for (let intento = 1; intento <= INTENTOS_POR_CHEQUEO; intento++) {
-    ultimo = await unChequeo(sitio, fetchImpl);
+    ultimo = await unChequeo(sitio, fetchImpl, intento === 1 ? TIMEOUT_MS : TIMEOUT_REINTENTO_MS);
     if (ultimo.ok) return { ...ultimo, intentos: intento };
-    // Un timeout ya espero TIMEOUT_MS: reintentarlo duplica la pasada si el servidor esta caido.
-    if (ultimo.timeout) return { ...ultimo, intentos: intento };
     if (intento < INTENTOS_POR_CHEQUEO) await dormir(ESPERA_REINTENTO_MS);
   }
-  return { ...ultimo, intentos: INTENTOS_POR_CHEQUEO };
+  const motivo = INTENTOS_POR_CHEQUEO > 1 ? `${ultimo.motivo}, también al reintentar` : ultimo.motivo;
+  return { ...ultimo, motivo, intentos: INTENTOS_POR_CHEQUEO };
 }
 
 /** Un solo intento contra el sitio. Nunca tira: cualquier error es un caido con su motivo. */
-async function unChequeo(sitio, fetchImpl = fetch) {
+async function unChequeo(sitio, fetchImpl = fetch, limiteMs = TIMEOUT_MS) {
   const inicio = Date.now();
   try {
     const r = await fetchImpl(sitio.url, {
       redirect: 'follow',
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(limiteMs),
       headers: { 'User-Agent': 'AMV-Monitoreo/1.0 (+Climbs QA)' },
     });
     const ms = Date.now() - inicio;
@@ -77,7 +78,7 @@ async function unChequeo(sitio, fetchImpl = fetch) {
     const ms = Date.now() - inicio;
     const timeout = e?.name === 'TimeoutError' || e?.name === 'AbortError';
     const motivo = timeout
-      ? `no respondió en ${Math.round(TIMEOUT_MS / 1000)} s`
+      ? `no respondió en ${Math.round(limiteMs / 1000)} s`
       : `no se pudo conectar (${e?.message ?? e})`;
     return { ok: false, status: null, ms, motivo, ...(timeout ? { timeout: true } : {}) };
   }
