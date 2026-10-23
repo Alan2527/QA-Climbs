@@ -45,6 +45,11 @@ export default defineConfig({
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     // Resumen para el tablero de pruebas: `tools/resumen-corrida.mjs` lo lee en CI.
     ['json', { outputFile: 'resultados/playwright.json' }],
+    // En la corrida "todas" cada maquina de CI deja un blob con nombre propio, y el paso de
+    // publicar los junta con `playwright merge-reports` en un solo JSON y un solo HTML.
+    ...(process.env.PW_CARRIL
+      ? [['blob', { outputDir: 'blob-report', fileName: `${process.env.PW_CARRIL}.zip` }] as const]
+      : []),
     ['allure-playwright', {
       resultsDir: 'allure-results',
       environmentInfo: {

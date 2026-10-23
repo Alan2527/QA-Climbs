@@ -19,7 +19,7 @@ on:
           - seguridad
           - todas
       filtro:
-        description: 'Opcional: acota dentro de la suite elegida. Ej: -g "Ofertas"'
+        description: 'Opcional: acota dentro de la suite elegida (no aplica a "todas"). Ej: -g "Ofertas"'
         required: false
         default: ''
 
@@ -34,8 +34,72 @@ concurrency:
   group: tablero-publicacion
   cancel-in-progress: false
 
+# Lo que necesitan los tests en cualquier maquina.
+env:
+  AMV_BASE_URL: https://qa.amv.travel
+  AMV_BO_URL: https://qa.bo.amv.travel
+  AMV_USER: ${{ secrets.AMV_USER }}
+  AMV_PASS: ${{ secrets.AMV_PASS }}
+  BO_USER: ${{ secrets.BO_USER }}
+  BO_PASS: ${{ secrets.BO_PASS }}
+  AMV_MARKUP_USER: ${{ secrets.AMV_MARKUP_USER }}
+  AMV_MARKUP_PASS: ${{ secrets.AMV_MARKUP_PASS }}
+  AMV_SIX_AUTOLOGIN_URL: ${{ secrets.AMV_SIX_AUTOLOGIN_URL }}
+  AMV_MOV_SUCURSAL_DESTINO: ${{ secrets.AMV_MOV_SUCURSAL_DESTINO }}
+  AMV_MOV_CAJA_DESTINO: ${{ secrets.AMV_MOV_CAJA_DESTINO }}
+  AMV_MOV_MONEDA_DESTINO: ${{ secrets.AMV_MOV_MONEDA_DESTINO }}
+
 jobs:
-  e2e:
+  # Un solo bloque (o el push a main, que corre bloque-a): una maquina, como siempre.
+  unico:
+    if: ${{ (github.event.inputs.suite || 'bloque-a') != 'todas' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/correr
+        with:
+          carril: ${{ github.event.inputs.suite || 'bloque-a' }}
+          filtro: ${{ github.event.inputs.filtro }}
+
+  # La corrida completa, en dos fases de dos maquinas. Todos los bloques usan la misma
+  # base de QA, asi que solo corren juntos los que no se pisan los datos (23/10/2026):
+  #   - WebAdmin cambia la habitacion 18371, el servicio 7954 y el mercado 37 / agencia
+  #     6334, que leen Tarifario, Reservas y SIX: no puede coincidir con ellos.
+  #   - Reservas y Cobranzas vacian y usan el carrito de pablo1: no pueden coincidir.
+  #   - Tarifario, Seguridad y SIX solo leen.
+  # Fase 1: WebAdmin || Cobranzas.  Fase 2: Reservas || Tarifario + Seguridad + SIX.
+  fase1:
+    if: ${{ github.event.inputs.suite == 'todas' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        carril: [webadmin, cobranzas]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/correr
+        with:
+          carril: ${{ matrix.carril }}
+
+  fase2:
+    needs: fase1
+    # Corre aunque la fase 1 tenga tests en rojo: lo que se espera es que termine.
+    if: ${{ !cancelled() && github.event.inputs.suite == 'todas' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        carril: [reservas, lectura]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/correr
+        with:
+          carril: ${{ matrix.carril }}
+
+  # Junta los resultados de todas las maquinas y publica una sola vez.
+  publicar:
+    needs: [unico, fase1, fase2]
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -64,63 +128,26 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      # Cachea el navegador de Playwright (~/.cache/ms-playwright) entre corridas: sin
-      # esto se baja Chromium (~150 MB) en cada una. La clave incluye el hash del
-      # package-lock, asi que al cambiar la version de Playwright el cache se invalida y
-      # el paso siguiente lo vuelve a bajar.
-      - name: Cache del navegador de Playwright
-        uses: actions/cache@v4
+      # Cada carril subio blob-report/<carril>.zip y sus allure-results: al bajarlos
+      # juntos quedan en las mismas dos carpetas (los nombres no se repiten).
+      - name: Bajar los resultados de cada maquina
+        uses: actions/download-artifact@v4
         with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
-          restore-keys: ${{ runner.os }}-playwright-
+          pattern: resultados-*
+          merge-multiple: true
 
-      # `--with-deps` corre un `apt-get update`, y la imagen de ubuntu-latest trae
-      # configurado el repositorio de Google Chrome. Cuando ese indice esta a mitad
-      # de publicacion apt corta con "Hash Sum mismatch" y el paso muere con codigo
-      # 100 sin instalar nada, aunque la suite corre con el chromium de Playwright y
-      # no usa Google Chrome para nada. Se saca esa lista antes de instalar: el
-      # runner es efimero y no la necesita.
-      #
-      # El segundo intento es el cinturon: si apt falla igual por otro motivo, el
-      # navegador se instala sin las dependencias del sistema, que en el runner de
-      # GitHub ya vienen puestas.
-      - name: Instalar navegador
+      # Un solo JSON para el tablero y un solo HTML, como si hubiera corrido en una maquina.
+      - name: Juntar los reportes de Playwright
         run: |
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
-          npx playwright install --with-deps chromium || npx playwright install chromium
-
-      # En push a main no hay inputs: corre bloque-a, que es el comportamiento
-      # que ya tenia el pipeline. La eleccion es para la corrida manual.
-      - name: Ejecutar tests
-        env:
-          AMV_BASE_URL: https://qa.amv.travel
-          AMV_BO_URL: https://qa.bo.amv.travel
-          AMV_USER: ${{ secrets.AMV_USER }}
-          AMV_PASS: ${{ secrets.AMV_PASS }}
-          BO_USER: ${{ secrets.BO_USER }}
-          BO_PASS: ${{ secrets.BO_PASS }}
-          AMV_MARKUP_USER: ${{ secrets.AMV_MARKUP_USER }}
-          AMV_MARKUP_PASS: ${{ secrets.AMV_MARKUP_PASS }}
-          AMV_SIX_AUTOLOGIN_URL: ${{ secrets.AMV_SIX_AUTOLOGIN_URL }}
-          AMV_MOV_SUCURSAL_DESTINO: ${{ secrets.AMV_MOV_SUCURSAL_DESTINO }}
-          AMV_MOV_CAJA_DESTINO: ${{ secrets.AMV_MOV_CAJA_DESTINO }}
-          AMV_MOV_MONEDA_DESTINO: ${{ secrets.AMV_MOV_MONEDA_DESTINO }}
-          SUITE: ${{ github.event.inputs.suite || 'bloque-a' }}
-          FILTRO: ${{ github.event.inputs.filtro }}
-        run: |
-          case "$SUITE" in
-            bloque-a) RUTA="tests/bloque-a" ;;
-            bloque-b) RUTA="tests/bloque-b" ;;
-            bloque-c) RUTA="tests/bloque-c" ;;
-            webadmin) RUTA="tests/webadmin" ;;
-            six)      RUTA="tests/six" ;;
-            seguridad) RUTA="tests/seguridad" ;;
-            todas)    RUTA="tests" ;;
-            *) echo "Suite desconocida: $SUITE"; exit 1 ;;
-          esac
-          echo "Corriendo: $RUTA $FILTRO"
-          npx playwright test $RUTA $FILTRO
+          ls -la blob-report || true
+          mkdir -p resultados
+          if ls blob-report/*.zip >/dev/null 2>&1; then
+            PLAYWRIGHT_JSON_OUTPUT_NAME=resultados/playwright.json npx playwright merge-reports --reporter json ./blob-report
+            PLAYWRIGHT_HTML_OPEN=never npx playwright merge-reports --reporter html ./blob-report
+          else
+            echo "No llego ningun blob: la corrida murio antes de los tests."
+          fi
+          mkdir -p allure-results
 
       - name: Subir resultados de Allure
         if: always()
@@ -137,6 +164,7 @@ jobs:
           name: playwright-report
           path: playwright-report
           retention-days: 7
+          if-no-files-found: warn
 
       # GitHub rechaza cualquier archivo de mas de 100 MB, y las trazas de los tests
       # largos —reservas y cobranzas— llegan a 146 MB: una sola alcanza para que el

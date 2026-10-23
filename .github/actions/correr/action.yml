@@ -1,0 +1,85 @@
+name: Correr un carril de la suite
+description: Prepara el runner, corre un carril (un bloque o un grupo de bloques) y sube sus resultados para que el paso de publicar los junte.
+
+inputs:
+  carril:
+    description: 'Bloque o grupo de bloques: bloque-a, bloque-b, bloque-c, webadmin, six, seguridad, todas, cobranzas, reservas o lectura'
+    required: true
+  filtro:
+    description: 'Opcional: acota dentro del carril. Ej: -g "Ofertas"'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Configurar Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Instalar dependencias
+      shell: bash
+      run: npm ci
+
+    # Cachea el navegador de Playwright (~/.cache/ms-playwright) entre corridas: sin
+    # esto se baja Chromium (~150 MB) en cada una. La clave incluye el hash del
+    # package-lock, asi que al cambiar la version de Playwright el cache se invalida y
+    # el paso siguiente lo vuelve a bajar.
+    - name: Cache del navegador de Playwright
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+        restore-keys: ${{ runner.os }}-playwright-
+
+    # `--with-deps` corre un `apt-get update`, y la imagen de ubuntu-latest trae
+    # configurado el repositorio de Google Chrome. Cuando ese indice esta a mitad
+    # de publicacion apt corta con "Hash Sum mismatch" y el paso muere con codigo
+    # 100 sin instalar nada, aunque la suite corre con el chromium de Playwright y
+    # no usa Google Chrome para nada. Se saca esa lista antes de instalar: el
+    # runner es efimero y no la necesita.
+    #
+    # El segundo intento es el cinturon: si apt falla igual por otro motivo, el
+    # navegador se instala sin las dependencias del sistema, que en el runner de
+    # GitHub ya vienen puestas.
+    - name: Instalar navegador
+      shell: bash
+      run: |
+        sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+        npx playwright install --with-deps chromium || npx playwright install chromium
+
+    # Los carriles de la corrida "todas" agrupan bloques que no se pisan los datos (ver
+    # el workflow). PW_CARRIL activa el reporte blob con el nombre del carril.
+    - name: Ejecutar tests
+      shell: bash
+      env:
+        CARRIL: ${{ inputs.carril }}
+        FILTRO: ${{ inputs.filtro }}
+        PW_CARRIL: ${{ inputs.carril }}
+      run: |
+        case "$CARRIL" in
+          bloque-a)  RUTA="tests/bloque-a" ;;
+          bloque-b|reservas)  RUTA="tests/bloque-b" ;;
+          bloque-c|cobranzas) RUTA="tests/bloque-c" ;;
+          webadmin)  RUTA="tests/webadmin" ;;
+          six)       RUTA="tests/six" ;;
+          seguridad) RUTA="tests/seguridad" ;;
+          lectura)   RUTA="tests/bloque-a tests/seguridad tests/six" ;;
+          todas)     RUTA="tests" ;;
+          *) echo "Carril desconocido: $CARRIL"; exit 1 ;;
+        esac
+        echo "Carril $CARRIL: $RUTA $FILTRO"
+        npx playwright test $RUTA $FILTRO
+
+    - name: Subir los resultados del carril
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: resultados-${{ inputs.carril }}
+        path: |
+          blob-report
+          allure-results
+        retention-days: 7
+        if-no-files-found: warn
