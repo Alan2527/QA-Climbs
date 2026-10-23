@@ -4,7 +4,8 @@
  */
 import {
   FALLAS_PARA_AVISAR, REPETIR_AVISO_MIN, TIMEOUT_MS, MAX_BYTES_A_LEER,
-  INTENTOS_POR_CHEQUEO, ESPERA_REINTENTO_MS, UMBRAL_GRUPOS_CAIDA_MASIVA,
+  INTENTOS_POR_CHEQUEO, ESPERA_REINTENTO_MS, CONTROLES, TIMEOUT_CONTROL_MS,
+  PASADAS_SIN_SALIDA_PARA_AVISAR, AGRUPAR_DESDE,
 } from './sitios.js';
 
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -46,6 +47,8 @@ export async function chequear(sitio, fetchImpl = fetch, dormir = esperar) {
   for (let intento = 1; intento <= INTENTOS_POR_CHEQUEO; intento++) {
     ultimo = await unChequeo(sitio, fetchImpl);
     if (ultimo.ok) return { ...ultimo, intentos: intento };
+    // Un timeout ya espero TIMEOUT_MS: reintentarlo duplica la pasada si el servidor esta caido.
+    if (ultimo.timeout) return { ...ultimo, intentos: intento };
     if (intento < INTENTOS_POR_CHEQUEO) await dormir(ESPERA_REINTENTO_MS);
   }
   return { ...ultimo, intentos: INTENTOS_POR_CHEQUEO };
@@ -72,10 +75,11 @@ async function unChequeo(sitio, fetchImpl = fetch) {
     return { ok: true, status: r.status, ms };
   } catch (e) {
     const ms = Date.now() - inicio;
-    const motivo = e?.name === 'TimeoutError' || e?.name === 'AbortError'
+    const timeout = e?.name === 'TimeoutError' || e?.name === 'AbortError';
+    const motivo = timeout
       ? `no respondió en ${Math.round(TIMEOUT_MS / 1000)} s`
       : `no se pudo conectar (${e?.message ?? e})`;
-    return { ok: false, status: null, ms, motivo };
+    return { ok: false, status: null, ms, motivo, ...(timeout ? { timeout: true } : {}) };
   }
 }
 
@@ -117,21 +121,52 @@ export function evaluar(estadoAnterior, resultados, ahora) {
 }
 
 /**
- * Caida masiva cruzada: en una misma pasada caen sitios de muchos grupos (clientes)
- * distintos. Eso casi siempre es la red del monitoreo —el Worker no llega a ningun
- * lado por un rato— y no que se cayeran a la vez servidores sin relacion entre si. En
- * cambio, si caen varias direcciones de UN solo cliente, es una caida real suya y no
- * entra aca. Devuelve cuantos grupos y cuantos sitios cayeron, para el aviso suave.
+ * ¿El monitoreo tiene salida a internet? Consulta los sitios de control (fuera del
+ * servidor de produccion) y alcanza con que responda uno. Si no responde ninguno, lo que
+ * fallo es la red del monitoreo y las caidas de esa pasada no prueban nada. Nunca tira.
  */
-export function caidaMasiva(resultados, sitios, umbral = UMBRAL_GRUPOS_CAIDA_MASIVA) {
-  const grupos = new Set();
-  let sitiosCaidos = 0;
-  for (const [id, res] of Object.entries(resultados)) {
-    if (res.ok) continue;
-    sitiosCaidos++;
-    grupos.add(sitios.find((s) => s.id === id)?.grupo ?? id);
+export async function chequearControl(fetchImpl = fetch, controles = CONTROLES) {
+  for (const url of controles) {
+    try {
+      const r = await fetchImpl(url, { redirect: 'follow', signal: AbortSignal.timeout(TIMEOUT_CONTROL_MS) });
+      r.body?.cancel().catch(() => {});
+      if (r.status < 400) return true;
+    } catch { /* se prueba el siguiente */ }
   }
-  return { masiva: grupos.size >= umbral, grupos: grupos.size, sitiosCaidos };
+  return false;
+}
+
+/**
+ * Decide la pasada segun el control. Sin salida a internet, la pasada se saltea: no se
+ * cuenta ninguna falla de produccion. Si dura PASADAS_SIN_SALIDA_PARA_AVISAR pasadas se
+ * avisa una sola vez que el monitoreo esta ciego, y al recuperar la salida, que volvio.
+ */
+export function aplicarControl(controlAnterior, controlOk) {
+  const prev = controlAnterior ?? { fallas: 0, avisado: false };
+  if (controlOk) {
+    return { saltear: false, control: { fallas: 0, avisado: false }, aviso: prev.avisado ? 'recupero' : null };
+  }
+  const fallas = (prev.fallas ?? 0) + 1;
+  const avisar = !prev.avisado && fallas >= PASADAS_SIN_SALIDA_PARA_AVISAR;
+  return { saltear: true, control: { fallas, avisado: prev.avisado || avisar }, aviso: avisar ? 'sin-salida' : null };
+}
+
+/**
+ * Corre `fn` sobre todos los elementos con a lo sumo `n` a la vez, y devuelve los
+ * resultados en el mismo orden. Todos los sitios estan en el mismo servidor: asi no se
+ * le manda una rafaga de pedidos simultaneos.
+ */
+export async function enLotes(items, n, fn) {
+  const resultados = new Array(items.length);
+  let siguiente = 0;
+  const trabajador = async () => {
+    while (siguiente < items.length) {
+      const i = siguiente++;
+      resultados[i] = await fn(items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, trabajador));
+  return resultados;
 }
 
 /**
@@ -182,35 +217,51 @@ export function tarjetaTeams(titulo, color, lineas, pie) {
   };
 }
 
-/** Arma un solo mensaje con todos los avisos de la pasada. */
+/**
+ * Arma un solo mensaje con todos los avisos de la pasada. Si muchos sitios cambian juntos
+ * (AGRUPAR_DESDE o mas del mismo tipo), van en una linea con la lista de nombres: comparten
+ * el servidor, y doce lineas iguales no dicen mas que una.
+ */
 export function mensajeDeAvisos(avisos, sitios, ahora) {
   if (!avisos.length) return null;
   const nombre = (id) => sitios.find((s) => s.id === id)?.nombre ?? id;
   const url = (id) => sitios.find((s) => s.id === id)?.url ?? '';
   const hayCaidas = avisos.some((a) => a.tipo !== 'volvio');
-  const lineas = avisos.map((a) => {
-    if (a.tipo === 'cayo') return `🔴 **${nombre(a.id)} se cayó**: ${a.motivo}. ${url(a.id)}`;
-    if (a.tipo === 'sigue') return `🔴 **${nombre(a.id)} sigue caído** hace ${duracion(a.minutos)}: ${a.motivo}.`;
-    return `🟢 **${nombre(a.id)} volvió**. Estuvo caído ${duracion(a.minutos)}.`;
-  });
+  const lineas = [];
+  for (const tipo of ['cayo', 'sigue', 'volvio']) {
+    const delTipo = avisos.filter((a) => a.tipo === tipo);
+    if (!delTipo.length) continue;
+    if (delTipo.length >= AGRUPAR_DESDE) {
+      const nombres = delTipo.map((a) => nombre(a.id)).join(', ');
+      if (tipo === 'cayo') lineas.push(`🔴 **${delTipo.length} sitios se cayeron a la vez** (${delTipo[0].motivo}): ${nombres}.`);
+      else if (tipo === 'sigue') lineas.push(`🔴 **${delTipo.length} sitios siguen caídos** hace ${duracion(delTipo[0].minutos)}: ${nombres}.`);
+      else lineas.push(`🟢 **${delTipo.length} sitios volvieron**. Estuvieron caídos ${duracion(delTipo[0].minutos)}: ${nombres}.`);
+      continue;
+    }
+    for (const a of delTipo) {
+      if (tipo === 'cayo') lineas.push(`🔴 **${nombre(a.id)} se cayó**: ${a.motivo}. ${url(a.id)}`);
+      else if (tipo === 'sigue') lineas.push(`🔴 **${nombre(a.id)} sigue caído** hace ${duracion(a.minutos)}: ${a.motivo}.`);
+      else lineas.push(`🟢 **${nombre(a.id)} volvió**. Estuvo caído ${duracion(a.minutos)}.`);
+    }
+  }
   const titulo = hayCaidas ? 'Producción: hay sitios caídos' : 'Producción: todo volvió a responder';
   return tarjetaTeams(titulo, hayCaidas ? 'Attention' : 'Good', lineas, `Monitoreo AMV · ${hora(ahora)}`);
 }
 
 /**
- * Aviso suave de caida masiva: en vez de N "se cayo" (que asusta y suele ser falso),
- * un unico mensaje que dice que probablemente sea la red del monitoreo, no produccion.
+ * Aviso del propio monitoreo, no de produccion: se quedo sin salida a internet (no llega
+ * ni a los sitios de control) o la recupero. Mientras no tiene salida, no ve produccion.
  */
-export function mensajeMasivo(grupos, sitiosCaidos, ahora) {
-  return tarjetaTeams(
-    '⚠️ Posible problema de red del monitoreo',
-    'Warning',
-    [
-      `${sitiosCaidos} sitios de ${grupos} clientes distintos no respondieron a la vez.`,
-      'Cuando caen muchos sitios no relacionados al mismo tiempo, casi siempre es la red del monitoreo (Cloudflare) y no una caida real de produccion. Si dudás, verificá a mano.',
-    ],
-    `Monitoreo AMV · ${hora(ahora)}`,
-  );
+export function mensajeControl(aviso, ahora) {
+  const pie = `Monitoreo AMV · ${hora(ahora)}`;
+  if (aviso === 'sin-salida') {
+    return tarjetaTeams('⚠️ El monitoreo no tiene salida a internet', 'Warning', [
+      `Hace ${PASADAS_SIN_SALIDA_PARA_AVISAR * 5} minutos que no llega ni a los sitios de control (Google), que están fuera del servidor de producción.`,
+      'Mientras dure, el monitoreo no puede ver producción. No es una caída de producción.',
+    ], pie);
+  }
+  return tarjetaTeams('🟢 El monitoreo volvió a tener salida a internet', 'Good',
+    ['Vuelve a chequear producción normalmente.'], pie);
 }
 
 /** Resumen diario: confirma que el monitoreo sigue vivo. Si un dia no llega, el que se cayo es el vigilante. */

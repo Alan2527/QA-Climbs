@@ -8,6 +8,14 @@ día no llega, el que se cayó es el monitoreo.
 No inicia sesión ni carga datos: pide la pantalla de ingreso y verifica que traiga
 el formulario (`txtPassword`). Un 200 con una página de error cuenta como caído.
 
+Todos los sitios vigilados están en **un mismo servidor** (`104.215.85.118`, verificado el
+23/10/2026): que caigan muchos juntos no prueba que el problema sea del monitoreo. Por eso
+cada pasada consulta primero un **sitio de control** fuera de ese servidor (Google
+`generate_204`). Si el control no responde, la pasada se saltea (es la red del monitoreo) y,
+si dura 30 minutos, avisa una sola vez que el monitoreo está ciego. Si el control responde,
+una caída es real y se avisa a la segunda falla seguida. Los sitios se consultan de a 6 para
+no mandarle una ráfaga al servidor, y si caen 4 o más juntos van en una sola línea.
+
 Qué se vigila y con qué criterio: `src/sitios.js`. El portal se chequea en `/login.aspx` y no en `/online/`, que en producción redirige a `/home/` y no trae el formulario en el HTML. La API está declarada pero
 desactivada hasta tener un endpoint liviano confirmado por el dev.
 

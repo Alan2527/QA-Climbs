@@ -94,13 +94,10 @@ export const SITIOS = [
         nombre: `${c.nombre} · ${t.nombre}`,
         url: `${c[tipo].replace(/\/$/, '')}${t.ruta}`,
         contiene: t.contiene,
-        // El grupo junta las direcciones de un mismo cliente: si caen varias del mismo
-        // grupo es una caida real suya; si caen de grupos distintos a la vez, es la red.
-        grupo: c.id,
         activo: c.activo !== false,
       })),
   ),
-  ...OTROS.map((s) => ({ activo: true, grupo: s.id, ...s })),
+  ...OTROS.map((s) => ({ activo: true, ...s })),
 ];
 
 /** Fallas seguidas antes de avisar: una sola puede ser un corte de red del lado de Cloudflare. */
@@ -116,12 +113,32 @@ export const INTENTOS_POR_CHEQUEO = 2;
 export const ESPERA_REINTENTO_MS = 3000;
 
 /**
- * Cuantos grupos (clientes/sitios) distintos tienen que caer en la misma pasada para
- * sospechar de la red del monitoreo y no de produccion. Si caen varias direcciones de
- * UN mismo cliente es una caida real suya; si caen de 3+ grupos no relacionados a la
- * vez, casi siempre es el camino de red del Worker, no que se cayo todo junto.
+ * Sitios de control, fuera del servidor de produccion. Todos los sitios vigilados viven en
+ * el mismo servidor (104.215.85.118, verificado el 23/10/2026), asi que muchos caidos a la
+ * vez NO prueban que el problema sea del monitoreo. Lo que lo prueba es que tampoco llegue
+ * a estos: generate_204 es el endpoint que Google expone para chequear conectividad.
+ * Si responde cualquiera de los dos, el monitoreo tiene salida y las caidas son reales.
  */
-export const UMBRAL_GRUPOS_CAIDA_MASIVA = 3;
+export const CONTROLES = ['https://www.google.com/generate_204', 'https://www.gstatic.com/generate_204'];
+
+/** Tiempo maximo de respuesta de un sitio de control. */
+export const TIMEOUT_CONTROL_MS = 10_000;
+
+/**
+ * Pasadas seguidas sin salida a internet antes de avisar que el monitoreo esta ciego
+ * (6 = 30 minutos). Mientras tanto no se cuenta ninguna falla de produccion.
+ */
+export const PASADAS_SIN_SALIDA_PARA_AVISAR = 6;
+
+/**
+ * Cuantos sitios se consultan a la vez. Todos estan en el mismo servidor: consultarlos de
+ * a pocos evita mandarle una rafaga de pedidos cada 5 minutos. Con 18 sitios son 3 tandas:
+ * si el servidor no responde, la pasada dura unos 2 minutos y no se pisa con la siguiente.
+ */
+export const CONCURRENCIA = 6;
+
+/** Desde cuantos avisos del mismo tipo en una pasada se agrupan en una sola linea. */
+export const AGRUPAR_DESDE = 4;
 
 /** Cada cuanto se repite el aviso mientras un sitio siga caido. */
 export const REPETIR_AVISO_MIN = 30;

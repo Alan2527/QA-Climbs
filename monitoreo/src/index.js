@@ -12,8 +12,11 @@
  * Secretos (wrangler secret put): TEAMS_WEBHOOK y CLAVE.
  * KV: ESTADO, con una sola clave "estado".
  */
-import { SITIOS, REPETIR_AVISO_MIN } from './sitios.js';
-import { chequear, evaluar, caidaMasiva, cambioRelevante, mensajeDeAvisos, mensajeMasivo, mensajeDiario, tarjetaTeams, hora } from './monitor.js';
+import { SITIOS, CONCURRENCIA } from './sitios.js';
+import {
+  chequear, chequearControl, aplicarControl, enLotes, evaluar, cambioRelevante,
+  mensajeDeAvisos, mensajeControl, mensajeDiario, tarjetaTeams, hora,
+} from './monitor.js';
 
 const CRON_DIARIO = '0 12 * * *'; // 9:00 en Argentina
 
@@ -34,24 +37,25 @@ async function avisarTeams(env, tarjeta) {
 
 async function pasada(env) {
   const ahora = Date.now();
-  const activos = SITIOS.filter((s) => s.activo);
-  const resultados = Object.fromEntries(await Promise.all(activos.map(async (s) => [s.id, await chequear(s)])));
   const anterior = await leerEstado(env);
 
-  // Si cae de todo a la vez (muchos clientes no relacionados), es la red del monitoreo,
-  // no produccion: no se escala ningun sitio ni se cuenta su falla. Se manda un unico
-  // aviso suave, y no mas de uno cada REPETIR_AVISO_MIN para no repetir el ruido.
-  const { masiva, grupos, sitiosCaidos } = caidaMasiva(resultados, activos);
-  if (masiva) {
-    const prevAviso = anterior._masivo?.ultimoAviso ?? 0;
-    if (ahora - prevAviso >= REPETIR_AVISO_MIN * 60000) {
-      await avisarTeams(env, mensajeMasivo(grupos, sitiosCaidos, ahora));
-      await env.ESTADO.put('estado', JSON.stringify({ ...anterior, _masivo: { ultimoAviso: ahora } }));
-    }
-    console.log(JSON.stringify({ ahora, masiva: true, grupos, sitiosCaidos }));
+  // Primero el control: si el monitoreo no llega ni a Google, lo que fallo es su red y
+  // las caidas de esta pasada no prueban nada. No se cuenta ninguna falla de produccion.
+  const controlOk = await chequearControl();
+  const { saltear, control, aviso } = aplicarControl(anterior._control, controlOk);
+  if (saltear) {
+    if (aviso) await avisarTeams(env, mensajeControl(aviso, ahora));
+    const nuevo = { ...anterior, _control: control };
+    if (cambioRelevante(anterior, nuevo)) await env.ESTADO.put('estado', JSON.stringify(nuevo));
+    console.log(JSON.stringify({ ahora, controlOk, salteada: true, control }));
     return;
   }
+  if (aviso) await avisarTeams(env, mensajeControl(aviso, ahora));
 
+  // Con salida a internet, una caida es real. Los sitios comparten servidor: de a pocos.
+  const activos = SITIOS.filter((s) => s.activo);
+  const resultados = Object.fromEntries(await enLotes(activos, CONCURRENCIA, async (s) => [s.id, await chequear(s)]));
+  // evaluar arma el estado solo con los sitios, asi que descarta las marcas del control.
   const { estado, avisos } = evaluar(anterior, resultados, ahora);
 
   const mensaje = mensajeDeAvisos(avisos, SITIOS, ahora);
@@ -59,7 +63,7 @@ async function pasada(env) {
   // Se guarda despues de avisar: si Teams falla, la pasada siguiente vuelve a intentarlo.
   if (cambioRelevante(anterior, estado)) await env.ESTADO.put('estado', JSON.stringify(estado));
 
-  console.log(JSON.stringify({ ahora, resultados, avisos: avisos.map((a) => `${a.tipo}:${a.id}`) }));
+  console.log(JSON.stringify({ ahora, controlOk, resultados, avisos: avisos.map((a) => `${a.tipo}:${a.id}`) }));
 }
 
 export default {

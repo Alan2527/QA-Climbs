@@ -1,7 +1,10 @@
 // node --test monitoreo/test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chequear, cuerpoContiene, evaluar, caidaMasiva, cambioRelevante, mensajeDeAvisos, mensajeDiario, duracion } from '../src/monitor.js';
+import {
+  chequear, chequearControl, aplicarControl, enLotes, cuerpoContiene, evaluar, cambioRelevante,
+  mensajeDeAvisos, mensajeControl, mensajeDiario, duracion,
+} from '../src/monitor.js';
 import { SITIOS } from '../src/sitios.js';
 
 /** En los tests no se espera de verdad entre reintentos. */
@@ -83,6 +86,14 @@ test('chequear: un parpadeo suelto se reintenta y no cuenta como caido', async (
   assert.equal(llamadas, 2);
 });
 
+test('chequear: un timeout no se reintenta (ya espero 30 s)', async () => {
+  let llamadas = 0;
+  const timeout = async () => { llamadas++; const e = new Error('t'); e.name = 'TimeoutError'; throw e; };
+  const r = await chequear({ url: 'https://x/', contiene: 'txtPassword' }, timeout, noDormir);
+  assert.equal(r.ok, false);
+  assert.equal(llamadas, 1);
+});
+
 test('chequear: si falla en todos los intentos, queda caido', async () => {
   const sitio = { url: 'https://x/', contiene: 'txtPassword' };
   let llamadas = 0;
@@ -92,19 +103,56 @@ test('chequear: si falla en todos los intentos, queda caido', async () => {
   assert.equal(llamadas, 2);
 });
 
-test('caida masiva: muchos clientes distintos a la vez es la red, un solo cliente es real', () => {
-  const sitios = SITIOS.filter((s) => s.activo);
-  const caido = { ok: false, motivo: 'respondió 522' };
-  const arriba = { ok: true, status: 200, ms: 500 };
-  // Tres clientes distintos caen a la vez -> sospecha de la red del monitoreo.
-  const cruzada = caidaMasiva({ 'amv-portal': caido, 'gps-sherpa': caido, 'climbs-web': caido }, sitios);
-  assert.equal(cruzada.masiva, true);
-  assert.equal(cruzada.grupos, 3);
-  assert.equal(cruzada.sitiosCaidos, 3);
-  // Varias direcciones de un mismo cliente -> caida real suya, no masiva.
-  const unCliente = caidaMasiva({ 'gps-portal': caido, 'gps-sherpa': caido, 'gps-api': caido, 'amv-portal': arriba }, sitios);
-  assert.equal(unCliente.masiva, false);
-  assert.equal(unCliente.grupos, 1);
+test('control: con que responda un sitio de control hay salida; si no responde ninguno, no', async () => {
+  const controles = ['https://a/', 'https://b/'];
+  const falla = async () => { throw new TypeError('fetch failed'); };
+  const soloB = async (url) => (url === 'https://b/' ? new Response(null, { status: 204 }) : falla());
+  assert.equal(await chequearControl(soloB, controles), true);
+  assert.equal(await chequearControl(falla, controles), false);
+  assert.equal(await chequearControl(async () => new Response('x', { status: 503 }), controles), false);
+});
+
+test('control: sin salida se saltea la pasada, avisa una vez a las 6 y avisa al recuperar', () => {
+  let control;
+  const avisos = [];
+  for (let i = 0; i < 8; i++) {
+    const r = aplicarControl(control, false);
+    assert.equal(r.saltear, true);
+    control = r.control;
+    avisos.push(r.aviso);
+  }
+  assert.deepEqual(avisos, [null, null, null, null, null, 'sin-salida', null, null]);
+  const vuelta = aplicarControl(control, true);
+  assert.equal(vuelta.saltear, false);
+  assert.equal(vuelta.aviso, 'recupero');
+  assert.equal(aplicarControl(vuelta.control, true).aviso, null);
+  // Un corte corto del control no avisa nada.
+  assert.equal(aplicarControl(aplicarControl(undefined, false).control, true).aviso, null);
+  assert.match(JSON.stringify(mensajeControl('sin-salida', T0)), /no tiene salida a internet/);
+});
+
+test('enLotes: no pasa del maximo a la vez y respeta el orden', async () => {
+  let enCurso = 0;
+  let maximo = 0;
+  const r = await enLotes([1, 2, 3, 4, 5, 6, 7, 8, 9], 4, async (n) => {
+    enCurso++; maximo = Math.max(maximo, enCurso);
+    await new Promise((ok) => setTimeout(ok, 5));
+    enCurso--;
+    return n * 10;
+  });
+  assert.equal(maximo, 4);
+  assert.deepEqual(r, [10, 20, 30, 40, 50, 60, 70, 80, 90]);
+});
+
+test('mensajes: muchos sitios que caen juntos van en una sola linea', () => {
+  const ids = SITIOS.filter((s) => s.activo).slice(0, 12).map((s) => s.id);
+  const m = mensajeDeAvisos(ids.map((id) => ({ tipo: 'cayo', id, motivo: 'respondió 522' })), SITIOS, T0);
+  const lineas = m.attachments[0].content.body.slice(1, -1);
+  assert.equal(lineas.length, 1);
+  assert.match(lineas[0].text, /12 sitios se cayeron a la vez/);
+  // Pocos van uno por uno.
+  const pocos = mensajeDeAvisos(ids.slice(0, 2).map((id) => ({ tipo: 'cayo', id, motivo: 'respondió 522' })), SITIOS, T0);
+  assert.equal(pocos.attachments[0].content.body.slice(1, -1).length, 2);
 });
 
 test('mensajes de Teams', () => {
