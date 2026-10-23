@@ -113,14 +113,16 @@ export class WebAdminTarifasHabitacionPage {
       'Guardar tiene que informar cuantas tarifas guardo');
   }
 
-  /** "Eliminar tarifas por rango de fechas": borra las tarifas del rango, todos los dias. */
+  /** "Eliminar tarifas": borra las tarifas del rango, todos los dias. */
   async eliminarTarifas(room: number, desde: string, hasta: string): Promise<string> {
     await this.abrir(room, 'pnlRoomRates');
+    // Desde el 23/10/2026 (WEB 69d3ed44, "mejoras en la carga de tarifas") el borrado por
+    // rango ya no es el interruptor "Eliminar tarifas por rango de fechas": es el modo
+    // "Eliminar tarifas" de Gestion de tarifas, que comparte las fechas con "Cargar tarifas".
+    await this.page.locator('[data-pane="rateModeDelete"]').click();
     await this.fecha('ctrlFromDate', desde);
     await this.fecha('ctrlToDate', hasta);
-    const interruptor = this.page.locator(this.sel('cdDeleteTariffs'));
-    if (!(await interruptor.isChecked())) await interruptor.click({ force: true });
-    await expect(this.page.locator(this.sel('btnDelete')), 'El boton Eliminar se habilita con el interruptor').toBeEnabled();
+    await expect(this.page.locator(this.sel('btnDelete')), 'El modo Eliminar tarifas tiene que mostrar el boton habilitado').toBeEnabled();
     await this.page.locator(this.sel('btnDelete')).click();
     const confirmar = this.page.locator(this.sel('confirmBoxDelete_btnYES'));
     await expect(confirmar, 'Eliminar tiene que pedir confirmacion').toBeVisible();
