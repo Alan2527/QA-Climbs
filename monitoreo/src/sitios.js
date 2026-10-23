@@ -104,10 +104,12 @@ export const SITIOS = [
 export const FALLAS_PARA_AVISAR = 2;
 
 /**
- * Intentos por chequeo antes de dar un sitio por caido. Un parpadeo momentaneo de red
- * (un 522 o un timeout suelto) se absorbe reintentando en el acto, sin avisar.
+ * Intentos por chequeo, dentro de la misma pasada, antes de dar un sitio por caido. Con el
+ * servidor colgando al azar ~1 de cada 4 pedidos desde Cloudflare (23/10/2026), con 2
+ * intentos se esperaba una falsa alarma por hora (18 sitios, 2 pasadas seguidas); con 4,
+ * una cada dos semanas. Una caida real falla los 4 intentos en las 2 pasadas.
  */
-export const INTENTOS_POR_CHEQUEO = 2;
+export const INTENTOS_POR_CHEQUEO = 4;
 
 /** Espera entre intentos de un mismo chequeo. */
 export const ESPERA_REINTENTO_MS = 3000;
@@ -141,8 +143,8 @@ export const PASADAS_SIN_SALIDA_PARA_AVISAR = 6;
 /**
  * Cuantos sitios se consultan a la vez. Todos estan en el mismo servidor: consultarlos de
  * a pocos evita mandarle una rafaga de pedidos cada 5 minutos. Con 18 sitios son 3 tandas:
- * si el servidor no responde (30 s + 3 s + 10 s por sitio), la pasada dura unos 2 minutos y
- * no se pisa con la siguiente.
+ * si el servidor no responde (20 s + 3 x (3 s + 10 s) por sitio), la pasada dura unos 3
+ * minutos y no se pisa con la siguiente.
  */
 export const CONCURRENCIA = 6;
 
@@ -152,8 +154,11 @@ export const AGRUPAR_DESDE = 4;
 /** Cada cuanto se repite el aviso mientras un sitio siga caido. */
 export const REPETIR_AVISO_MIN = 30;
 
-/** Tiempo maximo de respuesta. Pasado esto, el sitio cuenta como caido. */
-export const TIMEOUT_MS = 30_000;
+/**
+ * Tiempo maximo de respuesta del primer intento. Un sitio sano responde en menos de 2 s;
+ * con 4 intentos, 20 s alcanza y mantiene la pasada en unos 3 minutos.
+ */
+export const TIMEOUT_MS = 20_000;
 
 /**
  * Hasta cuanto de cada respuesta se lee buscando el marcador. El plan gratis de

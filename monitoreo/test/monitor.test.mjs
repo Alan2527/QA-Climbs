@@ -69,7 +69,7 @@ test('chequear: 200 con el login, 200 sin el login, 500, error de red y timeout'
   assert.match((await chequear(sitio, resp(500, 'error'), noDormir)).motivo, /respondió 500/);
   assert.match((await chequear(sitio, async () => { throw new TypeError('fetch failed'); }, noDormir)).motivo, /no se pudo conectar/);
   const timeout = async () => { const e = new Error('t'); e.name = 'TimeoutError'; throw e; };
-  assert.match((await chequear(sitio, timeout, noDormir)).motivo, /no respondió en 10 s, también al reintentar/);
+  assert.match((await chequear(sitio, timeout, noDormir)).motivo, /no respondió en 10 s \(falló en los 4 intentos\)/);
 });
 
 test('chequear: un parpadeo suelto se reintenta y no cuenta como caido', async () => {
@@ -86,7 +86,7 @@ test('chequear: un parpadeo suelto se reintenta y no cuenta como caido', async (
   assert.equal(llamadas, 2);
 });
 
-test('chequear: un pedido que quedo colgado se reintenta una vez y si entra no cuenta', async () => {
+test('chequear: un pedido que quedo colgado se reintenta y si entra no cuenta', async () => {
   const sitio = { url: 'https://x/', contiene: 'txtPassword' };
   let llamadas = 0;
   const colgadoUnaVez = async () => {
@@ -97,13 +97,13 @@ test('chequear: un pedido que quedo colgado se reintenta una vez y si entra no c
   const r = await chequear(sitio, colgadoUnaVez, noDormir);
   assert.equal(r.ok, true);
   assert.equal(r.intentos, 2);
-  // Si el servidor esta caido, falla las dos veces y queda caido.
+  // Si el servidor esta caido, falla los 4 intentos y queda caido.
   let veces = 0;
   const siempre = async () => { veces++; const e = new Error('t'); e.name = 'TimeoutError'; throw e; };
   const caido = await chequear(sitio, siempre, noDormir);
   assert.equal(caido.ok, false);
-  assert.equal(veces, 2);
-  assert.match(caido.motivo, /no respondió en 10 s, también al reintentar/);
+  assert.equal(veces, 4);
+  assert.match(caido.motivo, /no respondió en 10 s \(falló en los 4 intentos\)/);
 });
 
 test('chequear: si falla en todos los intentos, queda caido', async () => {
@@ -111,8 +111,8 @@ test('chequear: si falla en todos los intentos, queda caido', async () => {
   let llamadas = 0;
   const r = await chequear(sitio, async () => { llamadas++; return new Response('error', { status: 522 }); }, noDormir);
   assert.equal(r.ok, false);
-  assert.equal(r.intentos, 2);
-  assert.equal(llamadas, 2);
+  assert.equal(r.intentos, 4);
+  assert.equal(llamadas, 4);
 });
 
 test('control: con que responda un sitio de control hay salida; si no responde ninguno, no', async () => {

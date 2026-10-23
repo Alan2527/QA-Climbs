@@ -51,7 +51,7 @@ export async function chequear(sitio, fetchImpl = fetch, dormir = esperar) {
     if (ultimo.ok) return { ...ultimo, intentos: intento };
     if (intento < INTENTOS_POR_CHEQUEO) await dormir(ESPERA_REINTENTO_MS);
   }
-  const motivo = INTENTOS_POR_CHEQUEO > 1 ? `${ultimo.motivo}, también al reintentar` : ultimo.motivo;
+  const motivo = INTENTOS_POR_CHEQUEO > 1 ? `${ultimo.motivo} (falló en los ${INTENTOS_POR_CHEQUEO} intentos)` : ultimo.motivo;
   return { ...ultimo, motivo, intentos: INTENTOS_POR_CHEQUEO };
 }
 
