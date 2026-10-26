@@ -63,14 +63,23 @@ export class PortalNuevoPage {
     await expect(this.page.getByText('El carrito está vacío'), 'El carrito tiene que quedar vacio antes de empezar').toBeVisible();
   }
 
-  /** Solapa SERVICIOS de la portada: Argentina / Buenos Aires / Excursion vienen por defecto. */
-  async buscarServicios(fecha: Date) {
+  /**
+   * Solapa SERVICIOS de la portada: Argentina / Buenos Aires / Excursion vienen por defecto.
+   * Otro tipo ("Cena Show") se elige en su buscador, como la persona.
+   */
+  async buscarServicios(fecha: Date, tipo = 'Excursión') {
     await this.abrirInicio();
     await this.page.getByRole('tab', { name: 'SERVICIOS' }).click();
     const panel = this.page.getByRole('tabpanel', { name: 'SERVICIOS' });
     await expect(panel.getByRole('combobox', { name: 'País' })).toHaveValue('Argentina');
     await expect(panel.getByRole('combobox', { name: 'Ciudad' })).toHaveValue('Buenos Aires');
-    await expect(panel.getByRole('combobox', { name: 'Tipo' })).toHaveValue('Excursión');
+    const combo = panel.getByRole('combobox', { name: 'Tipo' });
+    if ((await combo.inputValue()) !== tipo) {
+      await combo.click();
+      await combo.fill(tipo);
+      await this.page.getByRole('option', { name: tipo, exact: true }).click();
+    }
+    await expect(combo).toHaveValue(tipo);
     const checkin = panel.getByRole('textbox', { name: 'Check-in' });
     await checkin.fill(formatearFecha(fecha));
     await checkin.press('Tab');
