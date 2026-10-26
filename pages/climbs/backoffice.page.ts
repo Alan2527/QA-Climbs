@@ -89,9 +89,25 @@ export class BackofficeNuevoPage {
     return out;
   }
 
+  /** Lado "Proveedores" del panel "Comprobantes y saldos". */
+  ladoProveedores(): Locator {
+    return this.fichaDelFile.locator('section.fa-side[aria-label="Proveedores"]');
+  }
+
+  /** Una lista del panel por su titulo: "Facturas", "Órdenes de cobro", "Facturas de proveedor", "Órdenes de pago". */
+  lista(lado: Locator, titulo: RegExp): Locator {
+    return lado.locator('.fa-list').filter({ has: this.page.locator('h4', { hasText: titulo }) }).first();
+  }
+
   /** Lista "Facturas" del lado Cliente. */
   listaDeFacturas(): Locator {
-    return this.ladoCliente().locator('.fa-list').filter({ has: this.page.locator('h4', { hasText: /^Facturas$/ }) }).first();
+    return this.lista(this.ladoCliente(), /^Facturas$/);
+  }
+
+  /** El texto completo de una cifra (importe y la marca "Al día" si la tiene). */
+  async textoDeCifra(lado: Locator, nombre: string): Promise<string> {
+    const cifra = lado.locator('.fa-figure').filter({ has: this.page.locator('dt', { hasText: new RegExp(`^${nombre}$`) }) }).first();
+    return (await cifra.locator('dd').innerText()).replace(/\s+/g, ' ').trim();
   }
 
   async clienteDelFile(): Promise<string> {
