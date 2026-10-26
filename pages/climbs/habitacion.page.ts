@@ -38,7 +38,7 @@ export class HabitacionNuevaPage {
   async abrir(id: number, solapa = 'Detalle') {
     await this.page.goto(`/hotels/rooms/${id}`);
     await expect(this.ficha.getByRole('tab', { name: 'Detalle' }), `La ficha de la habitacion ${id} tiene que abrir`).toBeVisible({ timeout: 60_000 });
-    await expect(this.ficha.getByRole('textbox', { name: 'Nombre' })).not.toHaveValue('', { timeout: 30_000 });
+    await expect(this.ficha.getByRole('textbox', { name: 'Nombre', exact: true })).not.toHaveValue('', { timeout: 30_000 });
     if (solapa !== 'Detalle') await this.solapa(solapa);
   }
 
@@ -207,6 +207,11 @@ export class HabitacionNuevaPage {
     await expect(this.pendientes).toBeHidden({ timeout: 30_000 });
   }
 
+  /** Para restaurar: guarda solo si quedo algo por guardar. */
+  async guardarSiHayCambios() {
+    if (await this.pie.getByRole('button', { name: 'Guardar', exact: true }).isEnabled()) await this.guardar();
+  }
+
   /** "Regenerar tarifario" de la solapa Tarifario (el "Generar Tarifario" del WebAdmin). */
   async regenerarTarifario() {
     await this.solapa('Tarifario');
@@ -254,14 +259,21 @@ export class HabitacionNuevaPage {
     return this.tabla();
   }
 
-  /** "Nueva observacion" con el texto en espanol; devuelve el aviso si la rechaza. */
+  /**
+   * "Nueva observacion": el mismo texto en cada idioma (la app nueva la exige en todos: "Escriba
+   * la observacion en todos los idiomas."). Devuelve el aviso si la rechaza.
+   */
   async nuevaObservacion(desde: string, hasta: string, texto: string): Promise<string | null> {
     await this.solapa('Observaciones');
     await this.ficha.getByRole('button', { name: 'Nueva observación' }).click();
     const panel = this.page.getByRole('dialog', { name: 'Nueva observación' });
     await expect(panel).toBeVisible();
     await this.rango(panel, desde, hasta);
-    await panel.getByRole('textbox', { name: 'Texto' }).first().fill(texto);
+    const idiomas = panel.getByRole('tablist', { name: /Idiomas: Texto/ }).getByRole('tab');
+    for (const idioma of await idiomas.all()) {
+      await idioma.click();
+      await panel.locator('#rn-text').fill(texto);
+    }
     return this.agregarALosCambios(panel);
   }
 

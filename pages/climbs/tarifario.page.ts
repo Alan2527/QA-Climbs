@@ -49,6 +49,8 @@ export class TarifarioNuevoPage {
     await this.elegir('Destino', destino);
     // El boton de buscar es el que sigue a los filtros (su rotulo tambien se traduce).
     await this.filtro('Destino').locator('xpath=following::button[1]').click();
+    // La busqueda viaja en la direccion: hasta que llega, un clic en una solapa se pierde.
+    await expect(this.page).toHaveURL(/\/site\/tariff\?.*city=\d+/, { timeout: 60_000 });
     await this.page.waitForLoadState('networkidle');
   }
 
@@ -65,9 +67,13 @@ export class TarifarioNuevoPage {
   }
 
   async abrirSolapa(nombre: string) {
-    await this.solapa(nombre).click();
-    await expect(this.solapa(nombre)).toHaveAttribute('aria-selected', 'true');
+    // Si la pantalla todavia esta aplicando la busqueda, la solapa vuelve a la primera: se reintenta.
+    await expect(async () => {
+      await this.solapa(nombre).click();
+      await expect(this.solapa(nombre)).toHaveAttribute('aria-selected', 'true', { timeout: 3_000 });
+    }).toPass({ timeout: 30_000 });
     await this.page.waitForLoadState('networkidle');
+    await expect(this.solapa(nombre)).toHaveAttribute('aria-selected', 'true');
   }
 
   /** El buscador por nombre de la solapa ("Buscar <solapa> por nombre"): el segundo combo del lateral. */
