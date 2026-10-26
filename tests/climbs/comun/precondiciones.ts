@@ -2,7 +2,7 @@ import { Page, expect } from '@playwright/test';
 import { PortalNuevoPage, PasajeroNuevo } from '../../../pages/climbs/portal.page';
 import { BackofficeNuevoPage, ImporteNuevo } from '../../../pages/climbs/backoffice.page';
 import { FacturaProveedorNuevaPage } from '../../../pages/climbs/factura-proveedor.page';
-import { paso, adjuntarTexto, fechaDeBusqueda, formatearFecha, selloEnLetras } from '../../../utils/pasos';
+import { paso, adjuntarTexto, fechaDeBusqueda, formatearFecha, selloEnLetras, importeANumero } from '../../../utils/pasos';
 
 /**
  * Precondiciones de la app nueva, por pantalla y como un usuario real: la agencia
@@ -112,7 +112,51 @@ export const PROVEEDOR_DE_REGRESION = { termino: 'GRUPO SUMMA', razonSocial: 'GR
 export const cajaDeRegresion = (moneda: string) =>
   ({ USD: 'AUTO-QA NO TOCAR - CAJA USD', ARS: 'AUTO-QA NO TOCAR - CAJA ARS' } as Record<string, string>)[moneda] ?? `(sin caja AUTO-QA para ${moneda})`;
 
-export type FacturaAprobada = { fileCode: string; numeroDeFactura: string; puntoDeVenta: string; total: number; moneda: string };
+export type ComprobanteAlCliente = { fileCode: string; cliente: string; comprobante: string; total: number; moneda: string };
+
+/**
+ * Precondicion de la orden de cobro: la carta de cobranza emitida al cliente sobre el file,
+ * pendiente de cobro. Repite sin verificar lo que revisa el test de la factura al cliente.
+ */
+export async function armarFacturaAlCliente(page: Page, sello: string, file: FileNuevo): Promise<ComprobanteAlCliente> {
+  const digitos = file.fileCode.match(/\d+$/)?.[0] ?? '';
+  let comprobante = '';
+  let total = 0;
+  let moneda = '';
+
+  await paso(page, 'Emitir la carta de cobranza al cliente sobre el file', async () => {
+    await page.goto('/finance/invoicing/letters?state=issued');
+    await page.getByRole('button', { name: 'Nuevo', exact: true }).click();
+    await page.getByRole('button', { name: 'Elegir destinatario' }).click();
+    const destinatarios = page.getByRole('dialog', { name: 'Destinatarios' });
+    await destinatarios.getByRole('searchbox').fill(file.cliente);
+    await destinatarios.locator('tbody tr').filter({ hasText: file.cliente }).first().click();
+    await page.getByRole('button', { name: 'Cargar desde un file' }).click();
+    const files = page.getByRole('dialog', { name: 'Files del cliente' });
+    await files.getByRole('searchbox').fill(digitos);
+    await files.locator('tbody tr').filter({ hasText: digitos }).first().click();
+    await expect(files).toBeHidden({ timeout: 30_000 });
+    await expect(page.getByRole('textbox', { name: 'Producto 1', exact: true }), 'La precondicion necesita los conceptos del file').not.toHaveValue('', { timeout: 30_000 });
+    total = importeANumero(await page.locator('#inv-total').inputValue()) ?? 0;
+    moneda = await page.locator('#inv-currency').evaluate((s: HTMLSelectElement) => s.options[s.selectedIndex]?.text ?? '');
+    expect(total, 'La precondicion necesita un comprobante con importe').toBeGreaterThan(0);
+    await page.locator('#inv-detail').fill(`Factura de regresion automatica ${sello}. No operar.`);
+    const guardado = page.waitForResponse((r) => /\/api\/finance\/invoicing$/.test(r.url()) && r.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    expect((await guardado).status(), 'La precondicion tiene que poder emitir la carta de cobranza').toBe(200);
+
+    await page.goto(`/finance/invoicing/letters?state=issued&q=${digitos}`);
+    const fila = page.locator('tbody tr').filter({ hasText: digitos }).first();
+    await expect(fila, `La precondicion necesita la carta del file ${file.fileCode} en Cartas emitidas`).toBeVisible({ timeout: 60_000 });
+    comprobante = (await fila.innerText()).match(/[A-Z]{2}\d{5}-\d{8}/)?.[0] ?? '';
+    expect(comprobante, 'No se pudo leer el numero de la carta en Cartas emitidas').not.toBe('');
+    await adjuntarTexto('Carta de cobranza de la precondicion', `${comprobante} · ${file.cliente} · ${moneda} ${total}`);
+  });
+
+  return { fileCode: file.fileCode, cliente: file.cliente, comprobante, total, moneda };
+}
+
+export type FacturaAprobada ={ fileCode: string; numeroDeFactura: string; puntoDeVenta: string; total: number; moneda: string };
 
 /**
  * Precondicion de la orden de pago: la factura del proveedor por el costo del item, imputada
