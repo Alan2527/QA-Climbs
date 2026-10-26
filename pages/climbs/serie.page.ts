@@ -1,6 +1,6 @@
 import { Page, Locator, expect, Response } from '@playwright/test';
 import { importeANumero } from '../../utils/pasos';
-import { PasajeroNuevo } from './portal.page';
+import { PortalNuevoPage, PasajeroNuevo } from './portal.page';
 
 /** Una salida tal como la carga la pantalla (`/api/site/series/tours/{id}/booking`). */
 export type SalidaDeSerie = { date: string; single: number | null; double: number | null; triple: number | null; child: number | null; quota: number | null };
@@ -28,8 +28,9 @@ export class SerieNuevaPage {
   // --- Listado y serie ----------------------------------------------------------------
 
   async abrirListado() {
-    // Por el menu del encabezado, ubicado por su direccion: el rotulo se traduce.
-    await this.page.goto('/site');
+    // Por el menu del encabezado, ubicado por su direccion: el rotulo se traduce. La portada
+    // abre con el dialogo "Novedades" demorado: se cierra antes, como en los demas flujos.
+    await new PortalNuevoPage(this.page).abrirInicio();
     await this.page.getByRole('banner').locator('nav a[href="/site/series"]').click();
     await expect(this.page).toHaveURL(/\/site\/series$/);
     await expect(this.page.locator('main article').first()).toBeVisible({ timeout: 60_000 });
@@ -252,7 +253,8 @@ export class SerieNuevaPage {
   }
 
   async textoDelAvisoDePocosCupos(): Promise<string> {
-    return (await this.page.locator('main').getByText(/^(Quedan \d+ habitaciones|Queda 1 habitación) disponibles? para esta fecha/).allInnerTexts()).join(' ').trim();
+    // Sin ancla al comienzo: el renglon arranca con un icono.
+    return (await this.page.locator('main').getByText(/(Quedan \d+ habitaciones|Queda 1 habitación) disponibles? para esta fecha/).allInnerTexts()).join(' ').trim();
   }
 
   async textoDelModalDeCupo(): Promise<string> {
