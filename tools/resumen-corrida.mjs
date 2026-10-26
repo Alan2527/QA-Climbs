@@ -38,8 +38,18 @@ if (!Number.isInteger(numero) || numero <= 0) {
   process.exit(1);
 }
 
-/** El area del tablero sale de la carpeta del archivo, no del nombre del proyecto. */
+/**
+ * El area del tablero sale de la carpeta del archivo, no del nombre del proyecto.
+ *
+ * La suite de la app nueva (climbs/<area>/...) usa las mismas areas: el tablero la
+ * muestra al lado de la actual. Su login va aparte de la preparacion de la suite actual,
+ * para que si falla no diga que la corrida entera no llego a probar.
+ */
 function areaDe(archivo) {
+  if (archivo.startsWith('climbs/')) {
+    const sub = archivo.split('/')[1];
+    return ['tarifario', 'reservas', 'cobranzas', 'webadmin', 'six', 'seguridad'].includes(sub) ? sub : 'preparacion-nueva';
+  }
   if (archivo.startsWith('bloque-a/')) return 'tarifario';
   if (archivo.startsWith('bloque-b/')) return 'reservas';
   if (archivo.startsWith('bloque-c/')) return 'cobranzas';
@@ -64,6 +74,7 @@ function recolectar(suite, titulos, pruebas) {
       const conError = [...intentos].reverse().find((r) => r.error?.message);
       pruebas.push({
         area: areaDe(spec.file),
+        app: spec.file.startsWith('climbs/') ? 'nueva' : 'actual',
         archivo: spec.file,
         linea: spec.line,
         grupo: actuales.join(' › '),
@@ -120,7 +131,7 @@ if (fs.existsSync(archivoPlaywright)) {
 }
 
 const totales = contar(pruebas);
-const deNegocio = contar(pruebas.filter((p) => p.area !== 'preparacion'));
+const deNegocio = contar(pruebas.filter((p) => !p.area.startsWith('preparacion')));
 
 let estado;
 if (!hayResultados) estado = 'sin-resultados';

@@ -3,7 +3,7 @@ description: Prepara el runner, corre un carril (un bloque o un grupo de bloques
 
 inputs:
   carril:
-    description: 'Bloque o grupo de bloques: bloque-a, bloque-b, bloque-c, webadmin, six, seguridad, todas, cobranzas, reservas o lectura'
+    description: 'Bloque o grupo de bloques: bloque-a, bloque-b, bloque-c, webadmin, six, seguridad, todas, cobranzas, reservas, lectura o nueva (la app nueva)'
     required: true
   filtro:
     description: 'Opcional: acota dentro del carril. Ej: -g "Ofertas"'
@@ -67,6 +67,7 @@ runs:
           six)       RUTA="tests/six" ;;
           seguridad) RUTA="tests/seguridad" ;;
           lectura)   RUTA="tests/bloque-a tests/seguridad tests/six" ;;
+          nueva)     RUTA="tests/climbs" ;;
           todas)     RUTA="tests" ;;
           *) echo "Carril desconocido: $CARRIL"; exit 1 ;;
         esac

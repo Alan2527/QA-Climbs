@@ -4,6 +4,9 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 const ARCHIVO_SESION = 'playwright/.auth/front.json';
+// App nueva (ClimbsApp): Backoffice en la raiz y portal de agencias en /site.
+const URL_APP_NUEVA = process.env.CLIMBS_URL ?? 'https://climbs-qa.amv.travel';
+const SESION_APP_NUEVA = 'playwright/.auth/app-nueva.json';
 
 /**
  * Suite E2E de AMV Travel — ambiente QA.
@@ -179,6 +182,25 @@ export default defineConfig({
       retries: process.env.CI ? 1 : 0,
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
       dependencies: ['Login'],
+    },
+
+    // --- App nueva (ClimbsApp) ------------------------------------------------------
+    // La suite que acompaña la migracion: los mismos flujos, contra la app nueva, que
+    // usa la misma base de QA. Vive en tests/climbs hasta que tenga su carpeta en el
+    // repo de ClimbsApp. El personal (pablo) entra al portal nuevo con su usuario del
+    // backoffice desde el 25/10/2026, asi que una sola cuenta abre las dos apps.
+    {
+      name: 'App nueva - Login',
+      testDir: './tests/climbs',
+      testMatch: /ingreso\.setup\.ts/,
+      // La app nueva toma el idioma del navegador: sin esto sale en ingles.
+      use: { ...devices['Desktop Chrome'], baseURL: URL_APP_NUEVA, locale: 'es-AR' },
+    },
+    {
+      name: 'App nueva - Cobranzas',
+      testDir: './tests/climbs/cobranzas',
+      use: { ...devices['Desktop Chrome'], baseURL: URL_APP_NUEVA, locale: 'es-AR', storageState: SESION_APP_NUEVA, actionTimeout: 60_000 },
+      dependencies: ['App nueva - Login'],
     },
   ],
 });

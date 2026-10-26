@@ -244,6 +244,8 @@
   .dot.ok { background: var(--ok); } .dot.fail, .dot.nueva { background: var(--fail); } .dot.known, .dot.arrastrada { background: var(--known); } .dot.skip, .dot.none { background: var(--skip); }
   .detail { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; max-width: 520px; }
   .detail .why { font-size: 12px; color: var(--color-text-muted); overflow-wrap: anywhere; }
+  td.nowrap { white-space: nowrap; }
+  td.nowrap .why { font-size: 12px; color: var(--color-text-muted); }
   a.corrida-link { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; opacity: .8; }
   a.corrida-link:hover { opacity: 1; }
   /* Icono de info por prueba + tooltip (el tooltip va en el body para no cortarse con el overflow de la card/grilla). */
@@ -350,7 +352,7 @@
 
 <script>
 (() => {
-  const AREA_DE_SUITE = { 'bloque-a': 'Tarifario', 'bloque-b': 'Reservas', 'bloque-c': 'Cobranzas', 'webadmin': 'WebAdmin', 'six': 'SIX', 'seguridad': 'Seguridad', 'todas': 'Todas las pruebas' };
+  const AREA_DE_SUITE = { 'bloque-a': 'Tarifario', 'bloque-b': 'Reservas', 'bloque-c': 'Cobranzas', 'webadmin': 'WebAdmin', 'six': 'SIX', 'seguridad': 'Seguridad', 'nueva': 'App nueva', 'todas': 'Todas las pruebas' };
   const DETALLES = 15;        // corridas leidas en detalle: alcanza para el historial de cada prueba
   const FILAS_HISTORIAL = 10;
   const ORDEN = { nueva: 0, arrastrada: 1, skip: 2, none: 3, ok: 4 };
@@ -465,14 +467,39 @@
     return 'ok'; // paso o inestable
   }
 
+  // Las pruebas de la app nueva viven en climbs/<area>/: se cuentan aparte.
+  const esDeAppNueva = (archivo) => archivo.startsWith('climbs/');
+
   function contarCorrida(det) {
-    const r = { ok: 0, fail: 0, skip: 0, prep: false };
+    const r = { ok: 0, fail: 0, skip: 0, prep: false, nueva: { ok: 0, total: 0 } };
     for (const p of det.pruebas) {
       if (p.area === 'preparacion') { if (p.estado === 'fallo') r.prep = true; continue; }
+      if (p.area === 'preparacion-nueva') continue;
       const e = estadoVisible(p);
+      if (esDeAppNueva(p.archivo)) { r.nueva.total++; if (e === 'ok') r.nueva.ok++; continue; }
       r[e === 'none' ? 'skip' : e]++;
     }
     return r;
+  }
+
+  /**
+   * Color de una prueba segun su historial: una falla que antes pasaba es NUEVA (roja);
+   * una que ya venia fallando es ARRASTRADA (naranja). Un verde que en la corrida anterior
+   * fallaba queda marcado como CORREGIDO. Todo sale de las corridas publicadas.
+   */
+  function estadoConHistorial(h, res) {
+    let racha = null;
+    if (res?.estado === 'fallo') {
+      // Cuantas corridas seguidas viene fallando, y si antes de eso pasaba.
+      let n = 0;
+      while (n < h.length && h[n].estado === 'fallo') n++;
+      racha = { corridas: n, desde: h[n - 1].corrida, antesPasaba: n < h.length };
+    }
+    const base = estadoVisible(res);
+    let vis = base, corregido = false;
+    if (base === 'fail') vis = (racha?.antesPasaba && racha.corridas === 1) ? 'nueva' : 'arrastrada';
+    else if (base === 'ok') corregido = h[1]?.estado === 'fallo';
+    return { res, racha, vis, corregido };
   }
 
   function preparar(catalogo, corridas, detalles) {
@@ -490,30 +517,30 @@
     }
 
     const areaDe = (a) => a.startsWith('bloque-a/') ? 'tarifario' : a.startsWith('bloque-b/') ? 'reservas' : a.startsWith('bloque-c/') ? 'cobranzas' : a.startsWith('webadmin/') ? 'webadmin' : a.startsWith('six/') ? 'six' : a.startsWith('seguridad/') ? 'seguridad' : null;
+
+    // App nueva: cada prueba de climbs/<area>/ se empareja con la de la suite actual que
+    // tiene el mismo titulo en la misma area, y se muestra en su fila.
+    const enAppNueva = new Map();
+    for (const [k, h] of historial) {
+      const p = h[0];
+      if (!esDeAppNueva(p.archivo) || p.area?.startsWith('preparacion')) continue;
+      enAppNueva.set(`${p.area}::${p.titulo}`, estadoConHistorial(h, h[0]));
+    }
+    for (const [k, r] of omitidas) {
+      if (!esDeAppNueva(r.archivo) || historial.has(k) || r.area?.startsWith('preparacion')) continue;
+      enAppNueva.set(`${r.area}::${r.titulo}`, estadoConHistorial([], r));
+    }
+
     const enCatalogo = new Set(catalogo.pruebas.map((p) => clave(p.archivo, p.titulo)));
     const extras = [...historial.values()].map((h) => h[0])
-      .filter((p) => p.area !== 'preparacion' && !enCatalogo.has(clave(p.archivo, p.titulo)))
+      .filter((p) => p.area !== 'preparacion' && !esDeAppNueva(p.archivo) && !enCatalogo.has(clave(p.archivo, p.titulo)))
       .map((p) => ({ archivo: p.archivo, titulo: p.titulo, nombre: p.titulo }));
 
     const pruebas = [...catalogo.pruebas, ...extras].map((p) => {
       const k = clave(p.archivo, p.titulo);
       const h = historial.get(k) ?? [];
-      const res = h[0] ?? omitidas.get(k);
-      let racha = null;
-      if (res?.estado === 'fallo') {
-        // Cuantas corridas seguidas viene fallando, y si antes de eso pasaba.
-        let n = 0;
-        while (n < h.length && h[n].estado === 'fallo') n++;
-        racha = { corridas: n, desde: h[n - 1].corrida, antesPasaba: n < h.length };
-      }
-      // Color segun el historial: una falla que antes pasaba es NUEVA (roja); una que ya
-      // venia fallando es ARRASTRADA (naranja). Un verde que en la corrida anterior fallaba
-      // queda marcado como CORREGIDO. Todo sale de las corridas publicadas, sin marcas a mano.
-      const base = estadoVisible(res);
-      let vis = base, corregido = false;
-      if (base === 'fail') vis = (racha?.antesPasaba && racha.corridas === 1) ? 'nueva' : 'arrastrada';
-      else if (base === 'ok') corregido = h[1]?.estado === 'fallo';
-      return { ...p, area: areaDe(p.archivo), res, racha, vis, corregido };
+      const area = areaDe(p.archivo);
+      return { ...p, area, ...estadoConHistorial(h, h[0] ?? omitidas.get(k)), nueva: enAppNueva.get(`${area}::${p.titulo}`) ?? null };
     }).filter((p) => p.area);
 
     const areas = catalogo.areas.map((a) => {
@@ -646,6 +673,16 @@
     return '<span class="why">—</span>';
   }
 
+  // Columna de la app nueva: el mismo color y el link a su corrida; el error va en el title.
+  function celdaNueva(n) {
+    if (!n) return '<span class="why" title="Esta prueba todavía no se pasó a la app nueva">—</span>';
+    let titulo = ETIQUETA[n.vis];
+    if (n.vis === 'arrastrada' && n.racha) titulo += ` desde el ${fechaDeCorrida(n.racha.desde) ?? `#${n.racha.desde}`}`;
+    if (n.corregido) titulo += ' (corregido: en la corrida anterior fallaba)';
+    if (n.res?.error) titulo += ` — ${n.res.error}`;
+    return `<i class="dot ${n.vis}" title="${esc(titulo)}" aria-label="${esc(titulo)}"></i>${n.res ? ` <span class="why">${celdaCorrida(n.res)}</span>` : ''}`;
+  }
+
   const leyenda = () => `<div class="legend"><span><i class="dot ok"></i>Funciona</span><span><i class="dot nueva"></i>Falla nueva</span><span><i class="dot arrastrada"></i>Viene fallando</span><span><i class="dot skip"></i>No se ejecutó</span></div>`;
 
   function tablaArea(a) {
@@ -653,10 +690,11 @@
     const pct = (n) => `${(n / t * 100).toFixed(2)}%`;
     const conTiempo = (p) => p.res && p.res.estado !== 'omitida';
     const filas = a.pruebas
-      .filter((p) => !soloProblemas || esProblema(p.vis))
+      .filter((p) => !soloProblemas || esProblema(p.vis) || esProblema(p.nueva?.vis))
       .sort((x, y) => ORDEN[x.vis] - ORDEN[y.vis])
       .map((p) => `<tr>
         <td><i class="dot ${p.vis}" title="${ETIQUETA[p.vis]}" aria-label="${ETIQUETA[p.vis]}"></i></td>
+        <td class="nowrap">${celdaNueva(p.nueva)}</td>
         <td class="left strong" title="${esc(p.titulo)}">${esc(p.nombre)}${p.descripcion ? ` <i class="ph ph-info info-ico" data-tip="${esc(p.descripcion)}" title="" tabindex="0" role="button" aria-label="Qué verifica este test"></i>` : ''}</td>
         <td class="left"><div class="detail">${detalle(p)}</div></td>
         <td class="num">${conTiempo(p) ? duracion(p.res.duracionMs) : '—'}${p.res?.intentos > 1 ? `<br><span class="why">${p.res.intentos} intentos</span>` : ''}</td>
@@ -675,8 +713,8 @@
         <div class="meter" aria-hidden="true"><i class="m-ok" style="width:${pct(a.ok)}"></i><i class="m-fail" style="width:${pct(a.nuevas)}"></i><i class="m-known" style="width:${pct(a.arrastradas)}"></i><i class="m-skip" style="width:${pct(a.skip)}"></i></div>
       </div>
       <div class="grid-wrap"><table class="tablestyle">
-        <thead><tr><th>Estado</th><th class="left">Prueba</th><th class="left">Detalle</th><th>Duración</th><th>Corrida</th><th>Cuándo</th></tr></thead>
-        <tbody>${filas || `<tr class="grid-empty"><td colspan="6">${vacio}</td></tr>`}</tbody>
+        <thead><tr><th title="Suite actual: portal y BO de hoy">Actual</th><th title="La misma prueba sobre la app nueva (ClimbsApp)">App nueva</th><th class="left">Prueba</th><th class="left">Detalle</th><th>Duración</th><th>Corrida</th><th>Cuándo</th></tr></thead>
+        <tbody>${filas || `<tr class="grid-empty"><td colspan="7">${vacio}</td></tr>`}</tbody>
       </table></div>
       <div class="grid-foot"><span>${a.total} pruebas</span>${leyenda()}</div>
     </section>`;
@@ -693,6 +731,7 @@
         if (c.estado === 'sin-resultados' || (r.prep && !r.ok && !r.fail)) tag = '<span class="admin-tag admin-tag-error">No llegó a probar</span>';
         else if (r.fail) tag = `<span class="admin-tag admin-tag-error">${r.fail} falla${r.fail > 1 ? 'n' : ''}</span>`;
         else tag = '<span class="admin-tag admin-tag-ok">Todo OK</span>';
+        if (r.nueva.total) tag += ` <span class="admin-tag ${r.nueva.ok === r.nueva.total ? 'admin-tag-ok' : 'admin-tag-error'}" title="Pruebas sobre la app nueva">App nueva: ${r.nueva.ok} de ${r.nueva.total}</span>`;
         cuenta = total ? `${r.ok} de ${total}` : '—';
       } else {
         const t = c.totales;

@@ -17,6 +17,7 @@ on:
           - webadmin
           - six
           - seguridad
+          - nueva
           - todas
       filtro:
         description: 'Opcional: acota dentro de la suite elegida (no aplica a "todas"). Ej: -g "Ofertas"'
@@ -96,9 +97,21 @@ jobs:
         with:
           carril: ${{ matrix.carril }}
 
+  # Fase 3: los mismos flujos sobre la app nueva (ClimbsApp), despues de la actual y no
+  # al mismo tiempo: usan la misma base de QA. Queda hasta que la app vieja deje de usarse.
+  fase3:
+    needs: fase2
+    if: ${{ !cancelled() && github.event.inputs.suite == 'todas' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/correr
+        with:
+          carril: nueva
+
   # Junta los resultados de todas las maquinas y publica una sola vez.
   publicar:
-    needs: [unico, fase1, fase2]
+    needs: [unico, fase1, fase2, fase3]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:

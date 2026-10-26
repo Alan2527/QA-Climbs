@@ -184,7 +184,7 @@ test.describe('Seguridad — acceso a reservas y cotizaciones por URL', () => {
    * pablo1 toma su cotizacion de multidestino mas reciente. Se cachea entre pruebas:
    * la misma cotizacion alimenta el PDF, el Word y el "Ver detalle".
    */
-  let cotizacion: { id: string; codigo: string; referencia: string; pasajero: string; hrefVerDetalle: string; marcas: string[] } | null = null;
+  let cotizacion: { id: string; codigo: string; referencia: string; pasajero: string; marcas: string[] } | null = null;
 
   async function cotizacionDePablo1(page: Page) {
     if (cotizacion) return cotizacion;
@@ -195,7 +195,7 @@ test.describe('Seguridad — acceso a reservas y cotizaciones por URL', () => {
     expect(primera.id, 'La fila tiene que llevar el numero de cotizacion en su link Editar (quote=...)').toMatch(/^\d+$/);
     cotizacion = {
       id: primera.id, codigo: primera.codigo, referencia: primera.referencia,
-      pasajero: primera.pasajero, hrefVerDetalle: primera.hrefVerDetalle,
+      pasajero: primera.pasajero,
       marcas: [primera.codigo, primera.referencia, primera.pasajero].filter(Boolean),
     };
     return cotizacion;
