@@ -43,6 +43,37 @@ export class PortalNuevoPage {
     await expect(novedades).toBeHidden();
   }
 
+  // --- Idioma del sitio ---------------------------------------------------------------
+
+  /** Como se nombra cada idioma en el menu, segun el idioma en que esta el sitio. */
+  private static readonly NOMBRES_DE_IDIOMA: Record<string, Record<string, string>> = {
+    ES: { ES: 'Español', PT: 'Portugués', EN: 'Inglés' },
+    EN: { ES: 'Spanish', PT: 'Portuguese', EN: 'English' },
+    PT: { ES: 'Espanhol', PT: 'Português', EN: 'Inglês' },
+  };
+
+  get botonDeIdioma(): Locator {
+    return this.page.getByRole('banner').getByRole('button', { name: /^(ES|EN|PT)$/ });
+  }
+
+  /** El codigo del idioma activo, como lo muestra el encabezado ("ES", "EN", "PT"). */
+  async idiomaActivo(): Promise<string> {
+    return (await this.botonDeIdioma.innerText()).trim().toUpperCase();
+  }
+
+  /**
+   * Cambia el idioma desde el encabezado. El menu se abre al pasar el mouse por el boton
+   * (un clic sobre el boton lo vuelve a cerrar), y ofrece los otros dos idiomas.
+   */
+  async cambiarIdioma(codigo: 'ES' | 'EN' | 'PT') {
+    const actual = await this.idiomaActivo();
+    if (actual === codigo) return;
+    await this.botonDeIdioma.hover();
+    await this.page.getByRole('menuitem', { name: PortalNuevoPage.NOMBRES_DE_IDIOMA[actual][codigo], exact: true }).click();
+    await expect(this.botonDeIdioma, `El encabezado tiene que quedar en ${codigo}`).toHaveText(codigo);
+    await this.page.waitForLoadState('networkidle');
+  }
+
   async abrirInicio() {
     await this.page.goto('/site');
     await this.cerrarNovedades();
@@ -133,7 +164,8 @@ export class PortalNuevoPage {
 
   /** Contador del carrito en el encabezado: cuenta items, no pasajeros. */
   async itemsEnElCarrito(): Promise<number> {
-    return Number((await this.page.getByRole('link', { name: /Carrito/ }).innerText()).match(/\d+/)?.[0] ?? 0);
+    // Por su direccion y no por el nombre: el rotulo se traduce ("Carrito", "Cart").
+    return Number((await this.page.getByRole('banner').locator('a[href="/site/cart"]').first().innerText()).match(/\d+/)?.[0] ?? 0);
   }
 
   /** El item del carrito: "02/11/2026 2 x Regular Excursion Español" y su importe. */
