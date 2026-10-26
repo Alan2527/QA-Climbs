@@ -225,5 +225,33 @@ export default defineConfig({
       },
       dependencies: ['App nueva - Login'],
     },
+    {
+      // El WebAdmin no existe en la app nueva: sus pantallas viven en el Backoffice.
+      name: 'App nueva - WebAdmin',
+      testDir: './tests/climbs/webadmin',
+      use: {
+        ...devices['Desktop Chrome'], baseURL: URL_APP_NUEVA, locale: 'es-AR', viewport: { width: 1920, height: 1080 },
+        storageState: SESION_APP_NUEVA, actionTimeout: 60_000,
+      },
+      dependencies: ['App nueva - Login'],
+    },
+    {
+      name: 'App nueva - Seguridad',
+      testDir: './tests/climbs/seguridad',
+      use: {
+        ...devices['Desktop Chrome'], baseURL: URL_APP_NUEVA, locale: 'es-AR', viewport: { width: 1920, height: 1080 },
+        storageState: SESION_APP_NUEVA, actionTimeout: 60_000,
+      },
+      dependencies: ['App nueva - Login'],
+    },
+    {
+      name: 'App nueva - SIX',
+      testDir: './tests/climbs/six',
+      use: {
+        ...devices['Desktop Chrome'], baseURL: URL_APP_NUEVA, locale: 'es-AR', viewport: { width: 1920, height: 1080 },
+        storageState: SESION_APP_NUEVA, actionTimeout: 60_000,
+      },
+      dependencies: ['App nueva - Login'],
+    },
   ],
 });
