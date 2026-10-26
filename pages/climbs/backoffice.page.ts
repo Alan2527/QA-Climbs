@@ -28,10 +28,14 @@ export class BackofficeNuevoPage {
     return this.page.getByRole('dialog').first();
   }
 
-  /** La fila de la reserva en la bandeja (`/files/inbox`), buscada por su numero. */
-  async filaDeLaBandeja(codigo: string): Promise<Locator> {
+  /**
+   * La fila de la reserva en la bandeja (`/files/inbox`), buscada por su numero. La bandeja
+   * separa por origen en solapas ("Online", "Series", "Grupos"...): las de serie viven en la suya.
+   */
+  async filaDeLaBandeja(codigo: string, origen: 'Online' | 'Series' = 'Online'): Promise<Locator> {
     const numero = BackofficeNuevoPage.numeroDeReserva(codigo);
     await this.page.goto('/files/inbox');
+    if (origen !== 'Online') await this.page.getByRole('tab', { name: new RegExp(`^${origen}`) }).click();
     await this.page.getByRole('searchbox', { name: 'Número, referencia, pasajero o agencia' }).fill(numero);
     const fila = this.page.locator('tbody tr').filter({ has: this.page.getByRole('cell', { name: numero, exact: true }) }).first();
     await expect(fila, `La reserva ${codigo} tiene que aparecer en la bandeja de reservas`).toBeVisible({ timeout: 60_000 });

@@ -87,6 +87,11 @@ export async function verificarEnElBackofficeNuevo(opciones: {
   importePorItemDelPortal?: Record<string, string>;
   /** Destinos del file, en orden: un circuito tiene varios. */
   ciudades?: string[];
+  /**
+   * La reserva de una serie no tiene donde cargar referencia, observaciones ni comentario por
+   * item (el asistente no los ofrece): exigirlos seria exigir un dato que nadie pudo cargar.
+   */
+  sinReferenciaNiComentario?: boolean;
 }) {
   const { page, codigo, reserva, contexto, importes } = opciones;
   const portal = new PortalNuevoPage(page);
@@ -98,6 +103,7 @@ export async function verificarEnElBackofficeNuevo(opciones: {
   const itemsEsperados = opciones.itemsEsperados ?? [reserva.textoEnElBO];
   const importePorItemDelPortal = opciones.importePorItemDelPortal ?? {};
   const ciudades = opciones.ciudades ?? ['Buenos Aires'];
+  const sinReferencia = opciones.sinReferenciaNiComentario ?? false;
   const principal = reserva.pasajeros[0];
 
   await paso(page, 'Abrir el detalle de la reserva en el portal y verificar los comentarios', async () => {
@@ -109,6 +115,7 @@ export async function verificarEnElBackofficeNuevo(opciones: {
     await portal.abrirDetalleDeLaReserva(fila, codigo);
     const detalle = (await page.locator('main').innerText()).replace(/\s+/g, ' ');
     await adjuntarTexto('Detalle de la reserva en el portal', detalle);
+    if (sinReferencia) return;
     const main = page.locator('main');
     await conResaltado(page, main, 'Comentario del item en el detalle', () => {
       expect(detalle, 'El detalle de la reserva tiene que mostrar el comentario cargado en el item').toContain(reserva.detalleDelItem);
@@ -121,12 +128,14 @@ export async function verificarEnElBackofficeNuevo(opciones: {
 
   let dialogo = page.getByRole('dialog').first();
   await paso(page, 'Ubicar la reserva en la bandeja del Backoffice y comparar la fila', async () => {
-    const fila = await bo.filaDeLaBandeja(codigo);
+    const fila = await bo.filaDeLaBandeja(codigo, reserva.solapa === 'Series' ? 'Series' : 'Online');
     const texto = (await fila.innerText()).replace(/\s+/g, ' ');
     await adjuntarTexto('Fila de la bandeja', texto);
-    await conResaltado(page, fila, 'Referencia en la bandeja', () => {
-      expect(texto, 'La bandeja tiene que mostrar la referencia cargada en el portal').toContain(reserva.referencia);
-    });
+    if (!sinReferencia) {
+      await conResaltado(page, fila, 'Referencia en la bandeja', () => {
+        expect(texto, 'La bandeja tiene que mostrar la referencia cargada en el portal').toContain(reserva.referencia);
+      });
+    }
     await conResaltado(page, fila, 'Pasajero principal en la bandeja', () => {
       expect(texto, 'La bandeja tiene que mostrar el pasajero principal')
         .toContain(`${principal.nombre} ${principal.apellido}`.toUpperCase());
@@ -154,8 +163,7 @@ export async function verificarEnElBackofficeNuevo(opciones: {
   await paso(page, 'Abrir el detalle y comparar los datos de la reserva', async () => {
     const esperados: Record<string, string> = {
       'ib-pax-count': String(reserva.cantidadPax),
-      'ib-ref': reserva.referencia,
-      'ib-comment': reserva.observaciones,
+      ...(sinReferencia ? {} : { 'ib-ref': reserva.referencia, 'ib-comment': reserva.observaciones }),
       'ib-pax-name': principal.nombre.toUpperCase(),
       'ib-pax-last': principal.apellido.toUpperCase(),
       'ib-pax-nat': principal.nacionalidad.toUpperCase(),
@@ -224,9 +232,8 @@ export async function verificarEnElBackofficeNuevo(opciones: {
   await paso(page, 'Comparar los datos del file contra los cargados en el portal', async () => {
     const esperados: Record<string, string> = {
       'Cant. pax': String(reserva.cantidadPax),
-      'Referencia del cliente': reserva.referencia,
       // Las observaciones de la reserva son las de "Uso interno" (en el BO viejo, txtComment).
-      'Uso interno': reserva.observaciones,
+      ...(sinReferencia ? {} : { 'Referencia del cliente': reserva.referencia, 'Uso interno': reserva.observaciones }),
       'Nombre pax': principal.nombre,
       'Apellido pax': principal.apellido,
       'Nacionalidad pax': principal.nacionalidad,
@@ -242,6 +249,10 @@ export async function verificarEnElBackofficeNuevo(opciones: {
   await paso(page, 'Abrir el Rooming del file y comparar los pasajeros', async () => {
     await bo.abrirRooming();
     const tabla = bo.rooming.getByRole('table');
+    // Las filas llegan despues de abrir el rooming (primero puede verse una vacia): se espera
+    // a que todas traigan su nombre antes de leerlas.
+    await expect.poll(async () => (await leerTabla(tabla)).filter((f) => f['Nombre']).length, { timeout: 30_000 })
+      .toBeGreaterThanOrEqual(reserva.pasajeros.length);
     const filas = await leerTabla(tabla);
     await adjuntarTexto('Rooming del file', filas.map((f) => [f['Nombre'], f['Apellido'], f['Documento'], f['Nacionalidad'], f['Fecha Nac.']].join(' | ')).join('\n'));
     await conResaltado(page, tabla, 'Cantidad de pasajeros en el rooming', () => {
