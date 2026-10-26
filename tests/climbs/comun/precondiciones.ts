@@ -1,6 +1,7 @@
 import { Page, expect } from '@playwright/test';
 import { PortalNuevoPage, PasajeroNuevo } from '../../../pages/climbs/portal.page';
 import { BackofficeNuevoPage, ImporteNuevo } from '../../../pages/climbs/backoffice.page';
+import { FacturaProveedorNuevaPage } from '../../../pages/climbs/factura-proveedor.page';
 import { paso, adjuntarTexto, fechaDeBusqueda, formatearFecha, selloEnLetras } from '../../../utils/pasos';
 
 /**
@@ -102,4 +103,53 @@ export async function reservarServicioYGenerarFile(page: Page, sello: string): P
   });
 
   return { ...reserva, ...file, cliente, costoDelItem: item.costo, ventaDelItem: item.venta };
+}
+
+/** El proveedor que carga el costo del servicio de regresion. */
+export const PROVEEDOR_DE_REGRESION = { termino: 'GRUPO SUMMA', razonSocial: 'GRUPO SUMMA SRL' };
+
+/** La caja AUTO-QA de cada moneda: la orden de pago solo ofrece cajas de su misma moneda. */
+export const cajaDeRegresion = (moneda: string) =>
+  ({ USD: 'AUTO-QA NO TOCAR - CAJA USD', ARS: 'AUTO-QA NO TOCAR - CAJA ARS' } as Record<string, string>)[moneda] ?? `(sin caja AUTO-QA para ${moneda})`;
+
+export type FacturaAprobada = { fileCode: string; numeroDeFactura: string; puntoDeVenta: string; total: number; moneda: string };
+
+/**
+ * Precondicion de la orden de pago: la factura del proveedor por el costo del item, imputada
+ * y aprobada. Repite sin verificar lo que el test de la factura de proveedor revisa paso por
+ * paso; solo corta con un motivo claro si algo no esta.
+ */
+export async function armarFacturaAprobada(page: Page, sello: string, ahora: Date, file: FileNuevo): Promise<FacturaAprobada> {
+  const factura = new FacturaProveedorNuevaPage(page);
+  const total = file.costoDelItem.valor as number;
+  const totalComoTexto = total.toFixed(2).replace('.', ',');
+  const puntoDeVenta = '0001';
+  const numero = [ahora.getDate(), ahora.getHours(), ahora.getMinutes(), ahora.getSeconds()].map((n) => String(n).padStart(2, '0')).join('');
+
+  await paso(page, 'Cargar la factura del proveedor, imputarla al file y aprobarla', async () => {
+    await factura.abrirNueva();
+    await factura.elegirSucursal('Argentina');
+    await factura.elegirProveedor(PROVEEDOR_DE_REGRESION.termino, PROVEEDOR_DE_REGRESION.razonSocial);
+    await factura.campo('type').selectOption({ label: 'Factura A' });
+    await factura.campo('pos').fill(puntoDeVenta);
+    await factura.campo('number').fill(numero);
+    await factura.campo('currency').selectOption({ label: file.costoDelItem.moneda });
+    await factura.campo('nontaxable').fill(totalComoTexto);
+    await factura.campo('nontaxable').press('Tab');
+    await factura.campo('comment').fill(`Factura de regresion automatica ${sello}. No operar.`);
+    const id = await factura.guardar();
+    expect(id, 'La precondicion tiene que poder crear la factura del proveedor').toMatch(/^\d+$/);
+
+    await factura.buscarPendiente(file.fileCode);
+    const fila = factura.filaPendiente(file.fileCode);
+    await expect(fila, `La precondicion necesita el servicio del file ${file.fileCode} entre los pendientes de la factura`)
+      .toBeVisible({ timeout: 60_000 });
+    await factura.asignar(await factura.abrirAsignacion(fila), totalComoTexto, `AUTO-QA ${sello.slice(-8)}`);
+    await expect(factura.filaAsignada(file.fileCode), 'La precondicion necesita la factura imputada al servicio').toBeVisible({ timeout: 60_000 });
+    await page.getByRole('button', { name: 'Ajustar & aprobar' }).click();
+    await expect(page.getByText('Aprobada', { exact: true }), 'La precondicion necesita la factura aprobada').toBeVisible({ timeout: 60_000 });
+    await adjuntarTexto('Factura de proveedor de la precondicion', `${puntoDeVenta}-${numero} (id ${id}) · ${file.costoDelItem.moneda} ${totalComoTexto}`);
+  });
+
+  return { fileCode: file.fileCode, numeroDeFactura: numero, puntoDeVenta, total, moneda: file.costoDelItem.moneda };
 }
