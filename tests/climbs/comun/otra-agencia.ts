@@ -11,7 +11,9 @@ export async function abrirSesionDeOtraAgencia(browser: Browser, baseURL?: strin
   const usuario = process.env.AMV_MARKUP_USER;
   const clave = process.env.AMV_MARKUP_PASS;
   expect(usuario && clave, 'Faltan AMV_MARKUP_USER y AMV_MARKUP_PASS: sin la agencia ajena no hay contra quien comparar').toBeTruthy();
-  const contexto = await browser.newContext({ baseURL, locale: 'es-AR', viewport: { width: 1920, height: 1080 } });
+  // Contexto limpio: sin esto hereda la sesion del proyecto (la cookie del backoffice de pablo
+  // quedaba viva al lado de la del portal de la agencia).
+  const contexto = await browser.newContext({ baseURL, locale: 'es-AR', viewport: { width: 1920, height: 1080 }, storageState: { cookies: [], origins: [] } });
   const pagina = await contexto.newPage();
   await new PortalNuevoPage(pagina).ingresar(usuario!, clave!);
   return { contexto, pagina };
