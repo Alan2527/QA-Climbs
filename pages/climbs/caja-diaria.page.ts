@@ -22,9 +22,28 @@ export class CajaDiariaNuevaPage {
     return this.page.locator('tbody tr').filter({ hasText: fecha });
   }
 
+  /**
+   * El listado muestra las cajas de una sucursal (la de trabajo por defecto, y vuelve a ella al
+   * recargar): se elige la pedida. El filtro aparece recien cuando cargan las sucursales.
+   */
+  async elegirSucursal(sucursal: string) {
+    const filtroSucursal = this.page.getByRole('combobox', { name: 'Sucursal', exact: true });
+    if (!(await filtroSucursal.waitFor({ state: 'visible', timeout: 20_000 }).then(() => true).catch(() => false))) return;
+    const actual = await filtroSucursal.evaluate((s: HTMLSelectElement) => s.options[s.selectedIndex]?.text ?? '');
+    if (actual.includes(sucursal)) return;
+    // Mientras carga, la tabla sigue mostrando las cajas de la sucursal anterior: se espera la
+    // respuesta del listado nuevo antes de buscar la fila.
+    await Promise.all([
+      this.page.waitForResponse((r) => /\/api\/finance\/daily-cash\?/.test(r.url()) && r.request().method() === 'GET', { timeout: 60_000 }),
+      filtroSucursal.selectOption({ label: sucursal }),
+    ]);
+    await this.page.waitForLoadState('networkidle');
+  }
+
   /** Abre la caja de hoy si no existe; si ya existe, entra a la que hay. Devuelve su id y si la abrio el test. */
   async abrirCajaDelDia(fecha: string, sucursal: string, detalle: string): Promise<{ id: string; creada: boolean }> {
     await this.irAlListado();
+    await this.elegirSucursal(sucursal);
     const existente = this.filaDeLaFecha(fecha).first();
     const hay = await existente.waitFor({ state: 'visible', timeout: 15_000 }).then(() => true).catch(() => false);
     if (hay) {
@@ -47,9 +66,15 @@ export class CajaDiariaNuevaPage {
   }
 
   /**
-   * El filtro "Medio": con mas de 15 cajas no es un select sino un boton que abre una lista
-   * con buscador (rol listbox).
+   * El filtro "Medio": con hasta 15 cajas es un select; con mas, un boton que abre una lista
+   * con buscador (rol listbox). Argentina tiene mas de 15; las otras sucursales, menos.
    */
+  private async filtroEsSelect(): Promise<boolean> {
+    const filtro = this.page.locator('#dc-filter');
+    await expect(filtro, 'El filtro Medio tiene que habilitarse').toBeEnabled({ timeout: 30_000 });
+    return (await filtro.evaluate((e) => e.tagName)) === 'SELECT';
+  }
+
   private async abrirFiltroDeCaja(): Promise<Locator> {
     await this.page.locator('#dc-filter').click();
     const lista = this.page.getByRole('listbox', { name: 'Medio' });
@@ -58,6 +83,9 @@ export class CajaDiariaNuevaPage {
   }
 
   async cajasOfrecidas(): Promise<string[]> {
+    if (await this.filtroEsSelect()) {
+      return (await this.page.locator('#dc-filter option').allInnerTexts()).map((t) => t.trim());
+    }
     const lista = await this.abrirFiltroDeCaja();
     const cajas = (await lista.getByRole('option').allInnerTexts()).map((t) => t.trim());
     await this.page.keyboard.press('Escape');
@@ -66,10 +94,25 @@ export class CajaDiariaNuevaPage {
   }
 
   async filtrarPorCaja(caja: string) {
-    const lista = await this.abrirFiltroDeCaja();
-    await this.page.getByRole('combobox', { name: /Medio/ }).fill(caja);
-    await lista.getByRole('option', { name: caja, exact: true }).click();
-    await expect(this.page.locator('#dc-filter'), `El filtro tiene que quedar en ${caja}`).toHaveText(caja);
+    if (await this.filtroEsSelect()) {
+      await this.page.locator('#dc-filter').selectOption({ label: caja });
+    } else {
+      const lista = await this.abrirFiltroDeCaja();
+      await this.page.getByRole('combobox', { name: /Medio/ }).fill(caja);
+      await lista.getByRole('option', { name: caja, exact: true }).click();
+      await expect(this.page.locator('#dc-filter'), `El filtro tiene que quedar en ${caja}`).toHaveText(caja);
+    }
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  /** Saca el filtro de Medio: vuelve a mostrar todas las cajas. */
+  async quitarFiltroDeCaja() {
+    if (await this.filtroEsSelect()) {
+      await this.page.locator('#dc-filter').selectOption({ index: 0 });
+    } else {
+      const lista = await this.abrirFiltroDeCaja();
+      await lista.getByRole('option').first().click();
+    }
     await this.page.waitForLoadState('networkidle');
   }
 
@@ -87,8 +130,19 @@ export class CajaDiariaNuevaPage {
 
   async totales(moneda: string): Promise<TotalesDeCaja | null> {
     const fila = this.tarjeta('Totales').locator('tbody tr').filter({ has: this.page.getByRole('cell', { name: moneda, exact: true }) }).first();
-    if (!(await fila.isVisible().catch(() => false))) return null;
-    const [m, inicial, ingreso, salida, balance, final] = await this.celdas(fila);
+    // Al cambiar el filtro, los totales se recargan: se espera la fila de esa moneda.
+    if (!(await fila.waitFor({ state: 'visible', timeout: 20_000 }).then(() => true).catch(() => false))) return null;
+    // Recien recargada, la fila puede pintarse un instante con el saldo inicial en 0 (visto tras
+    // borrar un movimiento): se lee hasta que dos lecturas seguidas coincidan.
+    await this.page.waitForLoadState('networkidle');
+    let anterior = '';
+    let celdas = await this.celdas(fila);
+    for (let i = 0; i < 15 && celdas.join('|') !== anterior; i++) {
+      anterior = celdas.join('|');
+      await this.page.waitForTimeout(700);
+      celdas = await this.celdas(fila);
+    }
+    const [m, inicial, ingreso, salida, balance, final] = celdas;
     return { moneda: m, inicial, ingreso, salida, balance, final };
   }
 
