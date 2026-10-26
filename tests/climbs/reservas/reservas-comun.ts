@@ -14,11 +14,16 @@ import { paso, adjuntarTexto, conResaltado, importeANumero, selloEnLetras } from
 
 export type Importe = { moneda: string; valor: number | null };
 
-/** "USD 190,00" / "96 USD" / "USD 2.670" -> { moneda, valor }. La app nueva escribe todo en formato es-AR. */
+/**
+ * "USD 190,00" / "96 USD" / "USD 2.670" / "1.500" -> { moneda, valor }. La app nueva escribe
+ * todo en formato es-AR. El Backoffice deja sin moneda algunos importes (los hoteles de un
+ * circuito y su total en la bandeja): ahi la moneda queda vacia y no se compara.
+ */
 export const importe = (texto: string): Importe => {
   const limpio = (texto || '').replace(/\s+/g, ' ').trim();
   const m = limpio.match(/([A-Z]{3})\s*(-?\d[\d.]*(?:,\d+)?)|(-?\d[\d.]*(?:,\d+)?)\s*([A-Z]{3})/);
-  return { moneda: m?.[1] ?? m?.[4] ?? '', valor: importeANumero(m?.[2] ?? m?.[3] ?? '') };
+  if (m) return { moneda: m[1] ?? m[4] ?? '', valor: importeANumero(m[2] ?? m[3] ?? '') };
+  return { moneda: '', valor: importeANumero(limpio.match(/-?\d[\d.]*(?:,\d+)?/)?.[0] ?? '') };
 };
 
 /** Fecha sin ceros a la izquierda, para comparar fechas escritas de distinta forma. */
@@ -59,12 +64,30 @@ export async function verificarEnElBackofficeNuevo(opciones: {
   importes: Record<string, Importe>;
   /** La modalidad como la escribe el file, si difiere ("1 X DOBLE" en un hotel). */
   modalidadEnElFile?: string;
+  /** Que importe del portal es la referencia: en servicios y hoteles el de la ficha; en circuitos, el del itinerario. */
+  claveDeReferencia?: string;
+  /**
+   * Con varios items (oferta, multidestino) no se compara item por item contra el total:
+   * se concilia el total del viaje y cada item contra su importe del carrito.
+   */
+  itemUnico?: boolean;
+  /** Todos los items que la reserva tiene que traer (fragmentos de su nombre). */
+  itemsEsperados?: string[];
+  /** Importe que el carrito mostro para cada item, por fragmento de su nombre. */
+  importePorItemDelPortal?: Record<string, string>;
+  /** Destinos del file, en orden: un circuito tiene varios. */
+  ciudades?: string[];
 }) {
   const { page, codigo, reserva, contexto, importes } = opciones;
   const portal = new PortalNuevoPage(page);
   const bo = new BackofficeNuevoPage(page);
   const destinos = new ServiciosDelDestinoPage(page);
   const modalidadEnElFile = opciones.modalidadEnElFile ?? reserva.modalidad;
+  const claveDeReferencia = opciones.claveDeReferencia ?? 'ficha (total)';
+  const itemUnico = opciones.itemUnico ?? true;
+  const itemsEsperados = opciones.itemsEsperados ?? [reserva.textoEnElBO];
+  const importePorItemDelPortal = opciones.importePorItemDelPortal ?? {};
+  const ciudades = opciones.ciudades ?? ['Buenos Aires'];
   const principal = reserva.pasajeros[0];
 
   await paso(page, 'Abrir el detalle de la reserva en el portal y verificar los comentarios', async () => {
@@ -165,6 +188,21 @@ export async function verificarEnElBackofficeNuevo(opciones: {
     });
     importes['detalle (Venta del item)'] = importe(item?.['Venta'] ?? '');
     importes['detalle (V. markup del item)'] = importe(item?.['V. markup'] ?? '');
+
+    // Todos los items del viaje, no solo el que se mira en detalle; y cada uno con su
+    // importe del carrito: si uno cambia y otro compensa, el total cierra igual.
+    const todos = items.map((f) => (f['Detalle'] ?? '').toUpperCase()).join(' || ');
+    for (const esperado of itemsEsperados) {
+      await conResaltado(page, tablaItems, `Item ${esperado} en el detalle`, () => {
+        expect(todos, `El detalle tiene que traer el item ${esperado} de la reserva`).toContain(esperado.toUpperCase());
+      });
+    }
+    for (const [esperado, delPortal] of Object.entries(importePorItemDelPortal)) {
+      const ese = items.find((f) => (f['Detalle'] ?? '').toUpperCase().includes(esperado.toUpperCase()));
+      await conResaltado(page, tablaItems, `Importe del item ${esperado} en el detalle`, () => {
+        expect(importe(ese?.['Venta'] ?? '').valor, `El detalle tiene que conservar el importe de ${esperado}`).toBe(importe(delPortal).valor);
+      });
+    }
   });
 
   let file = { fileId: '', fileCode: '' };
@@ -214,11 +252,10 @@ export async function verificarEnElBackofficeNuevo(opciones: {
 
   await paso(page, 'Comparar el servicio en Destinos y servicios del file', async () => {
     await destinos.verDestinosYServicios();
-    const ciudad = 'Buenos Aires';
-    const items = await destinos.itemsDeLaFicha(ciudad);
+    const items = (await Promise.all(ciudades.map((c) => destinos.itemsDeLaFicha(c)))).flat();
     await adjuntarTexto('Items del file', items.map((i) => i.texto).join('\n'));
     const item = items.find((i) => i.texto.toUpperCase().includes(reserva.textoEnElBO.toUpperCase()));
-    const fila = destinos.destino(ciudad).locator('tbody tr').filter({ hasText: reserva.textoEnElBO }).first();
+    const fila = bo.fichaDelFile.locator('section.fs-dest tbody tr').filter({ hasText: reserva.textoEnElBO }).first();
     await conResaltado(page, fila, 'Servicio reservado en el file', () => {
       expect(item, `El file tiene que mostrar el item ${reserva.textoEnElBO}`).toBeTruthy();
       expect(item?.checkin, 'El file tiene que mostrar la fecha de la reserva').toBe(reserva.fecha);
@@ -234,32 +271,54 @@ export async function verificarEnElBackofficeNuevo(opciones: {
         .toBe('Ocultos al pasajero 0');
     });
 
-    // La suma de las ventas de los items tiene que dar la venta del destino y la de los
-    // Totales del file: detecta un item que llega con otro importe sin mover el total.
-    const suma = items.reduce((a, i) => a + i.venta.valor, 0);
-    const cabecera = await destinos.cabeceraDelDestino(ciudad);
+    const todos = items.map((i) => i.texto.toUpperCase()).join(' || ');
+    for (const esperado of itemsEsperados) {
+      await conResaltado(page, bo.fichaDelFile.locator('section.fs-dest').first(), `Item ${esperado} en el file`, () => {
+        expect(todos, `El file tiene que traer el item ${esperado} de la reserva`).toContain(esperado.toUpperCase());
+      });
+    }
+    for (const [esperado, delPortal] of Object.entries(importePorItemDelPortal)) {
+      const ese = items.find((i) => i.texto.toUpperCase().includes(esperado.toUpperCase()));
+      expect(ese?.venta.valor, `El file tiene que conservar el importe de ${esperado}`).toBe(importe(delPortal).valor);
+    }
+
+    // La suma de las ventas de los items tiene que dar la venta de los destinos y la de
+    // los Totales del file: detecta un item que llega con otro importe sin mover el total.
+    const suma = Number(items.reduce((a, i) => a + i.venta.valor, 0).toFixed(2));
+    const cabeceras = await Promise.all(ciudades.map((c) => destinos.cabeceraDelDestino(c)));
+    const ventaDeLosDestinos = Number(cabeceras.reduce((a, c) => a + c.venta, 0).toFixed(2));
     const totales = await destinos.totalesGrabados();
-    await adjuntarTexto('Venta de los items, del destino y de los Totales', `items: ${items.map((i) => i.venta.valor).join(' + ')} = ${suma}\ndestino: ${cabecera.texto}\nTotales: ${totales.texto}`);
+    await adjuntarTexto('Venta de los items, de los destinos y de los Totales',
+      `items: ${items.map((i) => i.venta.valor).join(' + ')} = ${suma}\ndestinos: ${cabeceras.map((c) => c.texto).join('\n')}\nTotales: ${totales.texto}`);
     importes['file (Venta en Totales)'] = { moneda: item?.venta.moneda ?? '', valor: totales.venta };
-    expect(suma, 'La suma de las ventas de los items tiene que dar la venta del destino').toBe(cabecera.venta);
+    expect(suma, 'La suma de las ventas de los items tiene que dar la venta de los destinos').toBe(ventaDeLosDestinos);
+    if (!itemUnico) expect(suma, 'La suma de las ventas de los items tiene que dar el total del file').toBe(totales.venta);
   });
 
   await paso(page, 'Conciliar los importes de punta a punta', async () => {
     await adjuntarTexto('Cadena de importes', Object.entries(importes)
       .map(([donde, i]) => `${donde.padEnd(30)} ${i.moneda || '(sin moneda)'} ${i.valor ?? '(no se pudo leer)'}`).join('\n'));
-    const referencia = importes['ficha (total)'];
-    expect(referencia?.valor, 'Tiene que haber un importe de referencia en la ficha').not.toBeNull();
+    const referencia = importes[claveDeReferencia];
+    expect(referencia?.valor, `Tiene que haber un importe de referencia en ${claveDeReferencia}`).not.toBeNull();
     for (const [donde, i] of Object.entries(importes)) {
-      if (i.moneda) expect(i.moneda, `La moneda tiene que ser la misma en ${donde} que en la ficha`).toBe(referencia.moneda);
+      if (i.moneda) expect(i.moneda, `La moneda tiene que ser la misma en ${donde} que en ${claveDeReferencia}`).toBe(referencia.moneda);
     }
-    // A) El total de venta que vio la persona (con su markup).
-    for (const donde of ['carrito (total del item)', 'detalle (V. markup del item)']) {
-      expect(importes[donde]?.valor, `El importe en ${donde} tiene que ser el total que mostro el portal`).toBe(referencia.valor);
-    }
-    // B) El historial, la bandeja y el file llevan el neto, que es la Venta del detalle (igual que en el sistema actual).
-    const neto = importes['detalle (Venta del item)'];
-    for (const donde of ['historial (total)', 'bandeja (columna Venta)', 'file (Venta del item)', 'file (Venta en Totales)']) {
-      expect(importes[donde]?.valor, `El importe en ${donde} tiene que ser el neto que muestra el detalle`).toBe(neto?.valor);
+    if (itemUnico) {
+      // A) El total de venta que vio la persona (con su markup).
+      for (const donde of ['carrito (total del item)', 'detalle (V. markup del item)']) {
+        expect(importes[donde]?.valor, `El importe en ${donde} tiene que ser el total que mostro el portal`).toBe(referencia.valor);
+      }
+      // B) El historial, la bandeja y el file llevan el neto, que es la Venta del detalle (igual que en el sistema actual).
+      const neto = importes['detalle (Venta del item)'];
+      for (const donde of ['historial (total)', 'bandeja (columna Venta)', 'file (Venta del item)', 'file (Venta en Totales)']) {
+        expect(importes[donde]?.valor, `El importe en ${donde} tiene que ser el neto que muestra el detalle`).toBe(neto?.valor);
+      }
+    } else {
+      // Con varios items la cadena es una sola: el total del itinerario llega igual al
+      // historial, a la bandeja y a los Totales del file.
+      for (const donde of ['historial (total)', 'bandeja (columna Venta)', 'file (Venta en Totales)']) {
+        expect(importes[donde]?.valor, `El importe en ${donde} tiene que ser el total que mostro el itinerario`).toBe(referencia.valor);
+      }
     }
   });
 }
