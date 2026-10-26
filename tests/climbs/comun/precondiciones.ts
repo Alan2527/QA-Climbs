@@ -2,6 +2,8 @@ import { Page, expect } from '@playwright/test';
 import { PortalNuevoPage, PasajeroNuevo } from '../../../pages/climbs/portal.page';
 import { BackofficeNuevoPage, ImporteNuevo } from '../../../pages/climbs/backoffice.page';
 import { FacturaProveedorNuevaPage } from '../../../pages/climbs/factura-proveedor.page';
+import { OrdenDePagoNuevaPage } from '../../../pages/climbs/orden-de-pago.page';
+import { OrdenDeCobroNuevaPage } from '../../../pages/climbs/orden-de-cobro.page';
 import { paso, adjuntarTexto, fechaDeBusqueda, formatearFecha, selloEnLetras, importeANumero } from '../../../utils/pasos';
 
 /**
@@ -156,7 +158,7 @@ export async function armarFacturaAlCliente(page: Page, sello: string, file: Fil
   return { fileCode: file.fileCode, cliente: file.cliente, comprobante, total, moneda };
 }
 
-export type FacturaAprobada ={ fileCode: string; numeroDeFactura: string; puntoDeVenta: string; total: number; moneda: string };
+export type FacturaAprobada = { fileCode: string; numeroDeFactura: string; puntoDeVenta: string; total: number; moneda: string };
 
 /**
  * Precondicion de la orden de pago: la factura del proveedor por el costo del item, imputada
@@ -196,4 +198,61 @@ export async function armarFacturaAprobada(page: Page, sello: string, ahora: Dat
   });
 
   return { fileCode: file.fileCode, numeroDeFactura: numero, puntoDeVenta, total, moneda: file.costoDelItem.moneda };
+}
+
+/**
+ * Precondicion de la caja diaria: la orden de pago de la factura, desde la caja AUTO-QA de su
+ * moneda, imputada y aprobada con recibo de hoy. Devuelve su codigo (OP...).
+ */
+export async function armarOrdenDePagoAprobada(page: Page, sello: string, fechaDeHoy: string, factura: FacturaAprobada): Promise<string> {
+  const orden = new OrdenDePagoNuevaPage(page);
+  const monto = factura.total.toFixed(2).replace('.', ',');
+  let codigo = '';
+  await paso(page, 'Pagar la factura del proveedor con una orden de pago aprobada', async () => {
+    await orden.abrirNueva();
+    if (!(await orden.opcionElegida('branch')).includes('Argentina')) await orden.campo('branch').selectOption({ label: 'Argentina' });
+    await orden.elegirProveedor(PROVEEDOR_DE_REGRESION.termino, PROVEEDOR_DE_REGRESION.razonSocial);
+    await orden.campo('currency').selectOption({ label: factura.moneda });
+    await orden.campo('cf-0').selectOption({ label: cajaDeRegresion(factura.moneda) });
+    await orden.campo('amount-0').fill(monto);
+    await orden.campo('amount-0').press('Tab');
+    await orden.campo('detail').fill(`Orden de pago de regresion automatica ${sello}. No operar.`);
+    await orden.guardar();
+    codigo = (await orden.campo('code').inputValue()).trim();
+    const fila = orden.filaPendiente(factura.numeroDeFactura);
+    await expect(fila, `La precondicion necesita la factura ${factura.numeroDeFactura} entre las pendientes de la orden`).toBeVisible({ timeout: 60_000 });
+    await orden.asignar(await orden.abrirAsignacion(fila), monto, `AUTO-QA ${sello.slice(-8)}`);
+    await expect(orden.filaAsignada(factura.numeroDeFactura), 'La precondicion necesita la factura asignada a la orden').toBeVisible({ timeout: 60_000 });
+    await orden.aprobar(fechaDeHoy, `AUTOQA${sello.slice(-8)}`);
+    await expect(page.getByText('Pago', { exact: true }), 'La precondicion necesita la orden de pago aprobada').toBeVisible({ timeout: 60_000 });
+    await adjuntarTexto('Orden de pago de la precondicion', `${codigo} · ${factura.moneda} ${monto}`);
+  });
+  return codigo;
+}
+
+/** Precondicion de la caja diaria: la orden de cobro de la carta, imputada y aprobada con recibo de hoy. Devuelve su codigo (OC...). */
+export async function armarOrdenDeCobroAprobada(page: Page, sello: string, fechaDeHoy: string, carta: ComprobanteAlCliente): Promise<string> {
+  const orden = new OrdenDeCobroNuevaPage(page);
+  const monto = carta.total.toFixed(2).replace('.', ',');
+  const numeroDeFile = carta.fileCode.match(/\d+$/)?.[0] ?? '';
+  let codigo = '';
+  await paso(page, 'Cobrar la carta del cliente con una orden de cobro aprobada', async () => {
+    await orden.abrirNueva();
+    await orden.elegirCliente(carta.cliente, carta.cliente);
+    await orden.campo('currency').selectOption({ label: carta.moneda });
+    await orden.campo('cf-0').selectOption({ label: cajaDeRegresion(carta.moneda) });
+    await orden.campo('amount-0').fill(monto);
+    await orden.campo('amount-0').press('Tab');
+    await orden.campo('detail').fill(`Orden de cobro de regresion automatica ${sello}. No operar.`);
+    await orden.guardar();
+    codigo = (await orden.campo('code').inputValue()).trim();
+    const fila = orden.filaPendiente(numeroDeFile);
+    await expect(fila, `La precondicion necesita la carta del file ${carta.fileCode} entre los pendientes de la orden`).toBeVisible({ timeout: 60_000 });
+    await orden.asignar(await orden.abrirAsignacion(fila), monto, `AUTO-QA ${sello.slice(-8)}`);
+    await expect(orden.filaAsignada(numeroDeFile), 'La precondicion necesita la carta asignada a la orden').toBeVisible({ timeout: 60_000 });
+    await orden.aprobar(fechaDeHoy, `AUTOQA${sello.slice(-8)}`);
+    await expect(page.getByText('Pago', { exact: true }), 'La precondicion necesita la orden de cobro aprobada').toBeVisible({ timeout: 60_000 });
+    await adjuntarTexto('Orden de cobro de la precondicion', `${codigo} · ${carta.moneda} ${monto}`);
+  });
+  return codigo;
 }

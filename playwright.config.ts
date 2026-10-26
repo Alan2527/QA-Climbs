@@ -193,13 +193,18 @@ export default defineConfig({
       name: 'App nueva - Login',
       testDir: './tests/climbs',
       testMatch: /ingreso\.setup\.ts/,
-      // La app nueva toma el idioma del navegador: sin esto sale en ingles.
-      use: { ...devices['Desktop Chrome'], baseURL: URL_APP_NUEVA, locale: 'es-AR' },
+      // La app nueva toma el idioma del navegador: sin esto sale en ingles. Y la misma
+      // pantalla que la suite actual: el perfil "Desktop Chrome" trae 1280x720, donde las
+      // grillas de Finanzas no entran y dejan las acciones fuera de la vista.
+      use: { ...devices['Desktop Chrome'], baseURL: URL_APP_NUEVA, locale: 'es-AR', viewport: { width: 1920, height: 1080 } },
     },
     {
       name: 'App nueva - Cobranzas',
       testDir: './tests/climbs/cobranzas',
-      use: { ...devices['Desktop Chrome'], baseURL: URL_APP_NUEVA, locale: 'es-AR', storageState: SESION_APP_NUEVA, actionTimeout: 60_000 },
+      use: {
+        ...devices['Desktop Chrome'], baseURL: URL_APP_NUEVA, locale: 'es-AR', viewport: { width: 1920, height: 1080 },
+        storageState: SESION_APP_NUEVA, actionTimeout: 60_000,
+      },
       dependencies: ['App nueva - Login'],
     },
   ],

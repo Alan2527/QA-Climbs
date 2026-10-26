@@ -1,4 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { elegirEnMenuAcciones } from './menu-acciones';
 
 /**
  * Facturas de proveedores del Backoffice nuevo (`/finance/supplier-invoices`).
@@ -75,8 +76,7 @@ export class FacturaProveedorNuevaPage {
    * de la fila viven en el menu "Acciones" (los tres puntos), que se abre aparte.
    */
   async abrirAsignacion(fila: Locator): Promise<Locator> {
-    await fila.getByRole('button', { name: 'Acciones' }).click();
-    await this.page.getByRole('menu', { name: 'Acciones' }).getByRole('menuitem', { name: /^Asignar(?! total)/ }).click();
+    await elegirEnMenuAcciones(this.page, fila, /^Asignar(?! total)/);
     const dialogo = this.page.getByRole('dialog', { name: 'Asignación' });
     await expect(dialogo).toBeVisible();
     await expect(dialogo.locator('#si-alloc-invoice-total')).not.toHaveValue('', { timeout: 30_000 });

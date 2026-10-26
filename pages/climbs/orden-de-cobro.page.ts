@@ -1,4 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { elegirEnMenuAcciones } from './menu-acciones';
 
 /**
  * Ordenes de cobro del Backoffice nuevo (`/finance/charge-orders`).
@@ -75,8 +76,7 @@ export class OrdenDeCobroNuevaPage {
 
   /** "Asignar" vive en el menu "Acciones" de la fila. */
   async abrirAsignacion(fila: Locator): Promise<Locator> {
-    await fila.getByRole('button', { name: 'Acciones' }).click();
-    await this.page.getByRole('menu', { name: 'Acciones' }).getByRole('menuitem', { name: /^Asignar(?! total)/ }).click();
+    await elegirEnMenuAcciones(this.page, fila, /^Asignar(?! total)/);
     const dialogo = this.page.getByRole('dialog', { name: 'Asignación OC' });
     await expect(dialogo).toBeVisible();
     return dialogo;
