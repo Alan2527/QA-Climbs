@@ -54,6 +54,46 @@ export class BackofficeNuevoPage {
     };
   }
 
+  /** Abre la ficha del file por su id (dialogo sobre el listado de Files). */
+  async abrirFicha(fileId: string) {
+    await this.page.goto(`/files/files/${fileId}`);
+    await expect(this.fichaDelFile.getByRole('banner'), 'Tiene que abrir la ficha del file').toContainText(/AMV-[A-Z]{2}-\d+/, { timeout: 60_000 });
+  }
+
+  /** Estado del file (solapa Datos, combo "Estado"): "A facturar", "Facturado", "Reserva"... */
+  async estadoDelFile(): Promise<string> {
+    await this.fichaDelFile.getByRole('tab', { name: 'Datos', exact: true }).click();
+    return this.fichaDelFile.getByRole('combobox', { name: 'Estado', exact: true })
+      .evaluate((s: HTMLSelectElement) => s.options[s.selectedIndex]?.text?.trim() ?? '');
+  }
+
+  /** Solapa "Finanzas" de la ficha: ahi vive el panel "Comprobantes y saldos". */
+  async verFinanzas() {
+    await this.fichaDelFile.getByRole('tab', { name: 'Finanzas', exact: true }).click();
+    await expect(this.ladoCliente(), 'La solapa Finanzas tiene que mostrar el panel "Comprobantes y saldos"').toBeVisible({ timeout: 60_000 });
+    await expect(this.ladoCliente().locator('.fa-figure').first()).toBeVisible({ timeout: 60_000 });
+  }
+
+  /** Lado "Cliente" del panel "Comprobantes y saldos" de la ficha. */
+  ladoCliente(): Locator {
+    return this.fichaDelFile.locator('section.fa-side[aria-label="Cliente"]');
+  }
+
+  /** Las cifras de un lado: "Venta del file", "Facturado", "Cobrado", "Falta cobrar". */
+  async cifras(lado: Locator): Promise<Record<string, string>> {
+    await expect(lado, 'La ficha tiene que mostrar el panel "Comprobantes y saldos"').toBeVisible({ timeout: 60_000 });
+    const out: Record<string, string> = {};
+    for (const cifra of await lado.locator('.fa-figure').all()) {
+      out[(await cifra.locator('dt').innerText()).trim()] = (await cifra.locator('dd .fa-big').innerText()).trim();
+    }
+    return out;
+  }
+
+  /** Lista "Facturas" del lado Cliente. */
+  listaDeFacturas(): Locator {
+    return this.ladoCliente().locator('.fa-list').filter({ has: this.page.locator('h4', { hasText: /^Facturas$/ }) }).first();
+  }
+
   async clienteDelFile(): Promise<string> {
     await this.fichaDelFile.getByRole('tab', { name: 'Datos', exact: true }).click();
     return (await this.fichaDelFile.getByRole('combobox', { name: 'Cliente', exact: true }).inputValue()).trim();
