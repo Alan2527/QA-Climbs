@@ -28,17 +28,70 @@ export class BackofficeNuevoPage {
     return this.page.getByRole('dialog').first();
   }
 
-  async abrirReservaDeLaBandeja(codigo: string): Promise<Locator> {
+  /** La fila de la reserva en la bandeja (`/files/inbox`), buscada por su numero. */
+  async filaDeLaBandeja(codigo: string): Promise<Locator> {
     const numero = BackofficeNuevoPage.numeroDeReserva(codigo);
     await this.page.goto('/files/inbox');
     await this.page.getByRole('searchbox', { name: 'Número, referencia, pasajero o agencia' }).fill(numero);
     const fila = this.page.locator('tbody tr').filter({ has: this.page.getByRole('cell', { name: numero, exact: true }) }).first();
     await expect(fila, `La reserva ${codigo} tiene que aparecer en la bandeja de reservas`).toBeVisible({ timeout: 60_000 });
+    return fila;
+  }
+
+  /** Las celdas de una fila de la bandeja por el nombre de su columna (ID, Agencia, Usuario, Pax, Ref., Venta...). */
+  async celdasDeLaBandeja(fila: Locator): Promise<Record<string, string>> {
+    const titulos = (await this.page.locator('table').first().locator('thead th').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
+    const celdas = (await fila.locator('td').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
+    return Object.fromEntries(celdas.map((c, i) => [titulos[i] || `#${i}`, c]));
+  }
+
+  async abrirReservaDeLaBandeja(codigo: string): Promise<Locator> {
+    const fila = await this.filaDeLaBandeja(codigo);
+    return this.abrirDetalleDeLaBandeja(fila, codigo);
+  }
+
+  async abrirDetalleDeLaBandeja(fila: Locator, codigo: string): Promise<Locator> {
+    const numero = BackofficeNuevoPage.numeroDeReserva(codigo);
     await fila.click();
     const dialogo = this.page.getByRole('dialog').filter({ hasText: numero }).first();
     await expect(dialogo, `Tiene que abrir el detalle de la reserva ${codigo}`).toBeVisible();
     await expect(dialogo.getByText(/Sin emitir/), 'La reserva recien hecha tiene que estar sin emitir').toBeVisible();
     return dialogo;
+  }
+
+  /** Los campos del detalle de la reserva por su id (`#ib-pax-name`, `#ib-ref`, `#ib-comment`...). */
+  async campoDelDetalle(dialogo: Locator, id: string): Promise<string> {
+    const campo = dialogo.locator(`#${id}`);
+    return campo.evaluate((e: HTMLInputElement | HTMLSelectElement) =>
+      (e instanceof HTMLSelectElement ? e.options[e.selectedIndex]?.text ?? '' : e.value).trim());
+  }
+
+  /** Una tabla del detalle o de la ficha, ubicada por una de sus columnas ("Documento", "Tipo de tarifa"). */
+  tablaCon(raiz: Locator, columna: string): Locator {
+    return raiz.getByRole('table').filter({ has: this.page.getByRole('columnheader', { name: columna, exact: true }) }).first();
+  }
+
+  // --- Ficha del file: solapa Datos y rooming ------------------------------------------
+
+  /** Un campo de texto de la solapa Datos por su rotulo ("Nombre pax", "Referencia del cliente", "Uso interno"...). */
+  async campoDeLaFicha(rotulo: string): Promise<string> {
+    await this.fichaDelFile.getByRole('tab', { name: 'Datos', exact: true }).click();
+    return (await this.fichaDelFile.getByRole('textbox', { name: rotulo, exact: true }).inputValue()).trim();
+  }
+
+  get rooming(): Locator {
+    return this.page.getByRole('dialog', { name: 'Rooming' });
+  }
+
+  async abrirRooming() {
+    await this.fichaDelFile.getByRole('contentinfo').getByRole('button', { name: 'Rooming', exact: true }).click();
+    await expect(this.rooming, 'Tiene que abrir el rooming del file').toBeVisible();
+    await expect(this.rooming.locator('tbody tr').first()).toBeVisible({ timeout: 30_000 });
+  }
+
+  async cerrarRooming() {
+    await this.rooming.getByRole('banner').getByRole('button', { name: 'Cerrar' }).click();
+    await expect(this.rooming).toBeHidden();
   }
 
   /** Elige la sucursal y genera el file. Devuelve el id y el codigo del file ("AMV-AR-30444"). */

@@ -98,8 +98,25 @@ export class PortalNuevoPage {
     return Number(texto.match(/M[ií]nimo\s+(\d+)/i)?.[1] ?? 1);
   }
 
-  async agregarAlCarrito(modalidad: string, pasajeros: number) {
+  /** Precio de la modalidad tal como lo muestra la ficha ("PRECIO USD 95"). */
+  async precioDeLaModalidad(modalidad: string): Promise<string> {
+    const texto = (await this.bloqueDeModalidad(modalidad).innerText()).replace(/\s+/g, ' ');
+    return texto.match(/PRECIO\s+([A-Z]{3}\s*[\d.,]+)/i)?.[1] ?? '';
+  }
+
+  async elegirPasajeros(modalidad: string, pasajeros: number) {
     await this.bloqueDeModalidad(modalidad).getByRole('combobox', { name: `Pasajeros · ${modalidad}` }).selectOption(String(pasajeros));
+  }
+
+  /** Total que arma la ficha con los pasajeros elegidos ("Total USD 190", junto a "Agregar al carrito"). */
+  async totalDeLaFicha(): Promise<string> {
+    const total = this.page.locator('main').getByText(/^Total\s+[A-Z]{3}\s*[\d.,]+$/).last();
+    await expect(total, 'La ficha tiene que mostrar el total con los pasajeros elegidos').toBeVisible({ timeout: 30_000 });
+    return (await total.innerText()).replace(/^Total\s+/, '').trim();
+  }
+
+  async agregarAlCarrito(modalidad: string, pasajeros: number) {
+    await this.elegirPasajeros(modalidad, pasajeros);
     await this.page.getByRole('button', { name: 'Agregar al carrito' }).click();
     await expect(this.page.getByRole('status').filter({ hasText: /Se agregó \d+ ítem al carrito/ }),
       'Agregar al carrito tiene que confirmar').toBeVisible();
@@ -108,6 +125,16 @@ export class PortalNuevoPage {
   /** Contador del carrito en el encabezado: cuenta items, no pasajeros. */
   async itemsEnElCarrito(): Promise<number> {
     return Number((await this.page.getByRole('link', { name: /Carrito/ }).innerText()).match(/\d+/)?.[0] ?? 0);
+  }
+
+  /** El item del carrito: "02/11/2026 2 x Regular Excursion Español" y su importe. */
+  itemDelCarrito(nombre: string): Locator {
+    return this.page.locator('main article').filter({ has: this.page.getByRole('heading', { name: nombre, exact: true }) }).first();
+  }
+
+  async irAlCarrito() {
+    await this.page.goto('/site/cart');
+    await expect(this.page.getByRole('heading', { name: 'Carrito', level: 1 })).toBeVisible();
   }
 
   async reservarDesdeElCarrito(referencia: string, comentarios: string) {
@@ -148,8 +175,11 @@ export class PortalNuevoPage {
       await expect(nacimiento, `${quien}: la fecha de nacimiento tiene que quedar cargada`).toHaveValue(pax.nacimiento);
       await expect(pasaporte, `${quien}: el pasaporte tiene que quedar cargado`).toHaveValue(pax.pasaporte);
     }
-    await expect(this.page.getByRole('spinbutton', { name: 'Cantidad de pasajeros' }),
-      'La cantidad de pasajeros de la reserva tiene que ser la del carrito').toHaveValue(String(pasajeros.length));
+    // La cantidad de pasajeros la carga la persona, igual que en el portal actual: en un
+    // servicio viene con la del carrito, pero en un hotel viene con las habitaciones (1).
+    const cantidad = this.page.getByRole('spinbutton', { name: 'Cantidad de pasajeros' });
+    await cantidad.fill(String(pasajeros.length));
+    await expect(cantidad, 'La cantidad de pasajeros tiene que quedar cargada').toHaveValue(String(pasajeros.length));
     await this.page.getByRole('checkbox', { name: 'Acepto los términos y condiciones' }).check();
   }
 
@@ -165,5 +195,35 @@ export class PortalNuevoPage {
     const codigo = texto.match(/BO\d{8}/)?.[0] ?? '';
     expect(codigo, `La confirmacion tiene que mostrar el codigo de la reserva. Dice: "${texto.slice(0, 200)}"`).toMatch(/^BO\d{8}$/);
     return codigo;
+  }
+
+  // --- Historial de reservas (/site/bookings) -----------------------------------------
+
+  /**
+   * La fila de la reserva en el historial. Las reservas viven en tres solapas ("Carrito de
+   * compras", "Multidestino", "Series") y la pantalla abre en la ultima usada: se elige la
+   * solapa como haria la persona.
+   */
+  async filaDelHistorial(codigo: string, solapa: 'Carrito de compras' | 'Multidestino' | 'Series'): Promise<Locator> {
+    await this.page.goto('/site/bookings');
+    await this.page.getByRole('tab', { name: solapa, exact: true }).click();
+    const fila = this.page.getByRole('tabpanel').getByRole('link').filter({ hasText: codigo }).first();
+    await expect(fila, `La reserva ${codigo} tiene que figurar en la solapa "${solapa}" del historial`).toBeVisible({ timeout: 60_000 });
+    return fila;
+  }
+
+  /** Entra al detalle de la reserva desde su fila del historial (/site/bookings/{id}). */
+  async abrirDetalleDeLaReserva(fila: Locator, codigo: string) {
+    await fila.click();
+    await expect(this.page.getByRole('heading', { level: 1, name: `Reserva ${codigo}` }), `Tiene que abrir el detalle de ${codigo}`)
+      .toBeVisible({ timeout: 60_000 });
+  }
+
+  /** Un dato de la cabecera del detalle por su rotulo ("Referencia", "Comentario(s)", "Total de la reserva"...). */
+  async datoDelDetalle(rotulo: string): Promise<string> {
+    const texto = (await this.page.locator('main').innerText()).replace(/\r/g, '');
+    const lineas = texto.split('\n').map((l) => l.trim()).filter(Boolean);
+    const i = lineas.findIndex((l) => l.toLowerCase() === rotulo.toLowerCase());
+    return i >= 0 ? lineas[i + 1] ?? '' : '';
   }
 }
