@@ -101,6 +101,58 @@ export class AgenciaNuevaPage {
     expect(await this.markups(), `La agencia ${id} tiene que quedar con markup propio ${hotel} / ${servicio}`).toEqual({ hotel, servicio });
   }
 
+  // --- Configuracion de productos (Config. de productos del WebAdmin) ---------------------
+
+  /** Las configuraciones de la solapa, como texto por fila (Ciudad, Tipo de producto, Producto, Markup). */
+  async configuracionesDeProductos(producto?: string): Promise<string[][]> {
+    await this.solapa('Configuración de productos');
+    const tabla = this.ficha.getByRole('table').first();
+    await expect(tabla.or(this.ficha.getByText('La agencia usa el markup de su mercado en todo.')).first()).toBeVisible({ timeout: 60_000 });
+    await this.page.waitForLoadState('networkidle').catch(() => {});
+    const filas = await tabla.locator('tbody tr').evaluateAll((trs) => trs.map((tr) =>
+      Array.from(tr.querySelectorAll('td')).map((td) => (td.textContent ?? '').replace(/\s+/g, ' ').trim())));
+    return filas.filter((f) => f.some((c) => c) && (!producto || f.some((c) => c.includes(producto))));
+  }
+
+  /** "Agregar configuracion": tipo, pais, ciudad y producto (por nombre); excluido o con markup. */
+  async agregarConfiguracion(c: { tipo: string; pais: string; ciudad: string; producto: string; excluido: boolean; markup?: number }) {
+    await this.solapa('Configuración de productos');
+    await this.ficha.getByRole('button', { name: 'Agregar configuración' }).click();
+    const panel = this.page.getByRole('dialog', { name: 'Agregar configuración' });
+    await expect(panel).toBeVisible();
+    await panel.locator('#ps-type').selectOption({ label: c.tipo });
+    await panel.locator('#ps-country').selectOption({ label: c.pais });
+    const elegir = async (id: string, termino: string, nombre: string) => {
+      const combo = panel.locator(`#${id}`);
+      await expect(combo).toBeEnabled({ timeout: 30_000 });
+      await combo.click();
+      await combo.fill(termino);
+      await this.page.getByRole('option', { name: nombre, exact: true }).first().click();
+    };
+    await elegir('ps-city', c.ciudad, c.ciudad);
+    await elegir('ps-product', c.producto.replace(/^AUTO-QA NO TOCAR - /, ''), c.producto);
+    await interruptor(panel.locator('#ps-exclude'), c.excluido);
+    if (!c.excluido && c.markup !== undefined) await panel.locator('#ps-markup').fill(String(c.markup).replace('.', ','));
+    await panel.getByRole('button', { name: 'Agregar configuración' }).click();
+    await expect(panel, 'La configuracion tiene que agregarse').toBeHidden({ timeout: 30_000 });
+    await expect(this.page.locator('.toast .toast-text').filter({ hasText: /agregada/ }).last()).toBeVisible();
+  }
+
+  /** Borra (con su confirmacion) las configuraciones del producto; devuelve cuantas borro. */
+  async borrarConfiguraciones(producto: string): Promise<number> {
+    await this.configuracionesDeProductos();
+    const filas = this.ficha.getByRole('table').first().locator('tbody tr').filter({ hasText: producto });
+    const n = await filas.count();
+    if (!n) return 0;
+    for (let i = 0; i < n; i++) await filas.nth(i).getByRole('checkbox').check();
+    await this.ficha.getByRole('button', { name: `Borrar ${n} seleccionada(s)` }).click();
+    const confirmacion = this.page.getByRole('alertdialog');
+    await confirmacion.getByRole('button', { name: `Borrar ${n} seleccionada(s)` }).click();
+    await expect(this.page.locator('.toast .toast-text').filter({ hasText: 'Configuración borrada.' }).last()).toBeVisible();
+    await expect.poll(async () => (await this.configuracionesDeProductos(producto)).length).toBe(0);
+    return n;
+  }
+
   /** "Usa su propia cotizacion" y la cotizacion que rige: la propia o la del pais ("Sin cotizacion propia usa ... : N"). */
   async tipoDeCambio(): Promise<{ manual: boolean; valor: number | null; texto: string }> {
     const casilla = this.ficha.getByRole('checkbox', { name: 'Usa su propia cotización' });

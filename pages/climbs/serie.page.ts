@@ -141,6 +141,23 @@ export class SerieNuevaPage {
     await expect.poll(() => this.mesDelCalendario()).not.toBe(antes);
   }
 
+  /**
+   * Como ofrece el calendario una salida (aaaa-mm-dd) de la categoria: si el dia esta a la venta
+   * con precio, el precio que muestra y el cupo y la tarifa con los que la pantalla lo arma.
+   */
+  async estadoDeLaSalida(categoria: string, clave: string): Promise<{ ofrecida: boolean; precio: number | null; tarifa: number | null; cupo: number | null }> {
+    await this.elegirCategoria(categoria);
+    const [anio, mes] = clave.split('-').map(Number);
+    for (let i = 0; i < 24; i++) {
+      const [nombreMes, a] = (await this.mesDelCalendario()).toLowerCase().split(' de ');
+      if (Number(a) === anio && MESES.indexOf(nombreMes) + 1 === mes) break;
+      await this.mesSiguiente();
+    }
+    const delDia = (await this.salidasDelMes()).find((s) => s.clave === clave);
+    const salida = this.salida(categoria, clave);
+    return { ofrecida: !!delDia && delDia.precio > 0, precio: delDia?.precio ?? null, tarifa: salida?.double ?? null, cupo: salida?.quota ?? null };
+  }
+
   /** Elige la primera salida que ofrece el calendario (avanzando de mes si hace falta). */
   async elegirPrimeraSalida(): Promise<{ fecha: string; clave: string; precio: number; tarifaPorHabitacion: number }> {
     for (let i = 0; i < 12; i++) {
