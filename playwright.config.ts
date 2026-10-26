@@ -208,6 +208,15 @@ export default defineConfig({
       dependencies: ['App nueva - Login'],
     },
     {
+      name: 'App nueva - Tarifario',
+      testDir: './tests/climbs/tarifario',
+      use: {
+        ...devices['Desktop Chrome'], baseURL: URL_APP_NUEVA, locale: 'es-AR', viewport: { width: 1920, height: 1080 },
+        storageState: SESION_APP_NUEVA, actionTimeout: 60_000,
+      },
+      dependencies: ['App nueva - Login'],
+    },
+    {
       name: 'App nueva - Reservas',
       testDir: './tests/climbs/reservas',
       use: {
