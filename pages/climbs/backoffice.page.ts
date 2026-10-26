@@ -32,7 +32,7 @@ export class BackofficeNuevoPage {
    * La fila de la reserva en la bandeja (`/files/inbox`), buscada por su numero. La bandeja
    * separa por origen en solapas ("Online", "Series", "Grupos"...): las de serie viven en la suya.
    */
-  async filaDeLaBandeja(codigo: string, origen: 'Online' | 'Series' = 'Online'): Promise<Locator> {
+  async filaDeLaBandeja(codigo: string, origen: 'Online' | 'Series' | 'Grupos' = 'Online'): Promise<Locator> {
     const numero = BackofficeNuevoPage.numeroDeReserva(codigo);
     await this.page.goto('/files/inbox');
     if (origen !== 'Online') await this.page.getByRole('tab', { name: new RegExp(`^${origen}`) }).click();
