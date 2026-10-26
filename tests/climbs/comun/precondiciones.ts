@@ -30,9 +30,10 @@ export type ReservaNueva = {
   codigo: string;
 };
 
-export async function reservarServicioEnElPortalNuevo(page: Page, sello: string): Promise<ReservaNueva> {
+/** `diasExtra`: a cuantos dias de hoy se reserva (una semana por defecto, como la suite actual). */
+export async function reservarServicioEnElPortalNuevo(page: Page, sello: string, diasExtra = 7): Promise<ReservaNueva> {
   const portal = new PortalNuevoPage(page);
-  const fecha = fechaDeBusqueda();
+  const fecha = fechaDeBusqueda(diasExtra);
   const referencia = `AUTO-QA ${sello}`;
   const apellido = `Regresion${selloEnLetras(sello.slice(-6))}`;
   let cantidadPax = 0;
