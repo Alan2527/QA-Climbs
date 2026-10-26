@@ -245,13 +245,13 @@ export default defineConfig({
       dependencies: ['App nueva - Login'],
     },
     {
+      // La app del pasajero es la misma SIX de siempre (mobile, sin sesion, el link de
+      // autologin es una credencial: trace apagado); lo que cambia es la API a la que le
+      // pide los datos, que en la app nueva es /api/wholesale (ver tests/climbs/six/six-comun.ts).
       name: 'App nueva - SIX',
       testDir: './tests/climbs/six',
-      use: {
-        ...devices['Desktop Chrome'], baseURL: URL_APP_NUEVA, locale: 'es-AR', viewport: { width: 1920, height: 1080 },
-        storageState: SESION_APP_NUEVA, actionTimeout: 60_000,
-      },
-      dependencies: ['App nueva - Login'],
+      retries: process.env.CI ? 1 : 0,
+      use: { ...devices['Pixel 7'], baseURL: URL_APP_NUEVA, storageState: { cookies: [], origins: [] }, trace: 'off' },
     },
   ],
 });
