@@ -37,6 +37,9 @@ concurrency:
 
 # Lo que necesitan los tests en cualquier maquina.
 env:
+  # El runner esta en UTC: despues de las 21 de Argentina los tests calculaban "hoy" con el dia
+  # siguiente y la app (hora argentina) rechazaba esa fecha como futura.
+  TZ: America/Argentina/Buenos_Aires
   AMV_BASE_URL: https://qa.amv.travel
   AMV_BO_URL: https://qa.bo.amv.travel
   AMV_USER: ${{ secrets.AMV_USER }}
