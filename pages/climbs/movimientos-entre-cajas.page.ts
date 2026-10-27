@@ -98,10 +98,16 @@ export class MovimientosNuevaPage {
     const menu = fila.getByRole('button', { name: /^Acciones/ });
     const nombres: string[] = [];
     if (await menu.count()) {
-      await menu.click();
+      // El menu se cierra con cualquier scroll de la pagina: leido de una sola vez (maquina lenta) sale
+      // vacio o cerrado. Con boton "Acciones" siempre hay dos opciones o mas, asi que se reabre hasta leerlas.
       const m = this.page.getByRole('menu', { name: 'Acciones' });
-      await expect(m).toBeVisible();
-      nombres.push(...(await m.getByRole('menuitem').allInnerTexts()).map((t) => t.trim()));
+      await expect(async () => {
+        if (!(await m.isVisible())) await menu.click();
+        await m.getByRole('menuitem').first().waitFor({ timeout: 2_000 });
+        const leidas = (await m.getByRole('menuitem').allInnerTexts()).map((t) => t.trim());
+        expect(leidas.length).toBeGreaterThan(1);
+        nombres.splice(0, nombres.length, ...leidas);
+      }, 'El menu "Acciones" de la fila tiene que abrirse y mostrar sus opciones').toPass({ timeout: 60_000 });
       await this.page.keyboard.press('Escape');
       await expect(m).toBeHidden();
     } else {
