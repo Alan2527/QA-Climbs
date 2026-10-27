@@ -1,0 +1,72 @@
+{
+  "corrida": 205,
+  "fecha": "2026-10-27T14:31:43.473Z",
+  "duracionMs": 96442.5419921875,
+  "estado": "con-fallas",
+  "suite": "nueva",
+  "filtro": "-g Movimiento",
+  "evento": "workflow_dispatch",
+  "commit": "12a7af3feff2d16ca9f198b9caf9b976c949189b",
+  "enlaces": {
+    "allure": "https://alan2527.github.io/QA-Climbs/205/",
+    "github": "https://github.com/Alan2527/QA-Climbs/actions/runs/40519852982"
+  },
+  "totales": {
+    "total": 3,
+    "paso": 2,
+    "fallo": 1,
+    "inestable": 0,
+    "omitida": 0
+  },
+  "areas": {
+    "cobranzas": {
+      "total": 2,
+      "paso": 1,
+      "fallo": 1,
+      "inestable": 0,
+      "omitida": 0
+    }
+  },
+  "erroresGlobales": [],
+  "pruebas": [
+    {
+      "area": "preparacion-nueva",
+      "app": "nueva",
+      "archivo": "climbs/ingreso.setup.ts",
+      "linea": 13,
+      "grupo": "",
+      "titulo": "Ingreso a la app nueva: Backoffice y portal",
+      "proyecto": "App nueva - Login",
+      "estado": "paso",
+      "duracionMs": 3092,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "cobranzas",
+      "app": "nueva",
+      "archivo": "climbs/cobranzas/movimientos-entre-cajas.spec.ts",
+      "linea": 64,
+      "grupo": "Movimientos entre cajas",
+      "titulo": "Movimiento entre dos cajas de la misma sucursal: sale de una, entra en la otra y cuadra",
+      "proyecto": "App nueva - Cobranzas",
+      "estado": "fallo",
+      "duracionMs": 63514,
+      "intentos": 3,
+      "error": "Error: Sin monto el aviso tiene que decir que falta Monto & Cotizacion"
+    },
+    {
+      "area": "cobranzas",
+      "app": "nueva",
+      "archivo": "climbs/cobranzas/movimientos-entre-cajas.spec.ts",
+      "linea": 194,
+      "grupo": "Movimientos entre cajas",
+      "titulo": "Movimiento entre sucursales: la entrada vive en la caja destino, se ve en solo lectura y no se copia",
+      "proyecto": "App nueva - Cobranzas",
+      "estado": "paso",
+      "duracionMs": 24043,
+      "intentos": 1,
+      "error": null
+    }
+  ]
+}

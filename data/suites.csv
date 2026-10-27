@@ -1,0 +1,4 @@
+"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
+"passed","Tue Oct 27 11:32:55 ART 2026","Tue Oct 27 11:33:19 ART 2026","24043","App nueva - Cobranzas","climbs/cobranzas/movimientos-entre-cajas.spec.ts","Movimientos entre cajas","","","Movimiento entre sucursales: la entrada vive en la caja destino, se ve en solo lectura y no se copia",""
+"passed","Tue Oct 27 11:31:45 ART 2026","Tue Oct 27 11:31:48 ART 2026","3092","App nueva - Login","climbs/ingreso.setup.ts","","","","Ingreso a la app nueva: Backoffice y portal",""
+"failed","Tue Oct 27 11:32:33 ART 2026","Tue Oct 27 11:32:54 ART 2026","21455","App nueva - Cobranzas","climbs/cobranzas/movimientos-entre-cajas.spec.ts","Movimientos entre cajas","","","Movimiento entre dos cajas de la misma sucursal: sale de una, entra en la otra y cuadra",""

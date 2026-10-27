@@ -1,0 +1,26 @@
+{
+  "corrida": 204,
+  "fecha": "2026-10-27T14:16:25.457Z",
+  "duracionMs": 2191.135986328125,
+  "estado": "con-fallas",
+  "suite": "nueva",
+  "filtro": "-g \"Movimiento entre\"",
+  "evento": "workflow_dispatch",
+  "commit": "12a7af3feff2d16ca9f198b9caf9b976c949189b",
+  "enlaces": {
+    "allure": "https://alan2527.github.io/QA-Climbs/204/",
+    "github": "https://github.com/Alan2527/QA-Climbs/actions/runs/40519458036"
+  },
+  "totales": {
+    "total": 0,
+    "paso": 0,
+    "fallo": 0,
+    "inestable": 0,
+    "omitida": 0
+  },
+  "areas": {},
+  "erroresGlobales": [
+    "Error: No tests found."
+  ],
+  "pruebas": []
+}
