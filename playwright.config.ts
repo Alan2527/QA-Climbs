@@ -133,18 +133,20 @@ export default defineConfig({
       metadata: { tarifario: ['excursiones'] },
     },
     {
+      // Los bloques del viejo tambien leen el Backoffice nuevo (importes en los dos
+      // sistemas): dependen del login de la app nueva para correr en su propia maquina.
       name: 'Climbs - Bloque A: Tarifario',
       testDir: './tests/bloque-a',
       // Solo lee: un reintento no deja rastro en QA.
       retries: process.env.CI ? 1 : 0,
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
-      dependencies: ['Precondiciones - Bloque A'],
+      dependencies: ['Precondiciones - Bloque A', 'App nueva - Login'],
     },
     {
       name: 'Climbs - Bloque B: Reservas',
       testDir: './tests/bloque-b',
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
-      dependencies: ['Precondiciones - Bloque B'],
+      dependencies: ['Precondiciones - Bloque B', 'App nueva - Login'],
     },
     {
       // Escribe en el WebAdmin (solo sobre datos AUTO-QA propios) y verifica en el
@@ -152,7 +154,7 @@ export default defineConfig({
       name: 'Climbs - WebAdmin',
       testDir: './tests/webadmin',
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION },
-      dependencies: ['Precondiciones - Bloque A'],
+      dependencies: ['Precondiciones - Bloque A', 'App nueva - Login'],
     },
     {
       // La app del pasajero: no usa la sesion del portal (entra con el link de autologin
@@ -170,7 +172,7 @@ export default defineConfig({
       // responden lento. Con el actionTimeout global de 30s, clicks y esperas flaquean
       // en la ventana lenta (y no hay reintentos porque emite). Se le da mas margen.
       use: { ...devices['Desktop Chrome'], storageState: ARCHIVO_SESION, actionTimeout: 60_000 },
-      dependencies: ['Precondiciones - Bloque C'],
+      dependencies: ['Precondiciones - Bloque C', 'App nueva - Login'],
     },
     {
       // Acceso por URL a reservas y cotizaciones ajenas o sin sesion. Solo lee (no
