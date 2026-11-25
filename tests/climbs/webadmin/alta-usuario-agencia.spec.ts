@@ -22,7 +22,8 @@ test.use({ trace: 'off', video: 'off' });
  *
  * Con la agencia propia 6334:
  *   1. el alta trae la agencia, el tipo "Agencia - Vendedor" (3), el pais de la agencia y
- *      habilitado; sin clave no se guarda;
+ *      habilitado; sin clave, "Guardar y enviar email" ofrece mandar el enlace para que la
+ *      persona cree la suya (desde noviembre la clave es opcional): se cancela sin guardar;
  *   2. con un usuario unico (email autoqa.usuario+<sello>@<dominio>) y una clave aleatoria, se
  *      guarda y lleva a la ficha del usuario nuevo;
  *   3. la ficha guarda lo cargado y el usuario queda Activo y habilitado;
@@ -32,7 +33,8 @@ test.use({ trace: 'off', video: 'off' });
  *   7. "Borrar" lo saca del listado y el portal deja de aceptarlo.
  *
  * El WebAdmin arrancaba el alta en "Pendiente de blanqueo de clave" porque la clave era opcional;
- * en la app nueva la clave es obligatoria (se exige que sin clave no guarde): misma proteccion.
+ * en la app nueva tambien es opcional: vacia, el mail de acceso lleva el enlace para crearla.
+ * El test da el alta con clave para poder entrar al portal sin leer el correo.
  * Diferencias que se marcan (soft): el pais venia cargado con el de la agencia; el nombre de
  * usuario se guardaba en minusculas; el aviso de email repetido nombraba al usuario que lo tiene.
  */
@@ -75,13 +77,14 @@ test.describe('WebAdmin — alta de usuario de agencia', () => {
         expect.soft(precarga.pais, 'DIFERENCIA con el WebAdmin: el pais tiene que venir cargado con el de la agencia').not.toBe('');
       });
 
-      await paso(page, 'Sin clave el alta no se guarda', async () => {
+      await paso(page, 'Sin clave, el envio ofrece el enlace para que la persona cree la suya (se cancela sin guardar)', async () => {
         await usuarios.completar(datos, '');
         if (!precarga.pais) await usuarios.ficha.locator('#au-country').selectOption({ label: 'Argentina' });
-        const resultado = await usuarios.guardarAlta();
-        await adjuntarTexto('Aviso sin clave', resultado.aviso || '(sin aviso)');
-        expect(resultado.id, 'Sin clave no se tiene que crear el usuario').toBeNull();
-        expect(resultado.aviso, 'Tiene que avisar por la clave').not.toBe('');
+        const nota = await usuarios.abrirEnvio();
+        await adjuntarTexto('Nota del envio sin clave', nota || '(no abrio el envio)');
+        expect(nota, 'Sin clave, el mail tiene que llevar el enlace para crear la clave').toMatch(/enlace/i);
+        await usuarios.cancelarEnvio();
+        await expect(page, 'Cancelar el envio no tiene que crear el usuario').not.toHaveURL(/\/clients\/agency-users\/\d+/);
       });
 
       await paso(page, 'Completar la clave y guardar', async () => {
@@ -103,7 +106,11 @@ test.describe('WebAdmin — alta de usuario de agencia', () => {
         expect(ficha.usuario.toLowerCase(), 'El nombre de usuario tiene que quedar guardado').toBe(datos.usuario.toLowerCase());
         expect.soft(ficha.usuario, 'DIFERENCIA con el WebAdmin: el nombre de usuario se guardaba en minusculas').toBe(datos.usuario.toLowerCase());
         expect(ficha.agencia, 'La ficha tiene que mostrar la agencia elegida').toContain(M.agencia.nombre);
-        expect(ficha.estado, 'Con clave el usuario queda Activo').toMatch(/^Activo/i);
+        // Desde noviembre el alta se guarda con el mail de acceso y queda "Pendiente blanqueo de clave"
+        // aunque lleve clave (AgencyUserService.CreateAsync); el WebAdmin la dejaba Activo. Si con ese
+        // estado puede entrar o no lo decide el paso del portal.
+        expect(ficha.estado, 'El alta tiene que quedar Activo o Pendiente blanqueo de clave').toMatch(/^(Activo|Pendiente blanqueo de clave)/i);
+        expect.soft(ficha.estado, 'DIFERENCIA con el WebAdmin: con la clave cargada el alta quedaba Activo').toMatch(/^Activo/i);
         expect(ficha.habilitado, 'El usuario tiene que quedar habilitado').toBe(true);
         expect(ficha.tipo, 'El tipo tiene que ser el que traia el alta').toBe(precarga.tipo);
         expect(ficha.moneda, 'La moneda tiene que ser la que traia el alta').toBe(precarga.moneda);
@@ -115,7 +122,8 @@ test.describe('WebAdmin — alta de usuario de agencia', () => {
         await adjuntarTexto('Fila del listado', filas.join(SALTO) || 'ninguna');
         expect(filas.length, `El listado de la agencia ${agencia} tiene que incluir el email ${datos.email}`).toBe(1);
         expect(filas[0]).toContain(`${datos.nombre} ${datos.apellido}`);
-        expect(filas[0], 'La fila tiene que mostrar el estado').toMatch(/Habilitado/);
+        // Desde noviembre la columna muestra el estado del usuario (antes, "Habilitado").
+        expect(filas[0], 'La fila tiene que mostrar el estado').toMatch(/Habilitado|Activo|Pendiente blanqueo de clave/);
       });
 
       await paso(page, 'Un segundo alta con el mismo email es rechazada y no crea otra fila', async () => {
@@ -145,6 +153,12 @@ test.describe('WebAdmin — alta de usuario de agencia', () => {
       });
     } finally {
       await contextoPortal?.close().catch(() => {});
+      // Si el alta se guardo pero el test se corto antes de anotar el id, se lo busca por el email
+      // en la solapa Usuarios de la agencia (la fila empieza con el id).
+      if (!id && !bajaHecha) {
+        const filas = await usuarios.filasDelListado(agencia, datos.email).catch(() => [] as string[]);
+        id = Number(filas[0]?.match(/^(\d+)/)?.[1] ?? 0);
+      }
       if ((id && !bajaHecha) || segundo) {
         await paso(page, `Restaurar: dar de baja los usuarios con el email ${datos.email}`, async () => {
           if (id && !bajaHecha) await usuarios.darDeBaja(id);

@@ -32,7 +32,13 @@ export async function elegirFiltro(page: Page, id: string, opcion: string | RegE
 }
 
 /** Una celda de la fila por el nombre de su columna. */
-export const celda = (fila: Locator, columna: string) => fila.locator(`td[data-label="${columna}"]`).first();
+/** Nombres de columna de antes y de ahora (noviembre): se busca la celda por cualquiera de los dos. */
+const SINONIMOS: Record<string, string[]> = {
+  Pagable: ['Pagable', 'Pagable al proveedor'],
+  Retenciones: ['Retenciones', 'Retención / Detracción'],
+};
+export const celda = (fila: Locator, columna: string) =>
+  fila.locator((SINONIMOS[columna] ?? [columna]).map((c) => `td[data-label="${c}"]`).join(', ')).first();
 
 /** "CC00010-00058541" -> /CC0*10-0*58541/: el mismo codigo con o sin ceros a la izquierda. */
 export const codigoFlexible = (codigo: string) =>
@@ -60,7 +66,7 @@ export class CuentaCorrienteNuevaPage {
   /** Abre la agenda para todos los responsables, hasta la fecha IN dada, y busca el file. */
   async agendaDelFile(numeroDeFile: string, fileCode: string, hasta: string): Promise<FilaDeLaAgenda[]> {
     await this.page.goto('/finance/customer-agenda');
-    await expect(this.page.getByRole('heading', { name: 'Agenda de pendientes de clientes', level: 1 })).toBeVisible();
+    await expect(this.page.getByRole('heading', { name: /^(Agenda de pendientes|Pendientes) de clientes$/, level: 1 })).toBeVisible();
     await elegirFiltro(this.page, 'ag-responsible', /todos/i);
     const campoHasta = this.page.locator('#ag-to');
     await campoHasta.fill(hasta);
@@ -155,8 +161,18 @@ export class CuentaAbierta {
   }
 
   async totales(): Promise<Record<string, number>> {
-    const fila = this.page.locator('table.acc-totals tbody tr').first();
     const out: Record<string, number> = {};
+    // Desde noviembre los totales van en una tarjeta de metricas ("Resumen de totales"): rotulo y valor.
+    const tarjeta = this.page.locator('dl.metric-strip').first();
+    await expect(tarjeta.or(this.page.locator('table.acc-totals')).first(), 'La cuenta tiene que mostrar sus totales').toBeVisible({ timeout: 60_000 });
+    if (await tarjeta.isVisible()) {
+      for (const c of ['Debe', 'Haber', 'Saldo']) {
+        const item = tarjeta.locator('.metric-strip__item').filter({ has: this.page.locator('dt', { hasText: new RegExp(`^${c}$`) }) }).first();
+        out[c] = this.numero(await item.locator('dd').innerText());
+      }
+      return out;
+    }
+    const fila = this.page.locator('table.acc-totals tbody tr').first();
     for (const c of ['Debe', 'Haber', 'Saldo']) out[c] = this.numero(await celda(fila, c).innerText());
     return out;
   }

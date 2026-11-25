@@ -7,7 +7,9 @@ import {
   paso, adjuntarTexto, reiniciarNumeracionDePasos, fechaDeBusqueda,
   formatearFecha, esperarFinDeCarga, conResaltado,
 } from '../../utils/pasos';
-import { SALTO } from './reservas-comun';
+import { SALTO, importeDelPortal } from './reservas-comun';
+import { conBackofficeNuevo, costosDelServicio, precioConIdioma, tarifaVigente, mismoIdioma } from '../../utils/markups';
+import candidatos from '../../data/candidatos.json';
 
 /**
  * Bloque B - multiidioma de las pantallas de reserva: carrito y checkout.
@@ -89,6 +91,13 @@ test.describe('Reservas — multiidioma', () => {
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
     const fecha = fechaDeBusqueda();
     const ESPANIOL = IDIOMAS[0];
+    const SERVICIO_ID = 5;
+    // `#sdLangSelect`: los values son los LanguageID del servicio; 2 es Ingles, el del recargo.
+    const IDIOMA_CON_RECARGO = '2';
+    const MARKUP = candidatos._formulaPrecio.markupPorDefecto;
+    const esperado = { idioma: '', total: 0, neto: 0 };
+    // El costo y el recargo se leen antes de abrir la ficha, en el Backoffice nuevo.
+    const costos = await conBackofficeNuevo(page.context().browser()!, (bo) => costosDelServicio(bo, SERVICIO_ID));
 
     await paso(page, 'Vaciar el carrito, dejar el sitio en espanol y agregar el servicio', async () => {
       await cambiarIdioma(page, ESPANIOL);
@@ -108,8 +117,37 @@ test.describe('Reservas — multiidioma', () => {
       ).toBeVisible({ timeout: 30_000 });
       const texto = (await bloque.innerText()).replace(/\s+/g, ' ');
       const cantidad = Number(texto.match(/M[ií]nimo\s+(\d+)/i)?.[1] ?? 1);
+
+      // Guia en ingles, el idioma con recargo del servicio (US 4739): el importe del recargo
+      // se arrastra igual por el carrito en cada idioma del sitio y por el checkout.
+      const nombreDelIdioma = ((await page.locator(`#sdLangSelect option[value='${IDIOMA_CON_RECARGO}']`).first().textContent()) ?? '').trim();
+      const tarifa = tarifaVigente(costos, 'Regular', fecha, cantidad);
+      expect(tarifa, `El servicio ${SERVICIO_ID} tiene que tener una tarifa Regular vigente el ${formatearFecha(fecha)}`).toBeDefined();
+      expect(tarifa!.recargos.some((x) => mismoIdioma(x.idioma, nombreDelIdioma)),
+        `La tarifa tiene que tener un recargo para ${nombreDelIdioma}. Tiene: ${tarifa!.recargos.map((x) => x.idioma).join(', ')}`).toBe(true);
+      const porPersona = precioConIdioma(tarifa!, nombreDelIdioma, MARKUP, cantidad)!;
+      esperado.idioma = nombreDelIdioma;
+      esperado.total = porPersona * cantidad;
+      // El checkout muestra el neto de la agencia (CheckOut.aspx.cs:343, NetTotalCost): lo que AMV le
+      // cobra, sin el markup propio de la agencia. Es la venta que queda en el file: techo(costo con
+      // recargo / cotizacion) por pasajero, por los pasajeros.
+      esperado.neto = precioConIdioma(tarifa!, nombreDelIdioma, 1, cantidad)! * cantidad;
+      await page.locator('#sdLangSelect').selectOption(IDIOMA_CON_RECARGO);
+      await esperarFinDeCarga(page);
       await bloque.locator(servicio.comboPax).selectOption(String(cantidad));
       await esperarFinDeCarga(page);
+      const totalDeLaFicha = await servicio.esperarTotal();
+      const precioDeLaFicha = await bloque.locator('.sd-rate__price-val').first().innerText();
+      await adjuntarTexto('Ficha con guia en ingles', [
+        `Tarifa: ${tarifa!.vigencia} | ${tarifa!.moneda} ${tarifa!.costo} | recargos ${tarifa!.recargos.map((x) => `${x.idioma} ${x.valor} (${x.tipo})`).join(', ')}`,
+        `Idioma: ${nombreDelIdioma} | ${cantidad} pax`,
+        `Precio por persona: esperado USD ${porPersona} / ficha ${precioDeLaFicha.trim()}`,
+        `Total: esperado USD ${esperado.total} / ficha ${totalDeLaFicha.trim()}`,
+      ].join(SALTO));
+      expect(importeDelPortal(precioDeLaFicha), 'La ficha tiene que mostrar el precio por persona con el recargo del ingles')
+        .toEqual({ moneda: 'USD', valor: porPersona });
+      expect(importeDelPortal(totalDeLaFicha), 'El total de la ficha tiene que ser el precio con recargo por los pasajeros')
+        .toEqual({ moneda: 'USD', valor: esperado.total });
       await servicio.agregarAlCarrito();
 
       await expect.poll(() => carrito.paxEnElCarrito(), { timeout: 30_000 }).toBe(1);
@@ -154,6 +192,10 @@ test.describe('Reservas — multiidioma', () => {
         await adjuntarTexto(`Carrito en ${idioma.nombre}`,
           `item: ${nombre}${SALTO}${SALTO}${await etiquetasTraducidas(page)}`);
 
+        const totalDelCarrito = await fila.locator('.ct-row__total').innerText();
+        await adjuntarTexto(`Importe en el carrito en ${idioma.nombre}`, `esperado USD ${esperado.total} / carrito ${totalDelCarrito.trim()}`);
+        expect(importeDelPortal(totalDelCarrito), `En ${idioma.nombre} el carrito tiene que cobrar el total con el recargo del ingles`)
+          .toEqual({ moneda: 'USD', valor: esperado.total });
         await conResaltado(page, fila, `Nombre en el carrito en ${idioma.nombre}`, () => {
           expect(nombre,
             `En ${idioma.nombre} el carrito tiene que mostrar el nombre de ese idioma, ` +
@@ -177,6 +219,10 @@ test.describe('Reservas — multiidioma', () => {
         await adjuntarTexto(`Checkout en ${idioma.nombre}`,
           `item: ${nombre}${SALTO}${SALTO}${await etiquetasTraducidas(page)}`);
 
+        const totalDelCheckout = await fila.locator('.ct-row__total').first().innerText().catch(() => '');
+        await adjuntarTexto(`Importe en el checkout en ${idioma.nombre}`, `neto esperado ${esperado.neto} / checkout ${totalDelCheckout.trim() || '(sin total en la fila)'}`);
+        expect(importeDelPortal(totalDelCheckout).valor, `En ${idioma.nombre} el checkout tiene que mostrar el neto con el recargo del ingles`)
+          .toBe(esperado.neto);
         await conResaltado(page, fila, `Nombre en el checkout en ${idioma.nombre}`, () => {
           expect(nombre,
             `En ${idioma.nombre} el checkout tiene que mostrar el nombre de ese idioma`)

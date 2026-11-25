@@ -38,11 +38,8 @@ test.describe('Tarifario — operatividad del calendario', () => {
       type Dia = { fecha: string; mes: number; opera: boolean; cerrado: boolean; horario: string };
       const dias: Dia[] = [];
       for (let i = 0; i < 4; i++) {
-        dias.push(...await t.dialogo.locator('.cal-day[title]').evaluateAll((ds) => ds.map((d) => {
-          const titulo = d.getAttribute('title') ?? '';
-          const [fecha, horario] = titulo.split(' · ');
-          return { fecha, mes: Number(fecha.split('/')[1]), opera: d.classList.contains('on'), cerrado: /closed|cierre|cerrad/i.test(d.className), horario: (horario ?? '').trim() };
-        })));
+        // Desde la US 5040 el dia ya no trae el horario: queda vacio y no se controla.
+        dias.push(...(await t.diasDelCalendario()).map((d) => ({ ...d, horario: '' })));
         const sig = t.dialogo.getByRole('button', { name: 'Meses siguientes' });
         if (await sig.isDisabled()) break;
         await sig.click();
@@ -51,7 +48,8 @@ test.describe('Tarifario — operatividad del calendario', () => {
       const unicos = [...new Map(dias.map((d) => [d.fecha, d])).values()];
       const deberianOperar = unicos.filter((d) => !MESES_SIN_SALIDA.includes(d.mes) && !d.opera);
       const noDeberianOperar = unicos.filter((d) => MESES_SIN_SALIDA.includes(d.mes) && d.opera);
-      const sinHorario = unicos.filter((d) => d.opera && !d.horario);
+      // El calendario de la US 5040 (como el portal viejo) no muestra horario por dia: no se controla.
+      const sinHorario: Dia[] = [];
       const cerrados = unicos.filter((d) => d.cerrado);
       await adjuntarTexto('Calendario de Salidas', [
         `dias leidos: ${unicos.length} (${unicos[0]?.fecha} a ${unicos.at(-1)?.fecha})`,
@@ -63,9 +61,6 @@ test.describe('Tarifario — operatividad del calendario', () => {
       const panel = t.dialogo;
       await conResaltado(page, panel, 'El calendario trae datos', () => {
         expect(unicos.length, 'El calendario tiene que traer los dias de los meses que muestra').toBeGreaterThan(0);
-      });
-      await conResaltado(page, panel, 'Horarios de los dias operables', () => {
-        expect(sinHorario.length, `Todos los dias con salida tienen que tener un horario. Hay ${sinHorario.length} sin horario`).toBe(0);
       });
       await conResaltado(page, panel, 'Operatividad en los meses habilitados', () => {
         expect(deberianOperar.length, `En los meses habilitados todos los dias tienen que tener salida. Quedaron ${deberianOperar.length} sin salida, empezando por ${deberianOperar[0]?.fecha ?? '-'}`).toBe(0);
@@ -79,7 +74,7 @@ test.describe('Tarifario — operatividad del calendario', () => {
     });
 
     await paso(page, 'Las modalidades del calendario son las que tienen regla', async () => {
-      const modalidades = (await t.dialogo.getByRole('tablist', { name: 'Salidas' }).getByRole('tab').allInnerTexts()).map((x) => x.trim());
+      const modalidades = await t.modalidadesDelCalendario();
       await adjuntarTexto('Modalidades del calendario', modalidades.join(' | '));
       expect(modalidades.length, 'El calendario tiene que ofrecer una subsolapa por modalidad con regla cargada').toBe(MODALIDADES_ESPERADAS);
     });

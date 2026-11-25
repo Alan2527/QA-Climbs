@@ -4,6 +4,8 @@ import { ServicioPage } from '../../pages/servicio.page';
 import { CarritoPage } from '../../pages/carrito.page';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado, esperarFinDeCarga } from '../../utils/pasos';
 import { importeDelPortal } from './reservas-comun';
+import { conBackofficeNuevo, costosDelServicio, precioConIdioma, tarifaVigente, mismoIdioma } from '../../utils/markups';
+import { TarifaDeServicio } from '../../pages/climbs/servicio.page';
 import candidatos from '../../data/candidatos.json';
 
 const CS = candidatos.tarifario.cenaShow;
@@ -39,6 +41,12 @@ const CS = candidatos.tarifario.cenaShow;
  *
  * Fecha de enero 2031: el servicio tiene tarifas hasta fin de 2031 y enero esta entre sus
  * meses con salida, asi no depende de lo que dejen otros tests.
+ * Importes (US 4739: "el valor final tiene que calcularse aplicando el markup de la agencia sobre
+ * costo + recargo en conjunto, nunca sobre el costo solo"): el precio por persona de la tarjeta es
+ * exactamente techo(costo / markup) en el idioma base y techo((costo + recargo) / markup) en el idioma
+ * con recargo, con el costo y el recargo de la tarifa Regular vigente leidos en el Backoffice nuevo.
+ * El carrito tiene que cobrar exactamente eso por los pasajeros.
+ *
  * No emite: al final vacia el carrito.
  */
 test.describe('Idioma del servicio: de la ficha al carrito', () => {
@@ -90,10 +98,14 @@ test.describe('Idioma del servicio: de la ficha al carrito', () => {
       precioBase: 0, precioRecargo: 0,
       totalBase: '', totalRecargo: '', totalBaseOtraVez: '',
     };
+    // Lo que tiene que mostrar la tarjeta, calculado desde la tarifa del Backoffice.
+    const esperado = { base: null as number | null, recargo: null as number | null, tarifa: undefined as TarifaDeServicio | undefined };
+    const MARKUP = candidatos._formulaPrecio.markupPorDefecto;
     const nombreDelIdioma = async (id: string) =>
       ((await page.locator(`#sdLangSelect option[value='${id}']`).first().textContent()) ?? '').trim();
     const precioDeLaTarjeta = async () =>
-      valor(await bloqueDe(page, servicio).locator('.js-sd-price').first().innerText(), 'Precio por persona de la tarjeta');
+      // Desde la US 5082 (11/11/2026) el precio por persona va en "Precio por persona" (.sd-rate__price-val).
+      valor(await bloqueDe(page, servicio).locator('.sd-rate__price-val').first().innerText(), 'Precio por persona de la tarjeta');
     const elegirPax = async () => {
       await bloqueDe(page, servicio).locator(servicio.comboPax).selectOption(String(f.pax));
       await esperarFinDeCarga(page);
@@ -107,6 +119,8 @@ test.describe('Idioma del servicio: de la ficha al carrito', () => {
     };
 
     try {
+      // El costo y el recargo se leen antes de abrir la ficha, en el Backoffice nuevo.
+      const costos = await conBackofficeNuevo(page.context().browser()!, (bo) => costosDelServicio(bo, CS.id));
       await paso(page, 'Vaciar el carrito y abrir la ficha de la Cena Show', async () => {
         await inicio.abrir();
         await carrito.vaciar();
@@ -148,15 +162,30 @@ test.describe('Idioma del servicio: de la ficha al carrito', () => {
         }
         f.nombreBase = await nombreDelIdioma(IDIOMAS.base);
         f.nombreRecargo = await nombreDelIdioma(IDIOMAS.conRecargo);
+        esperado.tarifa = tarifaVigente(costos, SERVICIO.modalidad, FECHA, f.pax);
+        expect(esperado.tarifa, `El servicio ${CS.id} tiene que tener una tarifa ${SERVICIO.modalidad} vigente el ${FECHA.toLocaleDateString('es-AR')}. Tarifas: ${costos.map((c) => `${c.modalidad} | ${c.vigencia} | ${c.pax} | ${c.costo}`).join(' ; ')}`).toBeDefined();
+        expect(esperado.tarifa!.recargos.some((x) => mismoIdioma(x.idioma, f.nombreRecargo)),
+          `La tarifa ${SERVICIO.modalidad} tiene que tener recargo para ${f.nombreRecargo}`).toBe(true);
+        esperado.base = precioConIdioma(esperado.tarifa!, null, MARKUP, f.pax);
+        esperado.recargo = precioConIdioma(esperado.tarifa!, f.nombreRecargo, MARKUP, f.pax);
+        await adjuntarTexto('Tarifa del Backoffice y precios esperados',
+          `${esperado.tarifa!.vigencia} | ${esperado.tarifa!.modalidad} | ${esperado.tarifa!.moneda} ${esperado.tarifa!.costo}` +
+          ` | recargos: ${JSON.stringify(esperado.tarifa!.recargos)}
+markup ${MARKUP}: ${f.nombreBase} ${esperado.base} / ${f.nombreRecargo} ${esperado.recargo}`);
         await expect(page.locator('#sdLangSelect'), 'El idioma por defecto de la ficha tiene que ser el base')
           .toHaveValue(IDIOMAS.base);
       });
 
       await paso(page, 'Idioma base: elegir los pasajeros y leer el total de la ficha', async () => {
-        f.precioBase = await precioDeLaTarjeta();
+        // La tarjeta muestra "-" hasta que se eligen los pasajeros (US 5082).
         f.totalBase = await elegirPax();
+        f.precioBase = await precioDeLaTarjeta();
         await adjuntarTexto('Ficha en idioma base', `idioma ${f.nombreBase}, precio por persona ${f.precioBase}, total ${f.totalBase}`);
         valor(f.totalBase, 'Total de la ficha en idioma base');
+        await conResaltado(page, bloqueDe(page, servicio), 'precio por persona en idioma base', () => {
+          expect(f.precioBase, `En ${f.nombreBase} el precio por persona tiene que ser techo(costo / ${MARKUP})`).toBe(esperado.base);
+          expect(valor(f.totalBase, 'Total en idioma base'), 'El total de la ficha tiene que ser el precio por persona por los pasajeros').toBe(esperado.base! * f.pax);
+        });
       });
 
       await paso(page, 'Cambiar al idioma con recargo, elegir la misma cantidad y agregar al carrito', async () => {
@@ -166,8 +195,8 @@ test.describe('Idioma del servicio: de la ficha al carrito', () => {
         await elegirIdioma(IDIOMAS.conRecargo);
         await adjuntarTexto('Total justo despues de cambiar de idioma',
           `"${(await page.locator('#totals .sd-total-amount').textContent())?.trim() ?? ''}" (antes: ${f.totalBase})`);
-        f.precioRecargo = await precioDeLaTarjeta();
         f.totalRecargo = await elegirPax();
+        f.precioRecargo = await precioDeLaTarjeta();
         await adjuntarTexto('Ficha en idioma con recargo',
           `idioma ${f.nombreRecargo}, precio por persona ${f.precioRecargo}, total ${f.totalRecargo}`);
 
@@ -180,6 +209,8 @@ test.describe('Idioma del servicio: de la ficha al carrito', () => {
         await conResaltado(page, bloqueDe(page, servicio), 'precio por persona de la tarjeta', () => {
           expect(f.precioRecargo, 'La tarjeta de la modalidad tiene que mostrar el precio por persona del idioma elegido')
             .toBeGreaterThan(f.precioBase);
+          expect(f.precioRecargo, `En ${f.nombreRecargo} el precio por persona tiene que ser techo((costo + recargo) / ${MARKUP}) (US 4739)`)
+            .toBe(esperado.recargo);
           // La ficha redondea por pasajero y despues multiplica (API 4822e57).
           expect(conRecargo, 'El total de la ficha tiene que ser el precio por persona de la tarjeta por los pasajeros')
             .toBe(f.precioRecargo * f.pax);

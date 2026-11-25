@@ -10,6 +10,11 @@ import {
   reiniciarNumeracionDePasos, conResaltado, selloEnLetras,
 } from '../../utils/pasos';
 import { armarCircuitoYEmitir, importeDelPortal } from './reservas-comun';
+import candidatos from '../../data/candidatos.json';
+import { conBackofficeNuevo, costosDelServicio } from '../../utils/markups';
+import { recargoEnFichaYCarritoViejo } from '../../utils/recargo-por-idioma';
+
+const EX = candidatos.tarifario.excursiones;
 
 /**
  * BLOQUE B — anulacion de una reserva emitida.
@@ -316,24 +321,17 @@ test.describe('Reservas — anulacion', () => {
     await paso(page, 'Reservar un servicio y emitirlo', async () => {
       await carrito.vaciar();
       await inicio.abrir();
-      const panel = await inicio.abrirSolapa('servicios');
-      await servicio.buscar({
-        panel, pais: 'Argentina', ciudad: 'Buenos Aires', tipo: 'Excursión', fecha,
-      });
-      await servicio.buscarPorNombre(datos.terminoDeBusqueda, datos.servicio);
-      await servicio.abrirFicha(datos.servicio.slice(0, 24));
-
-      const fila = servicio.bloqueDeModalidad(datos.modalidad);
-      await expect(
-        fila,
-        `La ficha tiene que ofrecer la modalidad ${datos.modalidad} para el ${datos.fecha}`,
-      ).toBeVisible({ timeout: 30_000 });
-
-      const texto = (await fila.innerText()).replace(/\s+/g, ' ');
-      datos.cantidadPax = Number(texto.match(/M[ií]nimo\s+(\d+)/i)?.[1] ?? 1);
-      await fila.locator(servicio.comboPax).selectOption(String(datos.cantidadPax));
-      await esperarFinDeCarga(page);
-      await servicio.agregarAlCarrito();
+      // En English (US 4739): Tigre y Delta tiene English 10% en su tarifa Regular. El helper valida que la ficha y
+      // el carrito cobren techo((costo + recargo) / cotizacion / markup de pablo1) y deja el servicio en el carrito:
+      // asi la reserva que se emite y se cancela lleva el recargo por idioma.
+      const tarifasDelServicio = await conBackofficeNuevo(page.context().browser()!, (bo) => costosDelServicio(bo, EX.id));
+      await recargoEnFichaYCarritoViejo(page, {
+        pais: 'Argentina', ciudad: 'Buenos Aires', termino: datos.terminoDeBusqueda, nombre: datos.servicio, modalidad: datos.modalidad,
+        fecha, tarifas: tarifasDelServicio, tipo: 'Excursión', tipoValor: String(EX.serviceTypeId),
+      }, candidatos._formulaPrecio.markupPorDefecto, 'pablo1', true);
+      const filaDelCarrito = page.locator(carrito.filas).filter({ hasText: datos.terminoDeBusqueda });
+      datos.cantidadPax = Number((await filaDelCarrito.locator('.sc-qty').innerText()).match(/\d+/)?.[0] ?? 0);
+      expect(datos.cantidadPax, 'El carrito tiene que traer los pasajeros elegidos en la ficha').toBeGreaterThan(0);
 
       await carrito.irAlCarrito();
       await carrito.crearReserva(referencia, datos.observaciones);

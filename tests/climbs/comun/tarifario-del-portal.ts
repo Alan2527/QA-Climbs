@@ -1,8 +1,11 @@
 import { Page, expect } from '@playwright/test';
 import { TarifarioNuevoPage } from '../../../pages/climbs/tarifario.page';
 
-/** Un item del tarifario del portal nuevo: la solapa, el nombre de la card y lo que se escribe para buscarlo. */
-export type ItemDelPortal = { solapa: string; nombre: string; terminoBusqueda: string };
+/**
+ * Un item del tarifario del portal nuevo: la solapa, el nombre de la card y lo que se escribe para
+ * buscarlo. País y destino, si no se dan, son Argentina / Buenos Aires.
+ */
+export type ItemDelPortal = { solapa: string; nombre: string; terminoBusqueda: string; pais?: string; destino?: string };
 
 /** Las solapas del tarifario y su `tab` en la direccion (la misma que la del tarifario viejo). */
 const TAB: Record<string, string> = {
@@ -12,7 +15,8 @@ const TAB: Record<string, string> = {
 export type Lectura = { ofrecido: boolean; filas: string[][]; detalle: string };
 
 /**
- * Lee la tabla del explorador ("Ver Tarifario") de un item, en Argentina / Buenos Aires.
+ * Lee la tabla del explorador ("Ver Tarifario") de un item, en su país y destino (por defecto
+ * Argentina / Buenos Aires; con rango, siempre Buenos Aires).
  *
  * Sin rango entra desde el menu, como la persona. Con rango usa la direccion del tarifario
  * (`from` / `to` en dd-mm-aaaa), que es como la arma el propio sitio al buscar: por defecto
@@ -28,7 +32,7 @@ export async function leerTarifasDelPortal(page: Page, item: ItemDelPortal, rang
     await page.waitForLoadState('networkidle');
   } else {
     await t.irDesdeElMenu();
-    await t.filtrar('Argentina', 'Buenos Aires');
+    await t.filtrar(item.pais ?? 'Argentina', item.destino ?? 'Buenos Aires');
     await t.abrirSolapa(item.solapa);
   }
   try {

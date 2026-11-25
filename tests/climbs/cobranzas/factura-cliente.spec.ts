@@ -23,15 +23,19 @@ test.describe('Cobranzas', () => {
 
     const ahora = new Date();
     const sello = ahora.toISOString().slice(0, 19).replace(/[-:T]/g, '');
-    const pre = await reservarServicioYGenerarFile(page, sello);
+    // En English (US 4739): el file trae el servicio y su Adicional Idioma, y lo que se exige es la venta de los dos.
+    const pre = await reservarServicioYGenerarFile(page, sello, { conIdioma: true });
     const digitos = numeroDelFile(pre.fileCode);
     let totalDelComprobante: number | null = null;
 
     await paso(page, 'Entrar a Cartas de cobranza y abrir un comprobante nuevo', async () => {
-      await page.goto('/finance/invoicing/letters?state=issued');
-      await page.getByRole('button', { name: 'Nuevo', exact: true }).click();
+      await page.goto('/finance/invoicing?state=issued&type=2100');
+      await page.getByRole('button', { name: 'Nuevo', exact: true }).or(page.getByRole('link', { name: 'Nuevo', exact: true })).click();
       await expect(page).toHaveURL(/\/finance\/invoicing\/new/);
-      await expect(page.locator('#inv-type'), 'Desde Cartas, el tipo tiene que venir en Carta de Cobranza').toHaveValue('2100');
+      // Desde noviembre las cartas viven en Comprobantes (filtro Tipo = Carta de Cobranza) y
+      // "Nuevo" abre el alta generica: el tipo se elige en el formulario.
+      await page.locator('#inv-type').selectOption({ label: 'Carta de Cobranza' });
+      await expect(page.locator('#inv-type'), 'El tipo tiene que quedar en Carta de Cobranza').toHaveValue('2100');
     });
 
     await paso(page, 'Elegir el destinatario y verificar sus datos', async () => {
@@ -41,11 +45,13 @@ test.describe('Cobranzas', () => {
       const fila = dlg.locator('tbody tr').filter({ hasText: pre.cliente }).first();
       await expect(fila, `El buscador de destinatarios tiene que traer a ${pre.cliente}`).toBeVisible({ timeout: 30_000 });
       await fila.click();
-      await expect(page.locator('#inv-name'), 'El comprobante tiene que emitirse al cliente del file').toHaveValue(new RegExp(pre.cliente, 'i'));
+      // Desde noviembre el destinatario elegido se muestra como dato (no como campo editable).
+      const razonSocial = page.locator('dt', { hasText: 'Nombre y apellido / Razón social' }).locator('xpath=following-sibling::dd[1]');
+      await expect(razonSocial, 'El comprobante tiene que emitirse al cliente del file').toHaveText(new RegExp(pre.cliente, 'i'));
     });
 
     await paso(page, 'Cargar desde el file y verificar lo que completa solo', async () => {
-      await page.getByRole('button', { name: 'Cargar desde un file' }).click();
+      await page.getByRole('button', { name: 'Seleccionar file', exact: true }).click();
       const dlg = page.getByRole('dialog', { name: 'Files del cliente' });
       await dlg.getByRole('searchbox').fill(digitos);
       const fila = dlg.locator('tbody tr').filter({ hasText: digitos }).first();
@@ -58,8 +64,8 @@ test.describe('Cobranzas', () => {
 
       await expect(page.locator('#inv-file'), 'El comprobante tiene que quedar atado al file').toHaveValue(new RegExp(digitos));
       await expect(page.locator('#inv-pax'), 'El comprobante tiene que tomar el pasajero del file').toHaveValue(new RegExp(pre.apellidoDelPax, 'i'));
-      const desde = await page.locator('#inv-from').inputValue();
-      const hasta = await page.locator('#inv-to').inputValue();
+      // Desde noviembre las fechas de servicio son un solo selector de rango ("dd/mm/aaaa - dd/mm/aaaa").
+      const [desde, hasta] = (await page.getByRole('button', { name: 'Fechas de servicios' }).innerText()).split(' - ').map((x) => x.trim());
       expect(`${desde} ${hasta}`, 'Las fechas de los servicios tienen que venir del file').toContain(pre.fecha);
       const moneda = await page.locator('#inv-currency').evaluate((s: HTMLSelectElement) => s.options[s.selectedIndex]?.text ?? '');
       expect(moneda, 'La moneda del comprobante tiene que ser la de la venta del file').toContain(pre.ventaDelItem.moneda);
@@ -68,11 +74,15 @@ test.describe('Cobranzas', () => {
 
     await paso(page, 'Comparar los conceptos y el total contra el file', async () => {
       const filas = await page.getByRole('textbox', { name: /^Producto \d+$/ }).count();
-      expect(filas, 'El file tiene que traer un concepto por item reservado').toBe(1);
+      expect(filas, 'El file tiene que traer un concepto por item reservado (el servicio y su Adicional Idioma)').toBe(pre.itemsDelFile);
+      const productos = await Promise.all(Array.from({ length: filas }, (_, i) => page.getByRole('textbox', { name: `Producto ${i + 1}`, exact: true }).inputValue()));
+      const conceptos = await Promise.all(Array.from({ length: filas }, (_, i) => page.getByRole('textbox', { name: `Concepto ${i + 1}`, exact: true }).inputValue()));
+      await adjuntarTexto('Conceptos traidos del file', productos.map((p, i) => `${p} | ${conceptos[i]}`).join('\n'));
+      expect([...productos, ...conceptos].join(' | ').toUpperCase(), 'Los conceptos tienen que traer el Adicional Idioma del file (US 4739)').toContain('ADICIONAL IDIOMA');
       const valor = (c: string) => page.getByRole('textbox', { name: `${c} 1`, exact: true }).inputValue();
       const c = {
         producto: await valor('Producto'), concepto: await valor('Concepto'),
-        cant: await valor('Cant.'), pu: await valor('PU'), total: await valor('Total'),
+        cant: await valor('Cantidad'), pu: await valor('PU'), total: await valor('Total'),
       };
       await adjuntarTexto('Concepto traido del file', Object.values(c).join(' | '));
       expect(`${c.producto} ${c.concepto}`.toUpperCase(), 'El concepto tiene que traer el servicio reservado').toContain('TIGRE Y DELTA');
@@ -84,7 +94,7 @@ test.describe('Cobranzas', () => {
         .toBe(Number((tot ?? 0).toFixed(2)));
 
       totalDelComprobante = importeANumero(await page.locator('#inv-total').inputValue());
-      expect(totalDelComprobante, 'El total del comprobante tiene que ser la venta del item del file').toBe(pre.ventaDelItem.valor);
+      expect(totalDelComprobante, 'El total del comprobante tiene que ser la venta del file (servicio + Adicional Idioma)').toBe(pre.ventaDelFile.valor);
     });
 
     await paso(page, 'Guardar el comprobante y verificar que quede emitido en Cartas de cobranza', async () => {
@@ -93,7 +103,7 @@ test.describe('Cobranzas', () => {
       await page.getByRole('button', { name: 'Guardar', exact: true }).click();
       expect((await respuesta).status(), 'Guardar tiene que registrar el comprobante').toBe(200);
 
-      await page.goto(`/finance/invoicing/letters?state=issued&q=${digitos}`);
+      await page.goto(`/finance/invoicing?state=issued&type=2100&q=${digitos}`);
       const fila = page.locator('tbody tr').filter({ hasText: digitos }).first();
       await expect(fila, `El comprobante del file ${pre.fileCode} tiene que quedar en Cartas emitidas`).toBeVisible({ timeout: 60_000 });
       const texto = (await fila.innerText()).replace(/\s+/g, ' ');
@@ -101,7 +111,7 @@ test.describe('Cobranzas', () => {
       expect(texto.toUpperCase(), 'Tiene que mostrar el cliente').toContain(pre.cliente.toUpperCase());
       expect(texto.toUpperCase(), 'Tiene que mostrar el pasajero del file').toContain(pre.apellidoDelPax.toUpperCase());
       expect(texto, 'Tiene que mostrar la fecha de emision').toContain(formatearFecha(ahora));
-      const importes = (texto.match(/\d[\d.]*,\d+/g) ?? []).map(importeANumero);
+      const importes = (texto.match(/(?:[A-Z]{3}|\$)\s*-?\d[\d.]*(?:,\d+)?/g) ?? []).map(importeANumero);
       expect(importes, 'Tiene que mostrar el mismo total con el que se guardo').toContain(totalDelComprobante);
     });
 

@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 import { PortalNuevoPage } from '../../../pages/climbs/portal.page';
 import { paso, adjuntarTexto, fechaDeBusqueda, reiniciarNumeracionDePasos, conResaltado } from '../../../utils/pasos';
 import { reservarServicioEnElPortalNuevo } from '../comun/precondiciones';
-import { Importe, armarCircuitoYEmitir, reservaDeCircuito, reservarHotelEnElPortalNuevo } from './reservas-comun';
+import { Importe, armarCircuitoYEmitir, reservaDeCircuito, reservarHotelEnElPortalNuevo, fechaDelPaquete } from './reservas-comun';
 
 /**
  * RESERVAS — app nueva (ClimbsApp). Anulacion de una reserva emitida.
@@ -98,8 +98,9 @@ test.describe('Reservas — anulacion', () => {
   test('Servicio: una reserva emitida se puede cancelar y el portal lo refleja', async ({ page }) => {
     test.setTimeout(600_000);
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
-    // A 30 dias: el riel clasico vence 15 dias antes del servicio.
-    const reserva = await reservarServicioEnElPortalNuevo(page, sello, 30);
+    // A 30 dias: el riel clasico vence 15 dias antes del servicio. En English (US 4739): la reserva que se cancela
+    // lleva el recargo por idioma (Tigre y Delta, English 10%).
+    const reserva = await reservarServicioEnElPortalNuevo(page, sello, 30, true);
     await adjuntarTexto('Reserva emitida para anular', reserva.codigo);
     await cancelarYVerificar(page, { codigo: reserva.codigo, solapa: 'Carrito de compras', referencia: reserva.referencia, conHoteleria: false });
   });
@@ -120,7 +121,7 @@ test.describe('Reservas — anulacion', () => {
     test.setTimeout(600_000);
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
     // A 7 dias alcanza: el riel de circuitos vence 48 hs antes del inicio.
-    const fecha = fechaDeBusqueda();
+    const fecha = fechaDelPaquete();
     const reserva = {
       ...reservaDeCircuito(sello, fecha),
       item: 'AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia (6 días / 5 noches)',

@@ -804,9 +804,13 @@ npm run report
 Los Bloques B y C y la corrida completa van con **un solo worker** a proposito:
 ver "Por que los cuatro flujos van en un solo archivo".
 
-En **GitHub Actions** la corrida manual abre un desplegable para elegir que
-correr: `bloque-a`, `bloque-b`, `bloque-c` o `todas`, mas un filtro opcional. El
-push a main sigue corriendo solo el Bloque A, como antes.
+En **GitHub Actions** la corrida manual (desde el 25/11/2026) tiene tres desplegables:
+**Sistema** (Ambos / Viejo / Nuevo), **Area** (Todas / Tarifario / Reservas / Cobranzas /
+WebAdmin / SIX / Seguridad) y **Prueba** (una sola, o todas las del area), mas un texto
+libre avanzado que busca en el titulo. Ambos + Todas es la corrida completa en tres fases
+(ver `tools/plan-corrida.mjs`, que dice que corre junto y que no). La lista de pruebas la
+arma `node tools/actualizar-desplegable.mjs`: correrlo al agregar o renombrar un test. El
+push a main sigue corriendo solo el Tarifario del sistema viejo, como antes.
 
 En Allure quedan separados sin configurar nada: el arbol es proyecto > archivo >
 describe, asi que el Bloque B aparece como

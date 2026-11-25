@@ -69,7 +69,7 @@ test.describe('WebAdmin — cotizacion de grupo: markup y tipo de cambio de la a
     await paso(page, `Verificar el punto de partida: mercado ${M.mercado.id} y agencia ${M.agencia.id} sin datos propios`, async () => {
       await admin.abrirMercado(M.mercado.id);
       const mercado = await admin.markupsDelMercado();
-      await admin.abrirAgencia(M.agencia.id);
+      await admin.abrirMarkupDeLaAgencia(M.agencia.id);
       const markups = await admin.markupsDeLaAgencia();
       const cambio = await admin.tipoDeCambioDeLaAgencia();
       await adjuntarTexto('Punto de partida', JSON.stringify({ mercado, markups, cambio }, null, 2));
@@ -100,7 +100,7 @@ test.describe('WebAdmin — cotizacion de grupo: markup y tipo de cambio de la a
         await admin.guardarAgencia(M.agencia.id, HOTEL_PROPIO, SERVICIO_PROPIO);
         await admin.guardarTipoDeCambio(M.agencia.id, true, CAMBIO_MANUAL);
         // guardarTipoDeCambio solo relee la cotizacion: se confirma que el markup no se perdio.
-        await admin.abrirAgencia(M.agencia.id);
+        await admin.abrirMarkupDeLaAgencia(M.agencia.id);
         expect(await admin.markupsDeLaAgencia(), 'Los markups propios tienen que seguir guardados')
           .toEqual({ hotel: HOTEL_PROPIO, servicio: SERVICIO_PROPIO });
       });

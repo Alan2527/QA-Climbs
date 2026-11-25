@@ -98,7 +98,7 @@ test.describe('Cobranzas', () => {
     });
 
     await paso(page, 'Guardar la orden e intentar cargar un recibo con fecha futura', async () => {
-      await orden.campo('cf-0').selectOption({ label: cajaDeRegresion(datos.moneda) });
+      await orden.elegir('cf-0', cajaDeRegresion(datos.moneda));
       idDeLaOrden = await orden.guardar();
       expect(idDeLaOrden, 'Con la caja elegida, la orden tiene que poder guardarse').toMatch(/^\d+$/);
 

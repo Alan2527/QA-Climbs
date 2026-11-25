@@ -453,9 +453,11 @@ test.describe('Cobranzas — anulaciones', () => {
       const fila = orden.filaPendiente(factura.numeroDeFactura);
       await expect(fila, 'Pagada solo en parte, la factura tiene que seguir entre las pendientes').toBeVisible({ timeout: 60_000 });
       await conResaltado(page, fila, 'Saldo de la factura tras el pago parcial', async () => {
-        expect(await saldoDeLaFactura(orden, fila),
-          `El saldo de la factura tiene que bajar exactamente ${aFormatoBO(parcial)}: de ${aFormatoBO(total)} a ${aFormatoBO(resto)}`)
-          .toBeCloseTo(resto, 2);
+        // La grilla de pendientes se refresca un instante despues de imputar: se espera el saldo.
+        await expect.poll(() => saldoDeLaFactura(orden, fila), {
+          message: `El saldo de la factura tiene que bajar exactamente ${aFormatoBO(parcial)}: de ${aFormatoBO(total)} a ${aFormatoBO(resto)}`,
+          timeout: 30_000,
+        }).toBeCloseTo(resto, 2);
       });
     });
 

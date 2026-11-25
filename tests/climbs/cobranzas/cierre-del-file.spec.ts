@@ -69,12 +69,12 @@ test.describe('Cobranzas — cierre del file', () => {
       expect(n(cliente['Venta del file']), 'La venta del file es la del item reservado').toBe(base.ventaDelItem.valor);
       expect(n(cliente['Facturado']), 'La carta de cobranza factura toda la venta').toBe(n(cliente['Venta del file']));
       expect(n(cliente['Cobrado']), 'La orden de cobro cobra todo lo facturado').toBe(n(cliente['Facturado']));
-      expect(await bo.textoDeCifra(bo.ladoCliente(), 'Falta cobrar'), 'No queda nada por cobrar').toMatch(/^0(,0+)?\b.*Al d[ií]a/);
+      expect(await bo.textoDeCifra(bo.ladoCliente(), 'Falta cobrar'), 'No queda nada por cobrar').toMatch(/^0(,0+)?(\s.*Al d[ií]a)?$/);
       // El costo del item esta en ARS y el file en USD: el panel lo pasa con el tipo de cambio
       // del proveedor, asi que se compara contra si mismo y no contra los 94.600.
       expect(n(proveedor['Facturado']), 'La factura del proveedor cubre todo el costo del file').toBe(n(proveedor['Costo del file']));
       expect(n(proveedor['Pagado']), 'La orden de pago paga todo lo facturado').toBe(n(proveedor['Facturado']));
-      expect(await bo.textoDeCifra(bo.ladoProveedores(), 'Falta pagar'), 'No queda nada por pagar').toMatch(/^0(,0+)?\b.*Al d[ií]a/);
+      expect(await bo.textoDeCifra(bo.ladoProveedores(), 'Falta pagar'), 'No queda nada por pagar').toMatch(/^0(,0+)?(\s.*Al d[ií]a)?$/);
       await expect(bo.fichaDelFile.locator('.fa-figure--owed'), 'Ninguna cifra tiene que quedar marcada como deuda').toHaveCount(0);
     });
 

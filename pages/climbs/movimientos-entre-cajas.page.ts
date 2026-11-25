@@ -18,11 +18,14 @@ export const absoluto = (t: string) => Math.abs(Number((t || '').replace(/[^\d,.
 export class MovimientosNuevaPage {
   constructor(private readonly page: Page) {}
 
-  get formulario(): Locator { return this.page.getByRole('dialog', { name: 'Movimientos' }); }
+  // Desde noviembre el dialogo se llama "Agregar movimiento" (o "Editar movimiento").
+  get formulario(): Locator { return this.page.getByRole('dialog', { name: /^((Agregar|Editar) movimiento|Movimientos)$/ }).first(); }
   campo(id: string): Locator { return this.formulario.locator(`#dcm-${id}`); }
 
   async elegido(id: string): Promise<string> {
-    return this.campo(id).evaluate((s: HTMLSelectElement) => s.options[s.selectedIndex]?.text?.trim() ?? '');
+    // El medio ahora es un combo con buscador: lo elegido es el texto del campo.
+    return this.campo(id).evaluate((s: HTMLSelectElement | HTMLInputElement) =>
+      (s instanceof HTMLSelectElement ? s.options[s.selectedIndex]?.text ?? '' : s.value).trim());
   }
 
   async abrirNuevo() {
@@ -33,16 +36,38 @@ export class MovimientosNuevaPage {
     await expect(this.campo('dcashflow'), 'Un movimiento tiene destino').toBeVisible();
   }
 
+  /**
+   * Desde noviembre la moneda es un boton "Moneda: ARS" pegado al monto, que despliega la lista
+   * de monedas, y el medio (la caja) es un combo con buscador.
+   */
+  private async elegirMoneda(monto: string, moneda: string) {
+    const boton = this.campo(monto).locator('xpath=ancestor::*[.//button[starts-with(@aria-label, "Moneda:")]][1]')
+      .getByRole('button', { name: /^Moneda:/ }).first();
+    if (((await boton.getAttribute('aria-label')) ?? '').trim() === `Moneda: ${moneda}`) return;
+    await boton.click();
+    await this.page.getByRole('listbox', { name: 'Moneda' }).getByRole('option', { name: moneda, exact: true }).click();
+    await expect(boton, `La moneda tiene que quedar en ${moneda}`).toHaveAttribute('aria-label', `Moneda: ${moneda}`);
+  }
+
+  private async elegirCaja(id: string, caja: string) {
+    const campo = this.campo(id);
+    await campo.click();
+    await campo.fill(caja);
+    const lista = this.page.locator(`#${await campo.getAttribute('aria-controls')}`);
+    await lista.getByRole('option').filter({ hasText: caja }).first().click();
+    await expect.poll(() => campo.inputValue(), { message: `El medio tiene que quedar en ${caja}` }).toContain(caja);
+  }
+
   async origen(o: { moneda: string; caja: string; monto?: string }) {
-    await this.campo('currency').selectOption({ label: o.moneda });
-    await this.campo('cashflow').selectOption({ label: o.caja });
+    await this.elegirMoneda('amount', o.moneda);
+    await this.elegirCaja('cashflow', o.caja);
     if (o.monto !== undefined) await this.campo('amount').fill(o.monto);
   }
 
   async destino(d: { sucursal?: string; moneda: string; caja: string; monto?: string }) {
     if (d.sucursal) await this.campo('dbranch').selectOption({ label: d.sucursal });
-    await this.campo('dcurrency').selectOption({ label: d.moneda });
-    await this.campo('dcashflow').selectOption({ label: d.caja });
+    await this.elegirMoneda('damount', d.moneda);
+    await this.elegirCaja('dcashflow', d.caja);
     if (d.monto !== undefined) await this.campo('damount').fill(d.monto);
   }
 

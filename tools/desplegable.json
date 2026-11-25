@@ -1,0 +1,784 @@
+{
+  "generado": "2026-11-25T17:42:46.163Z",
+  "opciones": [
+    {
+      "etiqueta": "Tarifario · Cabecera: el contador, los chips de categoria y Limpiar acompanan al listado",
+      "area": "tarifario",
+      "titulo": "Cabecera: el contador, los chips de categoria y Limpiar acompanan al listado",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Tarifario · Card: el carrusel trae todas las imagenes del hotel",
+      "area": "tarifario",
+      "titulo": "Card: el carrusel trae todas las imagenes del hotel",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Tarifario · Cena Show: trae tarifas y coinciden con las de la base",
+      "area": "tarifario",
+      "titulo": "Cena Show: trae tarifas y coinciden con las de la base",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Tarifario · Cruceros: trae tarifas y muestra el crucero esperado",
+      "area": "tarifario",
+      "titulo": "Cruceros: trae tarifas y muestra el crucero esperado",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Tarifario · El calendario opera todos los dias que declaran sus reglas",
+      "area": "tarifario",
+      "titulo": "El calendario opera todos los dias que declaran sus reglas",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Tarifario · El contenido del tarifario se muestra en el idioma elegido",
+      "area": "tarifario",
+      "titulo": "El contenido del tarifario se muestra en el idioma elegido",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Tarifario · El tarifario muestra hoteles, paquetes y ofertas en el idioma elegido",
+      "area": "tarifario",
+      "titulo": "El tarifario muestra hoteles, paquetes y ofertas en el idioma elegido",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Tarifario · Excursiones: trae tarifas y muestra la excursion esperada",
+      "area": "tarifario",
+      "titulo": "Excursiones: trae tarifas y muestra la excursion esperada",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Tarifario · Hoteles: aplica el markup de hoteles del mercado",
+      "area": "tarifario",
+      "titulo": "Hoteles: aplica el markup de hoteles del mercado",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Tarifario · Hoteles: trae tarifas y muestra el hotel esperado",
+      "area": "tarifario",
+      "titulo": "Hoteles: trae tarifas y muestra el hotel esperado",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Tarifario · Ofertas: trae tarifas y muestra la oferta esperada",
+      "area": "tarifario",
+      "titulo": "Ofertas: trae tarifas y muestra la oferta esperada",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Tarifario · Paquetes: trae tarifas y muestra el paquete esperado",
+      "area": "tarifario",
+      "titulo": "Paquetes: trae tarifas y muestra el paquete esperado",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Tarifario · Servicios: aplica el markup de servicios del mercado",
+      "area": "tarifario",
+      "titulo": "Servicios: aplica el markup de servicios del mercado",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Tarifario · Traslados: trae tarifas y muestra el traslado esperado",
+      "area": "tarifario",
+      "titulo": "Traslados: trae tarifas y muestra el traslado esperado",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Carrito y checkout: el servicio se muestra en el idioma elegido",
+      "area": "reservas",
+      "titulo": "Carrito y checkout: el servicio se muestra en el idioma elegido",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Cena Show: el idioma y el recargo de la ficha llegan iguales al carrito",
+      "area": "reservas",
+      "titulo": "Cena Show: el idioma y el recargo de la ficha llegan iguales al carrito",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Checkout: el portal no deja emitir una reserva incompleta",
+      "area": "reservas",
+      "titulo": "Checkout: el portal no deja emitir una reserva incompleta",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Cotizaciones: la cotizacion de pablo1 se acota por codigo y no se ve ni se abre desde otra agencia",
+      "area": "reservas",
+      "titulo": "Cotizaciones: la cotizacion de pablo1 se acota por codigo y no se ve ni se abre desde otra agencia",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Hotel y servicio en el mismo carrito: cada uno lleva el markup de su tipo",
+      "area": "reservas",
+      "titulo": "Hotel y servicio en el mismo carrito: cada uno lleva el markup de su tipo",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Hotel: la reserva emitida conserva los datos en el BackOffice",
+      "area": "reservas",
+      "titulo": "Hotel: la reserva emitida conserva los datos en el BackOffice",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Hotel: una reserva emitida se puede cancelar y el portal lo refleja",
+      "area": "reservas",
+      "titulo": "Hotel: una reserva emitida se puede cancelar y el portal lo refleja",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Multidestino: armado, detalle y carrito se muestran en el idioma elegido",
+      "area": "reservas",
+      "titulo": "Multidestino: armado, detalle y carrito se muestran en el idioma elegido",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Multidestino: el servicio y el hotel agregados desde los modales quedan con el precio del tarifari…",
+      "area": "reservas",
+      "titulo": "Multidestino: el servicio y el hotel agregados desde los modales quedan con el precio del tarifario con el markup una sola vez y suben el total",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Multidestino: la cotizacion guardada se descarga y al retomarla conserva el precio hasta el carrito",
+      "area": "reservas",
+      "titulo": "Multidestino: la cotizacion guardada se descarga y al retomarla conserva el precio hasta el carrito",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Multidestino: la reserva emitida conserva los datos en el BackOffice",
+      "area": "reservas",
+      "titulo": "Multidestino: la reserva emitida conserva los datos en el BackOffice",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Multidestino: una reserva emitida se puede cancelar y el portal lo refleja",
+      "area": "reservas",
+      "titulo": "Multidestino: una reserva emitida se puede cancelar y el portal lo refleja",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Oferta: la reserva emitida conserva los datos en el BackOffice",
+      "area": "reservas",
+      "titulo": "Oferta: la reserva emitida conserva los datos en el BackOffice",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Programa: se busca, se cotiza por habitacion, se reserva y descuenta el cupo de la sa… [solo nuevo]",
+      "area": "reservas",
+      "titulo": "Programa: se busca, se cotiza por habitacion, se reserva y descuenta el cupo de la salida",
+      "sistemas": [
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Reservas: la reserva de pablo1 se acota por codigo y no se ve ni se abre desde otra agencia",
+      "area": "reservas",
+      "titulo": "Reservas: la reserva de pablo1 se acota por codigo y no se ve ni se abre desde otra agencia",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Serie: el asistente no deja avanzar con datos incompletos",
+      "area": "reservas",
+      "titulo": "Serie: el asistente no deja avanzar con datos incompletos",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Serie: la reserva emitida conserva los datos en el BackOffice",
+      "area": "reservas",
+      "titulo": "Serie: la reserva emitida conserva los datos en el BackOffice",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Serie: las pantallas se muestran en el idioma elegido",
+      "area": "reservas",
+      "titulo": "Serie: las pantallas se muestran en el idioma elegido",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Servicio: dentro de las 72 horas muestra el cartel y no deja agregar; desde hoy + 3 s… [solo viejo]",
+      "area": "reservas",
+      "titulo": "Servicio: dentro de las 72 horas muestra el cartel y no deja agregar; desde hoy + 3 se agrega al carrito",
+      "sistemas": [
+        "viejo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Servicio: la reserva emitida conserva los datos en el BackOffice",
+      "area": "reservas",
+      "titulo": "Servicio: la reserva emitida conserva los datos en el BackOffice",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Reservas · Servicio: una reserva emitida se puede cancelar y el portal lo refleja",
+      "area": "reservas",
+      "titulo": "Servicio: una reserva emitida se puede cancelar y el portal lo refleja",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Alta manual: el servicio agregado a un file queda con el costo, la venta y la moneda esperados, y…",
+      "area": "cobranzas",
+      "titulo": "Alta manual: el servicio agregado a un file queda con el costo, la venta y la moneda esperados, y los totales lo reflejan",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Anular la carta de cobranza: sale de Cartas emitidas, el file vuelve a A Facturar y se puede volv…",
+      "area": "cobranzas",
+      "titulo": "Anular la carta de cobranza: sale de Cartas emitidas, el file vuelve a A Facturar y se puede volver a facturar",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Anular ordenes de pago: la que no tiene imputacion se anula y la imputada sigue vigente",
+      "area": "cobranzas",
+      "titulo": "Anular ordenes de pago: la que no tiene imputacion se anula y la imputada sigue vigente",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Bloqueos: el file con comprobantes no se cancela y el vencimiento invalido se rechaza",
+      "area": "cobranzas",
+      "titulo": "Bloqueos: el file con comprobantes no se cancela y el vencimiento invalido se rechaza",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Caja diaria: recibe el pago y el cobro del mismo file y cuadra",
+      "area": "cobranzas",
+      "titulo": "Caja diaria: recibe el pago y el cobro del mismo file y cuadra",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Cierre del file: con la cadena completa, el file muestra cada comprobante y queda al dia",
+      "area": "cobranzas",
+      "titulo": "Cierre del file: con la cadena completa, el file muestra cada comprobante y queda al dia",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Cuenta corriente: con la cadena completa, el cliente y el proveedor listan sus comprobantes con i…",
+      "area": "cobranzas",
+      "titulo": "Cuenta corriente: con la cadena completa, el cliente y el proveedor listan sus comprobantes con importes y saldos coherentes",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Detracción: la orden lista la factura por su detracción, la asigna y se aprueba",
+      "area": "cobranzas",
+      "titulo": "Detracción: la orden lista la factura por su detracción, la asigna y se aprueba",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Factura al cliente: se emite sobre el file y toma sus conceptos",
+      "area": "cobranzas",
+      "titulo": "Factura al cliente: se emite sobre el file y toma sus conceptos",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Factura de proveedor: se carga sobre el file y se imputa al item",
+      "area": "cobranzas",
+      "titulo": "Factura de proveedor: se carga sobre el file y se imputa al item",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Liquidacion: se arma desde el file, guarda lo editado y se regenera",
+      "area": "cobranzas",
+      "titulo": "Liquidacion: se arma desde el file, guarda lo editado y se regenera",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Movimiento entre dos cajas de la misma sucursal: sale de una, entra en la otra y cuadra",
+      "area": "cobranzas",
+      "titulo": "Movimiento entre dos cajas de la misma sucursal: sale de una, entra en la otra y cuadra",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Movimiento entre sucursales: la entrada vive en la caja destino, se ve en solo lectura y no se co…",
+      "area": "cobranzas",
+      "titulo": "Movimiento entre sucursales: la entrada vive en la caja destino, se ve en solo lectura y no se copia",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · No asignados: el item y la factura figuran pendientes y salen al imputar",
+      "area": "cobranzas",
+      "titulo": "No asignados: el item y la factura figuran pendientes y salen al imputar",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · No asignados: la orden de pago aprobada figura sin imputar y sale al imputarla",
+      "area": "cobranzas",
+      "titulo": "No asignados: la orden de pago aprobada figura sin imputar y sale al imputarla",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Orden de cobro: cobra el comprobante del cliente en la caja de regresion",
+      "area": "cobranzas",
+      "titulo": "Orden de cobro: cobra el comprobante del cliente en la caja de regresion",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Orden de pago parcial: el pendiente de la factura baja el monto imputado y no se puede imputar de…",
+      "area": "cobranzas",
+      "titulo": "Orden de pago parcial: el pendiente de la factura baja el monto imputado y no se puede imputar de mas",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Orden de pago: cancela la factura del proveedor desde la caja de regresion",
+      "area": "cobranzas",
+      "titulo": "Orden de pago: cancela la factura del proveedor desde la caja de regresion",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Cobranzas · Validaciones: el BO rechaza lo que no debe permitir",
+      "area": "cobranzas",
+      "titulo": "Validaciones: el BO rechaza lo que no debe permitir",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Agencia: el markup propio de servicios gana sobre el del mercado y al vaciarlo vuelve al mercado",
+      "area": "webadmin",
+      "titulo": "Agencia: el markup propio de servicios gana sobre el del mercado y al vaciarlo vuelve al mercado",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Con cupo se vende disponible, sin cupo pasa a requerir y despublicada no se ofrece",
+      "area": "webadmin",
+      "titulo": "Con cupo se vende disponible, sin cupo pasa a requerir y despublicada no se ofrece",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · El alta crea el usuario, aparece en el listado, rechaza el email duplicado, entra al portal y se d…",
+      "area": "webadmin",
+      "titulo": "El alta crea el usuario, aparece en el listado, rechaza el email duplicado, entra al portal y se da de baja",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · El alta sincroniza el contacto, y el pais, el email, el publicado, el estado y la baj… [solo viejo]",
+      "area": "webadmin",
+      "titulo": "El alta sincroniza el contacto, y el pais, el email, el publicado, el estado y la baja lo actualizan",
+      "sistemas": [
+        "viejo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · El cupo, las salidas y las tarifas de una salida se reflejan en el portal",
+      "area": "webadmin",
+      "titulo": "El cupo, las salidas y las tarifas de una salida se reflejan en el portal",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Extender el ultimo corte de un solo hotel crea las tarifas hasta la fecha pedida",
+      "area": "webadmin",
+      "titulo": "Extender el ultimo corte de un solo hotel crea las tarifas hasta la fecha pedida",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Extender las tarifas de un servicio con incremento crea las del rango y el portal las cobra",
+      "area": "webadmin",
+      "titulo": "Extender las tarifas de un servicio con incremento crea las del rango y el portal las cobra",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Extender un corte con incremento crea las tarifas del rango y se puede volver a extender",
+      "area": "webadmin",
+      "titulo": "Extender un corte con incremento crea las tarifas del rango y se puede volver a extender",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · La cotizacion carga el markup de hoteles y el tipo de cambio de la agencia y los conserva al crear…",
+      "area": "webadmin",
+      "titulo": "La cotizacion carga el markup de hoteles y el tipo de cambio de la agencia y los conserva al crear la reserva",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · La observacion del periodo y el regimen de la habitacion se ven en el tarifario del portal",
+      "area": "webadmin",
+      "titulo": "La observacion del periodo y el regimen de la habitacion se ven en el tarifario del portal",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Las fichas de los datos propios abren todas sus solapas, en claro y en oscuro",
+      "area": "webadmin",
+      "titulo": "Las fichas de los datos propios abren todas sus solapas, en claro y en oscuro",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Lo que se carga en Gestion de Tarifas llega al Tarifario al generarlo y al precio del portal",
+      "area": "webadmin",
+      "titulo": "Lo que se carga en Gestion de Tarifas llega al Tarifario al generarlo y al precio del portal",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Mercado: cambiar el markup de hoteles mueve solo los precios de hoteles",
+      "area": "webadmin",
+      "titulo": "Mercado: cambiar el markup de hoteles mueve solo los precios de hoteles",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Mercado: el markup Manual de una sucursal mueve solo los precios de sus países y \"Por defecto\" vue…",
+      "area": "webadmin",
+      "titulo": "Mercado: el markup Manual de una sucursal mueve solo los precios de sus países y \"Por defecto\" vuelve al de la sucursal",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Todas las pantallas del menu abren sin error",
+      "area": "webadmin",
+      "titulo": "Todas las pantallas del menu abren sin error",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Un cliente de la agencia AMV no se sincroniza [solo viejo]",
+      "area": "webadmin",
+      "titulo": "Un cliente de la agencia AMV no se sincroniza",
+      "sistemas": [
+        "viejo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Un markup por producto cambia el precio del hotel y \"Excluido\" lo deja sin tarifas para la agencia",
+      "area": "webadmin",
+      "titulo": "Un markup por producto cambia el precio del hotel y \"Excluido\" lo deja sin tarifas para la agencia",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Una cotizacion de grupo se convierte en reserva y llega a la bandeja del BO",
+      "area": "webadmin",
+      "titulo": "Una cotizacion de grupo se convierte en reserva y llega a la bandeja del BO",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "WebAdmin · Una cotizacion manual cambia el precio de lo que esta en pesos y al desactivarla vuelve a la del p…",
+      "area": "webadmin",
+      "titulo": "Una cotizacion manual cambia el precio de lo que esta en pesos y al desactivarla vuelve a la del pais",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "SIX · bookingservice/getbookpassengers devuelve los pasajeros (PII) de una reserva sin sesion",
+      "area": "six",
+      "titulo": "bookingservice/getbookpassengers devuelve los pasajeros (PII) de una reserva sin sesion",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "SIX · El rooming (PII) de un file se obtiene por fileid sin sesion",
+      "area": "six",
+      "titulo": "El rooming (PII) de un file se obtiene por fileid sin sesion",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "SIX · El viaje del pasajero se obtiene con solo el GUID, sin sesion (la API no valida la sesion)",
+      "area": "six",
+      "titulo": "El viaje del pasajero se obtiene con solo el GUID, sin sesion (la API no valida la sesion)",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "SIX · Pasajero: al pasar a ingles el inicio y el itinerario salen en ingles",
+      "area": "six",
+      "titulo": "Pasajero: al pasar a ingles el inicio y el itinerario salen en ingles",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "SIX · Pasajero: con el link entra a su viaje y el itinerario trae lo del file",
+      "area": "six",
+      "titulo": "Pasajero: con el link entra a su viaje y el itinerario trae lo del file",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "SIX · Pasajero: con un token adulterado no entra y vuelve al login",
+      "area": "six",
+      "titulo": "Pasajero: con un token adulterado no entra y vuelve al login",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "SIX · Pasajero: el voucher se descarga en PDF",
+      "area": "six",
+      "titulo": "Pasajero: el voucher se descarga en PDF",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "SIX · Pasajero: la opinion del viaje se guarda y al volver se ve lo que dejo",
+      "area": "six",
+      "titulo": "Pasajero: la opinion del viaje se guarda y al volver se ve lo que dejo",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Seguridad · Despues de cerrar sesion no se vuelve a una pantalla protegida, ni por URL ni con el boton atras",
+      "area": "seguridad",
+      "titulo": "Despues de cerrar sesion no se vuelve a una pantalla protegida, ni por URL ni con el boton atras",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Seguridad · Las pantallas internas no se abren sin sesion, y el BackOffice tampoco con una agencia",
+      "area": "seguridad",
+      "titulo": "Las pantallas internas no se abren sin sesion, y el BackOffice tampoco con una agencia",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Seguridad · Un usuario sin sesion no puede ver por URL una reserva",
+      "area": "seguridad",
+      "titulo": "Un usuario sin sesion no puede ver por URL una reserva",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Seguridad · Una agencia no puede ver por URL el Word de la cotizacion de otra agencia",
+      "area": "seguridad",
+      "titulo": "Una agencia no puede ver por URL el Word de la cotizacion de otra agencia",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Seguridad · Una agencia no puede ver por URL la cotizacion de otra agencia",
+      "area": "seguridad",
+      "titulo": "Una agencia no puede ver por URL la cotizacion de otra agencia",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    },
+    {
+      "etiqueta": "Seguridad · Una agencia no puede ver por URL la reserva de otra agencia",
+      "area": "seguridad",
+      "titulo": "Una agencia no puede ver por URL la reserva de otra agencia",
+      "sistemas": [
+        "viejo",
+        "nuevo"
+      ]
+    }
+  ]
+}

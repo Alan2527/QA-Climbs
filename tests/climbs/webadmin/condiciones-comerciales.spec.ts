@@ -1,7 +1,7 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { AgenciaNuevaPage } from '../../../pages/climbs/agencia.page';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos } from '../../../utils/pasos';
-import { porTarifa, compararPrecios } from '../../../utils/markups';
+import { porTarifa, compararPrecios, leerCostos, exigirImportes, CostosDelItem } from '../../../utils/markups';
 import { abrirSesionDeOtraAgencia } from '../comun/otra-agencia';
 import { leerTarifasDelPortal, tarifasDelPortal, ItemDelPortal } from '../comun/tarifario-del-portal';
 import candidatos from '../../../data/candidatos.json';
@@ -22,6 +22,10 @@ const HOTEL: ItemDelPortal = { solapa: 'Hoteles', nombre: E.hotelNombre, termino
  * `autoqa.markups`. Un markup por producto de 0,50 tiene que duplicar el precio
  * (techo(tarifa / markups / 0,50)), como en el sistema actual. "Excluido" tiene que dejar al
  * hotel sin tarifas para esa agencia. Al terminar borra las condiciones del hotel, aunque falle.
+ *
+ * Importes: cada precio del hotel tiene que ser exactamente techo(costo / markup de hoteles del
+ * mercado / markup por producto), con el costo de cada corte de la habitacion 18371 leido en el
+ * Backoffice nuevo: sin condicion y con el markup por producto de 0,50.
  */
 test.describe('WebAdmin — condiciones comerciales por producto', () => {
   test.describe.configure({ mode: 'serial' });
@@ -31,7 +35,11 @@ test.describe('WebAdmin — condiciones comerciales por producto', () => {
 
   test.beforeAll(async ({ browser, baseURL }) => {
     ({ contexto, pagina: portal } = await abrirSesionDeOtraAgencia(browser, baseURL));
+    costos = await leerCostos(browser, { habitacion: E.roomId });
   });
+
+  let costos: CostosDelItem;
+  const MARKUP_HOTEL = M.mercado.hotelMarkup * M.usuario.customMarkup;
 
   test.afterAll(async () => {
     await contexto?.close();
@@ -60,6 +68,7 @@ test.describe('WebAdmin — condiciones comerciales por producto', () => {
     await paso(portal, 'Leer en el portal el tarifario del hotel', async () => {
       const filas = sinMarca(await tarifasDelPortal(portal, HOTEL));
       antes = porTarifa(filas);
+      await exigirImportes(filas, costos, MARKUP_HOTEL, 'Hotel sin condiciones');
       await adjuntarTexto('Hotel sin condiciones', filas.map((f) => f.join(' | ')).join(SALTO));
       expect(antes.size, 'El hotel tiene que tener tarifas para la agencia').toBeGreaterThan(0);
     });
@@ -75,6 +84,7 @@ test.describe('WebAdmin — condiciones comerciales por producto', () => {
       await paso(portal, 'Portal: el precio del hotel se duplica', async () => {
         const filas = sinMarca(await tarifasDelPortal(portal, HOTEL));
         const { lineas, fuera } = compararPrecios(antes, porTarifa(filas), 1, 0.5);
+        await exigirImportes(filas, costos, MARKUP_HOTEL * 0.5, 'Hotel con markup por producto 0,50');
         await adjuntarTexto('Comparacion', 'markup por producto 1 -> 0,50' + SALTO + SALTO + lineas.join(SALTO));
         // Soft: si no se cumple, igual se mide "Excluido".
         expect.soft(fuera, 'Tarifas que no aplican el markup por producto:' + SALTO + fuera.join(SALTO)).toEqual([]);

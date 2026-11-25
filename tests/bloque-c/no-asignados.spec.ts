@@ -49,6 +49,9 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
     await new InicioPage(page).abrir();
   });
 
+  /** El primer importe "XXX 9.999" de la fila de la bandeja. */
+  const importeDeLaFila = (texto: string) => importe(texto.match(/\b(?:ARS|USD|PEN|EUR|BRL|CLP|COP|MXN|UYU)\s+\d[\d.,]*(?![\d/])/)?.[0] ?? '');
+
   test('No asignados: el item y la factura figuran pendientes y salen al imputar', async ({ page }) => {
     test.setTimeout(900_000);
 
@@ -71,7 +74,9 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
     await paso(page, 'El item del file recien generado figura en la bandeja de items no asignados', async () => {
       await bandejas.abrirItems(pre.fechaDelServicio);
       const figura = await bandejas.figura(bandejas.tablaDeItems, numeroDeFile);
-      await adjuntarTexto('Fila del item en la bandeja', await bandejas.textoDeLaFila(bandejas.tablaDeItems, numeroDeFile));
+      const filaDelItem = await bandejas.textoDeLaFila(bandejas.tablaDeItems, numeroDeFile);
+      await adjuntarTexto('Fila del item en la bandeja', filaDelItem);
+      expect(importeDeLaFila(filaDelItem), 'La bandeja tiene que mostrar el item por su costo').toEqual({ moneda: pre.costoDelItem.moneda, valor: total });
       await conResaltado(page, page.locator(bandejas.tablaDeItems), 'Item pendiente', () => {
         expect(figura, `El item del file ${pre.fileCode}, sin factura de proveedor, tiene que figurar como no asignado`)
           .toBe(true);
@@ -109,7 +114,9 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
     await paso(page, 'La factura aprobada y sin imputar figura en la bandeja de facturas no asignadas', async () => {
       await bandejas.abrirFacturas();
       const figura = await bandejas.figura(bandejas.tablaDeFacturas, numero);
-      await adjuntarTexto('Fila de la factura en la bandeja', await bandejas.textoDeLaFila(bandejas.tablaDeFacturas, numero));
+      const filaDeLaFactura = await bandejas.textoDeLaFila(bandejas.tablaDeFacturas, numero);
+      await adjuntarTexto('Fila de la factura en la bandeja', filaDeLaFactura);
+      expect(importeDeLaFila(filaDeLaFactura), 'La bandeja tiene que mostrar la factura por su total').toEqual({ moneda: pre.costoDelItem.moneda, valor: total });
       await conResaltado(page, page.locator(bandejas.tablaDeFacturas), 'Factura pendiente', () => {
         expect(figura, `La factura ${numero}, aprobada y sin imputar, tiene que figurar como no asignada`)
           .toBe(true);
@@ -207,7 +214,9 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
     await paso(page, 'La orden aprobada y sin imputar figura en la bandeja de ordenes de pago no asignadas', async () => {
       await bandejas.abrirOrdenes();
       const figura = await bandejas.figura(bandejas.tablaDeOrdenes, codigo);
-      await adjuntarTexto('Fila de la orden en la bandeja', await bandejas.textoDeLaFila(bandejas.tablaDeOrdenes, codigo));
+      const filaDeLaOrden = await bandejas.textoDeLaFila(bandejas.tablaDeOrdenes, codigo);
+      await adjuntarTexto('Fila de la orden en la bandeja', filaDeLaOrden);
+      expect(importeDeLaFila(filaDeLaOrden), 'La bandeja tiene que mostrar la orden por su total').toEqual({ moneda: factura.moneda, valor: total });
       await conResaltado(page, page.locator(bandejas.tablaDeOrdenes), 'Orden pendiente', () => {
         expect(figura, `La orden ${codigo}, aprobada y sin imputar, tiene que figurar como no asignada`)
           .toBe(true);

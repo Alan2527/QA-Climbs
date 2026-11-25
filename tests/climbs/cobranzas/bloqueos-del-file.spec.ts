@@ -1,7 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
 import { BackofficeNuevoPage } from '../../../pages/climbs/backoffice.page';
 import { paso, adjuntarTexto, formatearFecha, reiniciarNumeracionDePasos } from '../../../utils/pasos';
-import { reservarServicioYGenerarFile, armarFacturaAprobada, armarFacturaAlCliente } from '../comun/precondiciones';
+import { reservarServicioYGenerarFile, armarFacturaAprobada, armarFacturaAlCliente, SERVICIO_DE_REGRESION } from '../comun/precondiciones';
 
 /**
  * COBRANZAS — app nueva (ClimbsApp). Bloqueos del file.
@@ -45,6 +45,17 @@ test.describe('Cobranzas — bloqueos del file', () => {
      */
     const completarOperador = async () => {
       const combo = ficha().getByRole('combobox', { name: 'Operador', exact: true });
+      // Desde noviembre el Operador es un combo con buscador (lista larga): se elige la primera opcion.
+      if (await combo.evaluate((e) => e.tagName !== 'SELECT')) {
+        if ((await combo.inputValue()).trim()) return;
+        await combo.click();
+        const lista = page.locator(`#${await combo.getAttribute('aria-controls')}`);
+        const opcion = lista.getByRole('option').first();
+        await expect(opcion, 'El combo de Operador tiene que ofrecer al menos un operador').toBeVisible({ timeout: 30_000 });
+        await opcion.click();
+        await expect(combo, 'El operador tiene que quedar elegido').not.toHaveValue('');
+        return;
+      }
       const elegido = await combo.evaluate((s: HTMLSelectElement) => s.options[s.selectedIndex]?.value ?? '');
       if (elegido && !['0', '-1', ''].includes(elegido)) return;
       const primero = await combo.locator('option').evaluateAll((os) => (os as HTMLOptionElement[]).find((o) => o.value && !['0', '-1'].includes(o.value) && !o.disabled)?.value);
@@ -125,6 +136,11 @@ test.describe('Cobranzas — bloqueos del file', () => {
       await adjuntarTexto('File despues de los intentos', JSON.stringify(despues, null, 1));
       expect(despues.estado, 'El file no puede haber quedado cancelado').toBe(antes.estado);
       expect(despues.vencimiento, 'El file tiene que conservar su vencimiento').toBe(antes.vencimiento);
+      // Los intentos rechazados no pueden haber tocado los importes del item.
+      const item = await bo.importesDelItem(SERVICIO_DE_REGRESION.termino);
+      await adjuntarTexto('Importes del item despues de los intentos', item.texto);
+      expect(item.costo, 'El item tiene que conservar su costo').toEqual(base.costoDelItem);
+      expect(item.venta, 'El item tiene que conservar su venta').toEqual(base.ventaDelItem);
     });
   });
 });

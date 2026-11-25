@@ -123,7 +123,7 @@ test.describe('Cobranzas', () => {
       const pendiente = (await factura.pendienteDeAsignacion().innerText()).replace(/\s+/g, ' ');
       await adjuntarTexto('Pendiente de asignacion', pendiente);
       expect(pendiente, 'El pendiente tiene que estar en la moneda del comprobante').toContain(moneda);
-      expect(importeANumero(pendiente.split(':')[1] ?? ''), 'Sin retenciones, el pendiente tiene que ser el total del comprobante').toBe(total);
+      expect(importeANumero(pendiente.replace(/^\s*Pendiente de asignación:?/, '')), 'Sin retenciones, el pendiente tiene que ser el total del comprobante').toBe(total);
     });
 
     await paso(page, 'Buscar el file entre los servicios pendientes y comparar la fila', async () => {
@@ -150,7 +150,7 @@ test.describe('Cobranzas', () => {
       expect(importeANumero(i.servicioPendiente), 'Sin nada imputado, el pendiente del item tiene que ser su costo entero').toBe(total);
 
       await factura.asignar(dialogo, totalComoTexto, comprobante.comentarioDeLaImputacion);
-      await expect.poll(async () => importeANumero((await factura.pendienteDeAsignacion().innerText()).split(':')[1] ?? ''),
+      await expect.poll(async () => importeANumero((await factura.pendienteDeAsignacion().innerText()).replace(/^\s*Pendiente de asignación:?/, '')),
         { message: 'Imputado el comprobante entero, no tiene que quedar nada pendiente de asignacion', timeout: 30_000 }).toBe(0);
     });
 
@@ -160,7 +160,7 @@ test.describe('Cobranzas', () => {
       const texto = (await asignada.innerText()).replace(/\s+/g, ' ');
       await adjuntarTexto('Fila del servicio asignado', texto);
       expect(texto, 'La fila asignada tiene que conservar el comentario').toContain(comprobante.comentarioDeLaImputacion);
-      const importes = (texto.match(/[A-Z]{3}\s*\d[\d.]*,\d+/g) ?? []).map(importeANumero);
+      const importes = (texto.match(/[A-Z]{3}\s*\d[\d.]*(?:,\d+)?/g) ?? []).map(importeANumero);
       expect(importes, 'La fila asignada tiene que mostrar el importe imputado').toContain(total);
       await factura.buscarPendiente(pre.fileCode);
       await expect(factura.filaPendiente(pre.fileCode), 'Imputado el costo entero, el servicio no tiene que seguir entre los pendientes')
@@ -169,7 +169,7 @@ test.describe('Cobranzas', () => {
 
     await paso(page, 'Aprobar el comprobante y verificar que quede aprobado', async () => {
       await page.getByRole('button', { name: 'Ajustar & aprobar' }).click();
-      await expect(page.getByText('Aprobada', { exact: true }), 'Aprobado, el comprobante tiene que mostrarlo').toBeVisible({ timeout: 60_000 });
+      await expect(page.getByRole('dialog').or(page.locator('main')).last().getByText('Aprobada', { exact: true }).filter({ visible: true }).first(), 'Aprobado, el comprobante tiene que mostrarlo').toBeVisible({ timeout: 60_000 });
       await adjuntarTexto('Cadena generada', [
         `Reserva: ${pre.codigo}`, `File: ${pre.fileCode} (id ${pre.fileId})`,
         `Factura de proveedor: ${comprobante.puntoDeVenta}-${comprobante.numero} (id ${idDeLaFactura})`,
@@ -188,7 +188,7 @@ test.describe('Cobranzas', () => {
       expect(soloDigitos(texto), 'El listado tiene que mostrar el documento del proveedor').toContain(soloDigitos(comprobante.documento));
       expect(texto, 'El listado tiene que mostrar la fecha del comprobante').toContain(fechaDeLaFactura);
       expect(texto, 'El listado tiene que mostrar el vencimiento por el plazo del proveedor').toContain(masDias(fechaDeLaFactura, comprobante.plazoDePago));
-      const importes = (texto.match(/[A-Z]{3}\s*\d[\d.]*,\d+/g) ?? []).map(importeANumero);
+      const importes = (texto.match(/[A-Z]{3}\s*\d[\d.]*(?:,\d+)?/g) ?? []).map(importeANumero);
       expect(importes, 'El listado tiene que mostrar el monto y lo asignado, que imputado entero es el mismo importe')
         .toEqual(expect.arrayContaining([total, total]));
     });

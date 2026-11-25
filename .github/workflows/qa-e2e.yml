@@ -5,22 +5,126 @@ on:
     branches: [ main ]
   workflow_dispatch:
     inputs:
-      suite:
-        description: 'Que suite correr'
+      sistema:
+        description: 'Sistema: el viejo (portal, BO y WebAdmin actuales), el nuevo (ClimbsApp) o los dos'
         required: true
         type: choice
-        default: 'bloque-a'
+        default: 'Ambos'
         options:
-          - bloque-a
-          - bloque-b
-          - bloque-c
-          - webadmin
-          - six
-          - seguridad
-          - nueva
-          - todas
+          - Ambos
+          - Viejo
+          - Nuevo
+      area:
+        description: 'Area. "Todas" con los dos sistemas es la corrida completa, en tres fases'
+        required: true
+        type: choice
+        default: 'Todas'
+        options:
+          - Todas
+          - Tarifario
+          - Reservas
+          - Cobranzas
+          - WebAdmin
+          - SIX
+          - Seguridad
+      prueba:
+        description: 'Una prueba sola (opcional). Tiene que ser del area elegida, o elegir el area "Todas"'
+        required: true
+        type: choice
+        default: '(todas las del area)'
+        options:
+          # desplegable:desde (lo arma tools/actualizar-desplegable.mjs: no editar a mano)
+          - "(todas las del area)"
+          - "Tarifario · Cabecera: el contador, los chips de categoria y Limpiar acompanan al listado"
+          - "Tarifario · Card: el carrusel trae todas las imagenes del hotel"
+          - "Tarifario · Cena Show: trae tarifas y coinciden con las de la base"
+          - "Tarifario · Cruceros: trae tarifas y muestra el crucero esperado"
+          - "Tarifario · El calendario opera todos los dias que declaran sus reglas"
+          - "Tarifario · El contenido del tarifario se muestra en el idioma elegido"
+          - "Tarifario · El tarifario muestra hoteles, paquetes y ofertas en el idioma elegido"
+          - "Tarifario · Excursiones: trae tarifas y muestra la excursion esperada"
+          - "Tarifario · Hoteles: aplica el markup de hoteles del mercado"
+          - "Tarifario · Hoteles: trae tarifas y muestra el hotel esperado"
+          - "Tarifario · Ofertas: trae tarifas y muestra la oferta esperada"
+          - "Tarifario · Paquetes: trae tarifas y muestra el paquete esperado"
+          - "Tarifario · Servicios: aplica el markup de servicios del mercado"
+          - "Tarifario · Traslados: trae tarifas y muestra el traslado esperado"
+          - "Reservas · Carrito y checkout: el servicio se muestra en el idioma elegido"
+          - "Reservas · Cena Show: el idioma y el recargo de la ficha llegan iguales al carrito"
+          - "Reservas · Checkout: el portal no deja emitir una reserva incompleta"
+          - "Reservas · Cotizaciones: la cotizacion de pablo1 se acota por codigo y no se ve ni se abre desde otra agencia"
+          - "Reservas · Hotel y servicio en el mismo carrito: cada uno lleva el markup de su tipo"
+          - "Reservas · Hotel: la reserva emitida conserva los datos en el BackOffice"
+          - "Reservas · Hotel: una reserva emitida se puede cancelar y el portal lo refleja"
+          - "Reservas · Multidestino: armado, detalle y carrito se muestran en el idioma elegido"
+          - "Reservas · Multidestino: el servicio y el hotel agregados desde los modales quedan con el precio del tarifari…"
+          - "Reservas · Multidestino: la cotizacion guardada se descarga y al retomarla conserva el precio hasta el carrito"
+          - "Reservas · Multidestino: la reserva emitida conserva los datos en el BackOffice"
+          - "Reservas · Multidestino: una reserva emitida se puede cancelar y el portal lo refleja"
+          - "Reservas · Oferta: la reserva emitida conserva los datos en el BackOffice"
+          - "Reservas · Programa: se busca, se cotiza por habitacion, se reserva y descuenta el cupo de la sa… [solo nuevo]"
+          - "Reservas · Reservas: la reserva de pablo1 se acota por codigo y no se ve ni se abre desde otra agencia"
+          - "Reservas · Serie: el asistente no deja avanzar con datos incompletos"
+          - "Reservas · Serie: la reserva emitida conserva los datos en el BackOffice"
+          - "Reservas · Serie: las pantallas se muestran en el idioma elegido"
+          - "Reservas · Servicio: dentro de las 72 horas muestra el cartel y no deja agregar; desde hoy + 3 s… [solo viejo]"
+          - "Reservas · Servicio: la reserva emitida conserva los datos en el BackOffice"
+          - "Reservas · Servicio: una reserva emitida se puede cancelar y el portal lo refleja"
+          - "Cobranzas · Alta manual: el servicio agregado a un file queda con el costo, la venta y la moneda esperados, y…"
+          - "Cobranzas · Anular la carta de cobranza: sale de Cartas emitidas, el file vuelve a A Facturar y se puede volv…"
+          - "Cobranzas · Anular ordenes de pago: la que no tiene imputacion se anula y la imputada sigue vigente"
+          - "Cobranzas · Bloqueos: el file con comprobantes no se cancela y el vencimiento invalido se rechaza"
+          - "Cobranzas · Caja diaria: recibe el pago y el cobro del mismo file y cuadra"
+          - "Cobranzas · Cierre del file: con la cadena completa, el file muestra cada comprobante y queda al dia"
+          - "Cobranzas · Cuenta corriente: con la cadena completa, el cliente y el proveedor listan sus comprobantes con i…"
+          - "Cobranzas · Detracción: la orden lista la factura por su detracción, la asigna y se aprueba"
+          - "Cobranzas · Factura al cliente: se emite sobre el file y toma sus conceptos"
+          - "Cobranzas · Factura de proveedor: se carga sobre el file y se imputa al item"
+          - "Cobranzas · Liquidacion: se arma desde el file, guarda lo editado y se regenera"
+          - "Cobranzas · Movimiento entre dos cajas de la misma sucursal: sale de una, entra en la otra y cuadra"
+          - "Cobranzas · Movimiento entre sucursales: la entrada vive en la caja destino, se ve en solo lectura y no se co…"
+          - "Cobranzas · No asignados: el item y la factura figuran pendientes y salen al imputar"
+          - "Cobranzas · No asignados: la orden de pago aprobada figura sin imputar y sale al imputarla"
+          - "Cobranzas · Orden de cobro: cobra el comprobante del cliente en la caja de regresion"
+          - "Cobranzas · Orden de pago parcial: el pendiente de la factura baja el monto imputado y no se puede imputar de…"
+          - "Cobranzas · Orden de pago: cancela la factura del proveedor desde la caja de regresion"
+          - "Cobranzas · Validaciones: el BO rechaza lo que no debe permitir"
+          - "WebAdmin · Agencia: el markup propio de servicios gana sobre el del mercado y al vaciarlo vuelve al mercado"
+          - "WebAdmin · Con cupo se vende disponible, sin cupo pasa a requerir y despublicada no se ofrece"
+          - "WebAdmin · El alta crea el usuario, aparece en el listado, rechaza el email duplicado, entra al portal y se d…"
+          - "WebAdmin · El alta sincroniza el contacto, y el pais, el email, el publicado, el estado y la baj… [solo viejo]"
+          - "WebAdmin · El cupo, las salidas y las tarifas de una salida se reflejan en el portal"
+          - "WebAdmin · Extender el ultimo corte de un solo hotel crea las tarifas hasta la fecha pedida"
+          - "WebAdmin · Extender las tarifas de un servicio con incremento crea las del rango y el portal las cobra"
+          - "WebAdmin · Extender un corte con incremento crea las tarifas del rango y se puede volver a extender"
+          - "WebAdmin · La cotizacion carga el markup de hoteles y el tipo de cambio de la agencia y los conserva al crear…"
+          - "WebAdmin · La observacion del periodo y el regimen de la habitacion se ven en el tarifario del portal"
+          - "WebAdmin · Las fichas de los datos propios abren todas sus solapas, en claro y en oscuro"
+          - "WebAdmin · Lo que se carga en Gestion de Tarifas llega al Tarifario al generarlo y al precio del portal"
+          - "WebAdmin · Mercado: cambiar el markup de hoteles mueve solo los precios de hoteles"
+          - "WebAdmin · Mercado: el markup Manual de una sucursal mueve solo los precios de sus países y \"Por defecto\" vue…"
+          - "WebAdmin · Todas las pantallas del menu abren sin error"
+          - "WebAdmin · Un cliente de la agencia AMV no se sincroniza [solo viejo]"
+          - "WebAdmin · Un markup por producto cambia el precio del hotel y \"Excluido\" lo deja sin tarifas para la agencia"
+          - "WebAdmin · Una cotizacion de grupo se convierte en reserva y llega a la bandeja del BO"
+          - "WebAdmin · Una cotizacion manual cambia el precio de lo que esta en pesos y al desactivarla vuelve a la del p…"
+          - "SIX · bookingservice/getbookpassengers devuelve los pasajeros (PII) de una reserva sin sesion"
+          - "SIX · El rooming (PII) de un file se obtiene por fileid sin sesion"
+          - "SIX · El viaje del pasajero se obtiene con solo el GUID, sin sesion (la API no valida la sesion)"
+          - "SIX · Pasajero: al pasar a ingles el inicio y el itinerario salen en ingles"
+          - "SIX · Pasajero: con el link entra a su viaje y el itinerario trae lo del file"
+          - "SIX · Pasajero: con un token adulterado no entra y vuelve al login"
+          - "SIX · Pasajero: el voucher se descarga en PDF"
+          - "SIX · Pasajero: la opinion del viaje se guarda y al volver se ve lo que dejo"
+          - "Seguridad · Despues de cerrar sesion no se vuelve a una pantalla protegida, ni por URL ni con el boton atras"
+          - "Seguridad · Las pantallas internas no se abren sin sesion, y el BackOffice tampoco con una agencia"
+          - "Seguridad · Un usuario sin sesion no puede ver por URL una reserva"
+          - "Seguridad · Una agencia no puede ver por URL el Word de la cotizacion de otra agencia"
+          - "Seguridad · Una agencia no puede ver por URL la cotizacion de otra agencia"
+          - "Seguridad · Una agencia no puede ver por URL la reserva de otra agencia"
+          # desplegable:hasta
       filtro:
-        description: 'Opcional: acota dentro de la suite elegida (no aplica a "todas"). Ej: -g "Ofertas"'
+        description: 'Avanzado (opcional): texto a buscar en el titulo de los tests, con espacios. Manda sobre la prueba elegida'
         required: false
         default: ''
 
@@ -54,68 +158,84 @@ env:
   AMV_MOV_MONEDA_DESTINO: ${{ secrets.AMV_MOV_MONEDA_DESTINO }}
 
 jobs:
-  # Un solo bloque (o el push a main, que corre bloque-a): una maquina, como siempre.
-  unico:
-    if: ${{ (github.event.inputs.suite || 'bloque-a') != 'todas' }}
+  # Lee los desplegables y arma las maquinas de cada fase (ver tools/plan-corrida.mjs: que
+  # corre junto y que no). El push a main corre el Tarifario del sistema viejo, como siempre.
+  planificar:
     runs-on: ubuntu-latest
+    outputs:
+      fase1: ${{ steps.plan.outputs.fase1 }}
+      fase2: ${{ steps.plan.outputs.fase2 }}
+      fase3: ${{ steps.plan.outputs.fase3 }}
+      suite: ${{ steps.plan.outputs.suite }}
+      filtro: ${{ steps.plan.outputs.filtro }}
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/correr
-        with:
-          carril: ${{ github.event.inputs.suite || 'bloque-a' }}
-          filtro: ${{ github.event.inputs.filtro }}
+      - id: plan
+        env:
+          SISTEMA: ${{ github.event.inputs.sistema || 'Viejo' }}
+          AREA: ${{ github.event.inputs.area || 'Tarifario' }}
+          PRUEBA: ${{ github.event.inputs.prueba }}
+          FILTRO: ${{ github.event.inputs.filtro }}
+        run: node tools/plan-corrida.mjs
 
-  # La corrida completa, en dos fases de dos maquinas. Todos los bloques usan la misma
-  # base de QA, asi que solo corren juntos los que no se pisan los datos (23/10/2026):
-  #   - WebAdmin cambia la habitacion 18371, el servicio 7954 y el mercado 37 / agencia
-  #     6334, que leen Tarifario, Reservas y SIX: no puede coincidir con ellos.
-  #   - Reservas y Cobranzas vacian y usan el carrito de pablo1: no pueden coincidir.
-  #   - Tarifario, Seguridad y SIX solo leen.
-  # Fase 1: WebAdmin || Cobranzas.  Fase 2: Reservas || Tarifario + Seguridad + SIX.
+  # Hasta el 25/11/2026 la app nueva iba entera en una sola maquina despues de la vieja
+  # (unos 70 min) y la corrida completa tardaba cerca de 1 h 50.
   fase1:
-    if: ${{ github.event.inputs.suite == 'todas' }}
+    needs: planificar
+    if: ${{ needs.planificar.outputs.fase1 != '[]' }}
+    name: ${{ matrix.carril }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        carril: [webadmin, cobranzas]
+        include: ${{ fromJSON(needs.planificar.outputs.fase1) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/correr
         with:
           carril: ${{ matrix.carril }}
+          proyectos: ${{ matrix.proyectos }}
+          grep: ${{ matrix.grep }}
 
   fase2:
-    needs: fase1
-    # Corre aunque la fase 1 tenga tests en rojo: lo que se espera es que termine.
-    if: ${{ !cancelled() && github.event.inputs.suite == 'todas' }}
+    needs: [planificar, fase1]
+    # Corre aunque la fase anterior tenga tests en rojo: lo que se espera es que termine.
+    if: ${{ !cancelled() && needs.planificar.result == 'success' && needs.planificar.outputs.fase2 != '[]' }}
+    name: ${{ matrix.carril }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        carril: [reservas, lectura]
+        include: ${{ fromJSON(needs.planificar.outputs.fase2) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/correr
         with:
           carril: ${{ matrix.carril }}
+          proyectos: ${{ matrix.proyectos }}
+          grep: ${{ matrix.grep }}
 
-  # Fase 3: los mismos flujos sobre la app nueva (ClimbsApp), despues de la actual y no
-  # al mismo tiempo: usan la misma base de QA. Queda hasta que la app vieja deje de usarse.
   fase3:
-    needs: fase2
-    if: ${{ !cancelled() && github.event.inputs.suite == 'todas' }}
+    needs: [planificar, fase2]
+    if: ${{ !cancelled() && needs.planificar.result == 'success' && needs.planificar.outputs.fase3 != '[]' }}
+    name: ${{ matrix.carril }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.planificar.outputs.fase3) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/correr
         with:
-          carril: nueva
+          carril: ${{ matrix.carril }}
+          proyectos: ${{ matrix.proyectos }}
+          grep: ${{ matrix.grep }}
 
   # Junta los resultados de todas las maquinas y publica una sola vez.
   publicar:
-    needs: [unico, fase1, fase2, fase3]
-    if: ${{ !cancelled() }}
+    needs: [planificar, fase1, fase2, fase3]
+    if: ${{ !cancelled() && needs.planificar.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -226,8 +346,8 @@ jobs:
         env:
           CORRIDA: ${{ github.run_number }}
           CORRIDA_ID: ${{ github.run_id }}
-          SUITE: ${{ github.event.inputs.suite || 'bloque-a' }}
-          FILTRO: ${{ github.event.inputs.filtro }}
+          SUITE: ${{ needs.planificar.outputs.suite }}
+          FILTRO: ${{ needs.planificar.outputs.filtro }}
           EVENTO: ${{ github.event_name }}
           COMMIT: ${{ github.sha }}
           REPO: ${{ github.repository }}

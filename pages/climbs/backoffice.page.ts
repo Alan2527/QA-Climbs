@@ -56,9 +56,12 @@ export class BackofficeNuevoPage {
 
   async abrirDetalleDeLaBandeja(fila: Locator, codigo: string): Promise<Locator> {
     const numero = BackofficeNuevoPage.numeroDeReserva(codigo);
-    await fila.click();
     const dialogo = this.page.getByRole('dialog').filter({ hasText: numero }).first();
-    await expect(dialogo, `Tiene que abrir el detalle de la reserva ${codigo}`).toBeVisible();
+    // El clic puede caer mientras la grilla se refresca despues de filtrar y perderse: se reintenta.
+    await expect(async () => {
+      if (!(await dialogo.isVisible())) await fila.click();
+      await expect(dialogo).toBeVisible({ timeout: 10_000 });
+    }, `Tiene que abrir el detalle de la reserva ${codigo}`).toPass({ timeout: 60_000 });
     await expect(dialogo.getByText(/Sin emitir/), 'La reserva recien hecha tiene que estar sin emitir').toBeVisible();
     return dialogo;
   }
@@ -168,8 +171,11 @@ export class BackofficeNuevoPage {
   }
 
   async clienteDelFile(): Promise<string> {
-    await this.fichaDelFile.getByRole('tab', { name: 'Datos', exact: true }).click();
-    return (await this.fichaDelFile.getByRole('combobox', { name: 'Cliente', exact: true }).inputValue()).trim();
+    // Desde noviembre el cliente ya no es un campo de Datos: va en la cabecera de la ficha
+    // ("| MULTIVIAJES ARGENTINA SRL ·AMV. TRAVEL"), en negrita.
+    const cliente = this.fichaDelFile.getByRole('banner').locator('[aria-label="Cliente"], [title="Cliente"]').first().locator('strong').first();
+    await expect(cliente, 'La cabecera del file tiene que mostrar el cliente').not.toHaveText('', { timeout: 60_000 });
+    return (await cliente.innerText()).trim();
   }
 
   /**
@@ -178,7 +184,8 @@ export class BackofficeNuevoPage {
    * con moneda de la fila; despues viene el porcentaje de utilidad.
    */
   async importesDelItem(servicio: string): Promise<{ costo: ImporteNuevo; venta: ImporteNuevo; texto: string }> {
-    await this.fichaDelFile.getByRole('tab', { name: /^Destinos y servicios/ }).click();
+    // Desde noviembre los destinos y servicios van dentro de la solapa Datos.
+    await this.fichaDelFile.getByRole('tab', { name: 'Datos', exact: true }).click();
     const fila = this.fichaDelFile.locator('tr, [role="row"]').filter({ hasText: servicio }).first();
     await expect(fila, `El file tiene que tener el servicio ${servicio}`).toBeVisible();
     const texto = (await fila.innerText()).replace(/\s+/g, ' ');

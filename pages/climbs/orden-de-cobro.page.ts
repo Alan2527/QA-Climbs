@@ -16,17 +16,46 @@ export class OrdenDeCobroNuevaPage {
 
   async abrirNueva() {
     await this.page.goto('/finance/charge-orders');
-    await this.page.getByRole('button', { name: 'Nueva orden' }).click();
+    await this.page.getByRole('button', { name: 'Nueva orden' }).or(this.page.getByRole('link', { name: 'Nueva orden' })).click();
     await expect(this.page).toHaveURL(/\/finance\/charge-orders\/new/);
     await expect(this.page.getByRole('heading', { name: 'Nueva orden de cobro' })).toBeVisible();
   }
 
+  /** Desde noviembre las listas largas (mas de 15 opciones, como la caja) son un combo con buscador. */
+  private async esSelect(id: string): Promise<boolean> {
+    await expect(this.campo(id)).toBeVisible({ timeout: 30_000 });
+    return this.campo(id).evaluate((e) => e.tagName === 'SELECT');
+  }
+
   async opcionElegida(id: string): Promise<string> {
+    if (!(await this.esSelect(id))) return (await this.campo(id).inputValue()).trim();
     return this.campo(id).evaluate((s: HTMLSelectElement) => s.options[s.selectedIndex]?.text ?? '');
   }
 
-  async opciones(id: string): Promise<string[]> {
-    return this.campo(id).locator('option').allInnerTexts();
+  /** Las opciones del campo. En el combo con buscador, las que trae al escribir `filtro` (sin filtro, hasta 60). */
+  async opciones(id: string, filtro = ''): Promise<string[]> {
+    if (await this.esSelect(id)) return this.campo(id).locator('option').allInnerTexts();
+    const lista = await this.abrirCombo(id, filtro);
+    const out = (await lista.getByRole('option').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
+    await this.campo(id).press('Escape');
+    return out;
+  }
+
+  /** Elige una opcion por su texto, sea lista nativa o combo con buscador. */
+  async elegir(id: string, etiqueta: string) {
+    if (await this.esSelect(id)) { await this.campo(id).selectOption({ label: etiqueta }); return; }
+    const lista = await this.abrirCombo(id, etiqueta);
+    await lista.getByRole('option').filter({ hasText: etiqueta }).first().click();
+    await expect.poll(() => this.campo(id).inputValue(), { message: `El campo tiene que quedar en ${etiqueta}`, timeout: 30_000 }).toContain(etiqueta);
+  }
+
+  private async abrirCombo(id: string, texto: string): Promise<Locator> {
+    const campo = this.campo(id);
+    await campo.click();
+    if (texto) await campo.fill(texto);
+    const lista = this.page.locator(`#${await campo.getAttribute('aria-controls')}`);
+    await expect(lista, 'El combo tiene que desplegar sus opciones').toBeVisible({ timeout: 30_000 });
+    return lista;
   }
 
   /** Elige el cliente en el buscador y devuelve la fila que mostraba, para comparar el documento. */
@@ -50,7 +79,7 @@ export class OrdenDeCobroNuevaPage {
   }
 
   pendienteDeAsignacion(): Locator {
-    return this.page.getByText(/^Pendiente de asignación:/);
+    return this.page.getByRole('status').filter({ hasText: /^\s*Pendiente de asignación/ }).or(this.page.getByText(/^Pendiente de asignación:/)).first();
   }
 
   tarjeta(titulo: string): Locator {

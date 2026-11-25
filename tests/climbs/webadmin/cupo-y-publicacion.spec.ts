@@ -43,7 +43,9 @@ test.describe('WebAdmin — cupo y publicacion de habitacion', () => {
     await hotel.cargarViajeros(1, 2);
     await hotel.buscar(entrada, salida);
     await page.waitForLoadState('networkidle').catch(() => {});
-    const enlace = page.locator('main article').getByRole('link').filter({ hasText: E.hotelNombre }).first();
+    // Desde noviembre el nombre de la tarjeta no es un link: se busca la tarjeta por su titulo.
+    const enlace = page.locator('main article').getByRole('link').filter({ hasText: E.hotelNombre }).first()
+      .or(page.locator('main article').getByRole('heading', { name: E.hotelNombre, exact: true })).first();
     // El listado llega unos segundos despues de la busqueda: se espera antes de decidir que no esta.
     const sinResultados = page.getByText('No se encontraron hoteles para esta búsqueda.');
     await enlace.or(sinResultados).first().waitFor({ state: 'visible', timeout: 60_000 }).catch(() => {});
@@ -75,15 +77,16 @@ test.describe('WebAdmin — cupo y publicacion de habitacion', () => {
   }
 
   /**
-   * El calendario de Freesale de la habitacion tiene que mostrar el cupo cargado. Soft: el WebAdmin
-   * lo mostraba; en la app nueva el dia muestra el mayor cupo de sus ocupaciones, y la triple (que
-   * "Aplicar cupo" no toca) puede traer otro valor de antes.
+   * Lo que muestra el calendario de Freesale el dia cargado: solo se adjunta, no se compara. El
+   * WebAdmin no mostraba el numero de cupo (RoomFreesaleControl: solo el color del dia, corregido
+   * el 27/10), asi que no hay contra que medirlo; en la app nueva el dia muestra el mayor cupo de
+   * sus ocupaciones y la triple (que "Aplicar cupo" no toca) puede traer otro valor de antes. Lo
+   * que se verifica es que el portal venda con ese cupo.
    */
   async function calendario(hab: HabitacionNuevaPage, n: number) {
     await hab.abrir(ROOM);
     const visto = await hab.cupoDelDia(desde);
     await adjuntarTexto(`Calendario de Freesale el ${desde}`, `cupo cargado ${n}, el calendario muestra ${visto}`);
-    expect.soft(visto, `DIFERENCIA con el WebAdmin: el calendario de Freesale tiene que mostrar el cupo ${n} cargado el ${desde}`).toBe(n);
   }
 
   async function publicar(hab: HabitacionNuevaPage, si: boolean) {

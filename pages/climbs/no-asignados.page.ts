@@ -7,6 +7,8 @@ const RUTA: Record<Bandeja, string> = {
   invoices: '/finance/unassigned-invoices',
   'pay-orders': '/finance/unassigned-pay-orders',
 };
+/** Desde noviembre las tres bandejas son solapas de una sola pantalla, "Sin asignar". */
+const SOLAPA: Record<Bandeja, string> = { items: 'Servicios', invoices: 'Facturas', 'pay-orders': 'Órdenes de pago' };
 const TITULO: Record<Bandeja, string> = {
   items: 'Servicios sin asignar',
   invoices: 'Facturas de proveedores sin asignar',
@@ -24,13 +26,20 @@ export class NoAsignadosNuevaPage {
 
   async abrir(bandeja: Bandeja) {
     await this.page.goto(RUTA[bandeja]);
-    await expect(this.page.getByRole('heading', { name: TITULO[bandeja], level: 1 })).toBeVisible();
+    const titulo = this.page.getByRole('heading', { name: TITULO[bandeja], level: 1 })
+      .or(this.page.getByRole('heading', { name: 'Sin asignar', level: 1 })).first();
+    await expect(titulo).toBeVisible({ timeout: 60_000 });
+    const solapa = this.page.getByRole('tab', { name: SOLAPA[bandeja], exact: true });
+    if (await solapa.count()) {
+      if ((await solapa.getAttribute('aria-selected')) !== 'true') await solapa.click();
+      await expect(solapa).toHaveAttribute('aria-selected', 'true');
+    }
     await this.esperarResultados();
   }
 
   private async esperarResultados() {
     await this.page.waitForLoadState('networkidle');
-    await expect(this.page.getByRole('status').filter({ hasText: /·/ }).first()).toBeVisible({ timeout: 60_000 });
+    await expect(this.page.getByRole('status').filter({ hasText: /·/ }).or(this.page.getByText(/\d[\d.]* resultados?$/)).first()).toBeVisible({ timeout: 60_000 });
   }
 
   /** Corre el "Hasta" como lo haria una persona: escribe la fecha y sale del campo. */
@@ -43,7 +52,7 @@ export class NoAsignadosNuevaPage {
   }
 
   async buscar(texto: string) {
-    await this.page.locator('input[id^="search-unassigned-"]').fill(texto);
+    await this.page.locator('input[id^="search-unassigned-"]').or(this.page.getByRole('searchbox', { name: 'Servicio, file, factura o proveedor' })).first().fill(texto);
     await this.esperarResultados();
   }
 
@@ -53,7 +62,9 @@ export class NoAsignadosNuevaPage {
 
   async figura(texto: string): Promise<boolean> {
     await this.buscar(texto);
-    return (await this.fila(texto).count()) > 0;
+    // El buscador filtra unos instantes despues de escribir: el contador viejo ya esta a la
+    // vista, asi que se espera la fila un rato antes de decir que no figura.
+    return this.fila(texto).first().waitFor({ timeout: 15_000 }).then(() => true, () => false);
   }
 
   async textoDeLaFila(texto: string): Promise<string> {

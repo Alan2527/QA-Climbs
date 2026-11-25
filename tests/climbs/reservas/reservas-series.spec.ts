@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { SerieNuevaPage } from '../../../pages/climbs/serie.page';
 import { PortalNuevoPage } from '../../../pages/climbs/portal.page';
+import { WebAdminSeriePage } from '../../../pages/webadmin-serie.page';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos, formatearFecha, conResaltado } from '../../../utils/pasos';
 import { Importe, pasajerosDePrueba, verificarEnElBackofficeNuevo, CONTEXTO } from './reservas-comun';
 
@@ -16,6 +17,7 @@ test.describe('Reservas', () => {
   test.beforeEach(() => reiniciarNumeracionDePasos());
 
   const SERIE = {
+    id: 19,
     nombre: 'AUTO-QA NO TOCAR - Serie de regresion',
     circuito: 'AUTO-QA NO TOCAR - Serie: Buenos Aires (3 dias / 2 noches)',
     categoria: 'Primera',
@@ -31,7 +33,7 @@ test.describe('Reservas', () => {
   /** "5/10/2026" o "05/10/2026" -> "05/10/2026" */
   const conCeros = (f: string) => f.split('/').map((p, i) => (i < 2 ? p.padStart(2, '0') : p)).join('/');
 
-  test('Serie: la reserva emitida conserva los datos en el BackOffice', async ({ page }) => {
+  test('Serie: la reserva emitida conserva los datos en el BackOffice', async ({ page, browser }) => {
     test.setTimeout(900_000);
     const serie = new SerieNuevaPage(page);
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
@@ -47,6 +49,8 @@ test.describe('Reservas', () => {
     };
     const importes: Record<string, Importe> = {};
     let codigo = '';
+    // Lo que tiene que cobrar el asistente, leido en la administracion de la serie al elegir la salida.
+    const esperado = { dbl: 0, menor: 0, total: 0 };
 
     await paso(page, 'Abrir el listado de series y entrar a la serie de regresion', async () => {
       await serie.abrirListado();
@@ -91,6 +95,19 @@ test.describe('Reservas', () => {
       const [dd, mm, anio] = elegida.fecha.split('/').map(Number);
       reserva.fechaDeSalida = formatearFecha(new Date(anio, mm - 1, dd + SERIE.noches));
       importes['asistente (tarifa de la habitacion)'] = { moneda: 'USD', valor: elegida.tarifaPorHabitacion };
+      // Importes exactos: la tarifa de la salida es la cargada en la administracion de la serie,
+      // por habitacion y sin markup. En el Backoffice nuevo la solapa Tarifas de la serie 19 no se
+      // puede abrir (la serie no tiene paquete principal), asi que se lee en el WebAdmin, sobre la
+      // misma base.
+      const ctxAdmin = await browser.newContext({ baseURL: process.env.AMV_BASE_URL ?? 'https://qa.amv.travel', storageState: 'playwright/.auth/front.json', viewport: { width: 1920, height: 1080 } });
+      const cargadas = await new WebAdminSeriePage(await ctxAdmin.newPage()).leerTarifas(SERIE.id, elegida.clave).finally(() => ctxAdmin.close());
+      await adjuntarTexto('Tarifas de la salida en el WebAdmin', cargadas.map((t) => `${t.categoria}: SGL ${t.sgl} | DBL ${t.dbl} | TPL ${t.tpl} | Menores ${t.mnr}`).join(' | '));
+      const cargada = cargadas.find((t) => t.categoria === SERIE.categoria);
+      expect(cargada?.dbl ?? 0, `La salida ${elegida.clave} tiene que tener cargada la DBL de ${SERIE.categoria}`).toBeGreaterThan(0);
+      esperado.dbl = cargada!.dbl!;
+      esperado.menor = cargada!.mnr ?? 0;
+      expect.soft(elegida.tarifaPorHabitacion, '"Tarifa por habitacion" tiene que ser la DBL cargada en la administracion').toBe(esperado.dbl);
+      expect.soft(Number(String(elegida.precio).replace(/[^\d]/g, '')), 'El calendario tiene que mostrar el precio por persona de la DBL (DBL / 2)').toBe(Math.round(esperado.dbl / 2));
       reserva.cupoAntes = serie.salida(SERIE.categoria, elegida.clave)?.quota ?? 0;
       await adjuntarTexto('Salida elegida', `${elegida.fecha}, ${elegida.precio} por persona, ${elegida.tarifaPorHabitacion} la habitacion, regreso ${reserva.fechaDeSalida}, cupo ${reserva.cupoAntes}`);
       await conResaltado(page, serie.resumenLateral, 'Fecha seleccionada', async () => {
@@ -123,6 +140,12 @@ test.describe('Reservas', () => {
         expect(totales.length, 'Tiene que haber un total por habitacion').toBe(reserva.habitaciones);
         expect(totales[1] - totales[0], 'Con la misma ocupacion de adultos, la diferencia entre las dos habitaciones tiene que ser la tarifa de menor de esa salida').toBe(conCargo * (salida?.child ?? 0));
       });
+      await conResaltado(page, serie.resumenLateral, 'Importes contra la administracion', () => {
+        expect.soft(salida?.child ?? 0, 'La tarifa de menor de la salida tiene que ser la de Menores cargada en la administracion').toBe(esperado.menor);
+        expect.soft(totales[0], 'La habitacion de dos adultos tiene que costar la DBL cargada').toBe(esperado.dbl);
+        expect.soft(totales[1], 'La habitacion con el menor tiene que costar la DBL mas la tarifa de menores cargada').toBe(esperado.dbl + conCargo * esperado.menor);
+      });
+      esperado.total = 2 * esperado.dbl + conCargo * esperado.menor;
 
       const resumen = await serie.resumen();
       await adjuntarTexto('Resumen del paso 1', JSON.stringify(resumen));
@@ -135,6 +158,7 @@ test.describe('Reservas', () => {
       importes['asistente (total)'] = { moneda: 'USD', valor: resumen.total };
       await conResaltado(page, serie.resumenLateral, 'Total del resumen', () => {
         expect(resumen.total, 'El total tiene que ser la suma de los totales de cada habitacion').toBe(totales.reduce((a, b) => a + b, 0));
+        expect.soft(resumen.total, 'El total tiene que ser dos DBL mas la tarifa de menores cargadas').toBe(esperado.total);
       });
     });
 

@@ -81,7 +81,7 @@ export class CotizacionGrupoNuevaPage {
     await this.pie.getByRole('button', { name: 'Guardar', exact: true }).click();
     await expect(this.page, 'Guardar tiene que llevar a la ficha de la cotizacion').toHaveURL(/\/sales\/group-quotes\/\d+/, { timeout: 60_000 });
     const id = Number(this.page.url().match(/group-quotes\/(\d+)/)?.[1] ?? 0);
-    await expect(this.pie).toContainText('Al día', { timeout: 30_000 });
+    await expect(this.pie.getByRole('button', { name: /^Guardar/ }).first(), 'Guardado, el boton Guardar del pie queda deshabilitado (antes el pie decia "Al dia")').toBeDisabled({ timeout: 30_000 });
     return id;
   }
 
@@ -90,10 +90,14 @@ export class CotizacionGrupoNuevaPage {
     await this.ficha.getByRole('tab', { name: new RegExp(`^${solapa}`) }).click();
     await this.page.waitForLoadState('networkidle').catch(() => {});
     const tabla = this.ficha.getByRole('table').first();
-    await expect(tabla.or(this.ficha.getByText(/^Todavía no hay/)).first()).toBeVisible({ timeout: 60_000 });
-    if (!(await tabla.isVisible())) return [];
-    return tabla.locator('tbody tr').evaluateAll((trs) => trs.map((tr) =>
-      Array.from(tr.querySelectorAll('td, th')).map((c) => ((c as HTMLElement).innerText ?? '').replace(/\s+/g, ' ').trim())));
+    // Desde noviembre (US 5073) los servicios son una lista por dia: cada item es una fila.
+    const items = this.ficha.getByRole('listitem').filter({ has: this.page.getByRole('textbox', { name: 'Orden' }) });
+    await expect(tabla.or(items.first()).or(this.ficha.getByText(/^Todavía no hay/)).first()).toBeVisible({ timeout: 60_000 });
+    if (await tabla.isVisible()) {
+      return tabla.locator('tbody tr').evaluateAll((trs) => trs.map((tr) =>
+        Array.from(tr.querySelectorAll('td, th')).map((c) => ((c as HTMLElement).innerText ?? '').replace(/\s+/g, ' ').trim())));
+    }
+    return (await items.allInnerTexts()).map((t) => [t.replace(/\s+/g, ' ').trim()]);
   }
 
   /** "Crear reserva" + "Aceptar": devuelve el numero del aviso ("Se creo correctamente la reserva nro. N"). */

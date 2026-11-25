@@ -9,6 +9,22 @@ import {
   paso, adjuntarTexto, reiniciarNumeracionDePasos, fechaDeBusqueda, conResaltado,
 } from '../../utils/pasos';
 import { importeDelPortal } from './reservas-comun';
+import { conBackofficeNuevo, costosDelServicio, tarifaVigente, precioConIdioma } from '../../utils/markups';
+import candidatos from '../../data/candidatos.json';
+
+/**
+ * Recargo por idioma en el itinerario (US 4739): se agrega la Cena Show AUTO-QA (163), que tiene English USD 15
+ * fijos por pasajero en su tarifa Regular, y se elige English en el combo Idioma de su fila. La US pide: "el valor
+ * final tiene que calcularse aplicando el markup de la agencia sobre costo + recargo en conjunto, nunca sobre el
+ * costo solo". En Espanol la fila tiene el precio de su tarjeta del modal; al pasar a English tiene que subir el
+ * recargo con los dos markups (el de servicios de la agencia y el de la cotizacion). La fila es el total de los
+ * pasajeros: recargo x pasajeros / (markup de la agencia x markup de la cotizacion),
+ * con un peso de margen por los redondeos hacia arriba. Si el recargo no llevara markup, subiria solo el recargo.
+ */
+const CENA = candidatos.tarifario.cenaShow;
+/** Markup de servicios de la agencia de pablo1: el del precio de cada servicio del itinerario (US 4800). */
+const MARKUP_AGENCIA = candidatos._usuarioTest.markupsDeLaAgencia.servicio;
+
 
 /**
  * BLOQUE B — Multidestino: agregar un servicio y un hotel desde los modales.
@@ -24,8 +40,8 @@ import { importeDelPortal } from './reservas-comun';
  * 1. Arma el viaje (arranca un lunes, para que Buenos Aires incluya un martes).
  * 2. Sin cotizacion el markup del modal es 1: se lee ahi el precio del tarifario de cada
  *    tarjeta (al abrir, paginando y buscando). Es la referencia "sin markup".
- * 3. Dia que no opera (4856): con la fecha del modal en el martes, el servicio 1 (City
- *    Tour Clasico, sin martes en Regular ni Privado) tiene que traer el aviso de cierre.
+ * 3. Dia que no opera (4856): con la fecha del modal en el martes, el servicio AUTO-QA 7964
+ *    (Multidestino sin martes, sin martes en Regular ni Privado) tiene que traer el aviso de cierre.
  * 4. Lee tambien la tarifa del hotel 5003 en el modal de hoteles (referencia del hotel).
  * 5. Guarda la cotizacion con Markup 0,8 (solapa CONFIGURACION > Guardar). Es lo que
  *    activa el markup en los modales: `CT_QuoteManager.LoadMarkUpByTourCustom` solo
@@ -54,8 +70,8 @@ test.describe('Multidestino: agregar servicio y hotel', () => {
   const PAQUETE = { id: '5059', ciudad: 'Buenos Aires', nombre: 'Paquete Buenos Aires y Ushuaia' };
   /** Tigre y Delta: servicio AUTO-QA, opera todos los dias del anio y tiene Regular y Privado. */
   const SERVICIO = { id: '5', termino: 'Tigre y Delta' };
-  /** City Tour Clasico (no es AUTO-QA): habitual sin martes en Regular y Privado (medido el 13/10, US 4856). */
-  const CIERRE = { id: '1', termino: 'City Tour' };
+  /** Servicio AUTO-QA 7964 (copia del 5, 23/11/2026): habitual sin martes en Regular y Privado (US 4856). Antes era el City Tour Clasico (1), que no es AUTO-QA. */
+  const CIERRE = { id: '7964', termino: 'Multidestino sin martes' };
   const HOTEL = { id: '5003', termino: 'Park Hyatt' };
   const MARKUP = 0.8;
   const PAX = 2;
@@ -326,6 +342,65 @@ test.describe('Multidestino: agregar servicio y hotel', () => {
           .toBe(precio.valor);
       });
       totalAntes = despues.total;
+    });
+
+    await paso(page, `Agregar la Cena Show (${CENA.id}) y elegir English en su fila: el recargo por idioma lleva los markups (US 4739)`, async () => {
+      const tarifas = await conBackofficeNuevo(page.context().browser()!, (bo) => costosDelServicio(bo, CENA.id));
+      const tarifa = tarifaVigente(tarifas, 'Regular', lunes, PAX);
+      expect(tarifa, `${CENA.nombre} tiene que tener tarifa Regular vigente el ${comoSeVe(lunes)}`).toBeDefined();
+      const baseSin = precioConIdioma(tarifa!, null, MARKUP_AGENCIA, PAX)!;
+      const baseCon = precioConIdioma(tarifa!, 'English', MARKUP_AGENCIA, PAX)!;
+      expect(baseCon, `La tarifa Regular de ${CENA.nombre} tiene que tener recargo para English`).toBeGreaterThan(baseSin);
+
+      await mod.abrirModalDeServicios();
+      await mod.buscarServicio({ termino: CENA.terminoBusqueda });
+      const tarjeta = (await mod.tarjetas())[String(CENA.id)];
+      expect(tarjeta?.regular, `El modal tiene que ofrecer ${CENA.nombre} en Regular el ${comoSeVe(lunes)}`).toBeGreaterThan(0);
+      const precioTarjeta = tarjeta.regular as number;
+      await mod.elegirServicio(String(CENA.id), 'regular');
+      const antes = await mod.idsDeServicios();
+      await mod.confirmarServicios();
+      await expect.poll(async () => (await mod.idsDeServicios()).length, { message: 'El itinerario tiene que sumar la Cena Show', timeout: 120_000 }).toBe(antes.length + 1);
+      const idCena = (await mod.idsDeServicios()).find((id) => !antes.includes(id))!;
+      await mod.esperarCalma();
+      await mod.cerrarAvisoDeVariacion();
+      const fila = () => mod.filaDeServicio(idCena);
+      const enEspanol = await mod.precioDeServicio(fila());
+      const totalEspanol = (await totalDelItinerario(ct)).total;
+
+      const combo = fila().locator('.ct-pill--lang select');
+      await expect(combo, 'La fila de la Cena Show tiene que tener el combo Idioma').toBeVisible();
+      const opciones = (await combo.locator('option').allInnerTexts()).map((o) => o.trim());
+      const ingles = opciones.find((o) => /^(English|Ingl[eé]s)$/i.test(o));
+      expect(ingles, `El combo Idioma tiene que ofrecer English. Ofrece: ${opciones.join(', ')}`).toBeDefined();
+      await combo.selectOption({ label: ingles! });
+      await mod.esperarCalma(60_000);
+      await mod.cerrarAvisoDeVariacion();
+      await expect.poll(async () => (await mod.precioDeServicio(fila())).valor, { message: 'La fila tiene que recalcular el precio al elegir English', timeout: 60_000 })
+        .not.toBe(enEspanol.valor);
+      const enIngles = await mod.precioDeServicio(fila());
+      const totalIngles = (await totalDelItinerario(ct)).total;
+
+      // Recargo por persona de la tarifa, y cuanto tiene que subir la fila con los dos markups.
+      const recargo = tarifa!.recargos.find((r) => /^(English|Ingl[eé]s)$/i.test(r.idioma))!;
+      const recargoPax = recargo.tipo === 'porcentaje' ? tarifa!.costo! * recargo.valor / 100 : recargo.tipo === 'porPasajero' ? recargo.valor : recargo.valor / PAX;
+      const conMarkups = recargoPax * PAX / (MARKUP_AGENCIA * MARKUP);
+      const suba = { minimo: Math.floor(conMarkups) - 1, maximo: Math.ceil(conMarkups) + 1 };
+      const subio = (enIngles.valor ?? 0) - (enEspanol.valor ?? 0);
+      await adjuntarTexto('Cena Show en English', [
+        `Tarifa del BackOffice: ${tarifa!.vigencia} | ${tarifa!.moneda} ${tarifa!.costo} | recargos ${JSON.stringify(tarifa!.recargos)}`,
+        `Tarjeta del modal (con cotizacion ${MARKUP}): ${precioTarjeta}`,
+        `Fila: Espanol ${enEspanol.texto} -> English ${enIngles.texto} (subio ${subio})`,
+        `Esperado: subir recargo ${recargoPax} x ${PAX} pax / (markup de la agencia ${MARKUP_AGENCIA} x cotizacion ${MARKUP}) = ${conMarkups.toFixed(2)} (${suba.minimo}-${suba.maximo}); sin el markup de la cotizacion subiria ${recargoPax * PAX / MARKUP_AGENCIA}`,
+        `Total del itinerario: ${totalEspanol.valor} -> ${totalIngles.valor}`,
+      ].join('\n'));
+      await conResaltado(page, fila(), 'Cena Show en English', () => {
+        expect(enEspanol.valor, 'En Espanol la fila tiene que tener el precio de la tarjeta del modal').toBe(precioTarjeta);
+        expect.soft(subio >= suba.minimo && subio <= suba.maximo,
+          `En English la fila tiene que subir el recargo con el markup de la agencia y el de la cotizacion (${suba.minimo}-${suba.maximo}) y subio ${subio} (US 4739)`).toBe(true);
+        expect.soft((totalIngles.valor ?? 0) - (totalEspanol.valor ?? 0), 'El total del itinerario tiene que subir lo mismo que la fila').toBe(subio);
+      });
+      totalAntes = totalIngles;
     });
 
     let hotelDelModal: HabitacionDeHotel | null = null;

@@ -67,13 +67,17 @@ export async function filasDeCotizaciones(page: Page, q?: string): Promise<FilaD
     const lineas = fila.innerText.split('\n').map((l) => l.trim()).filter(Boolean);
     const despuesDe = (r: RegExp) => { const i = lineas.findIndex((l) => r.test(l)); return i >= 0 ? lineas[i + 1] ?? '' : ''; };
     const link = (r: RegExp) => Array.from(fila.querySelectorAll('a')).find((x) => r.test((x.textContent ?? '') + ' ' + (x.getAttribute('aria-label') ?? '') + ' ' + (x.getAttribute('title') ?? '')))?.getAttribute('href') ?? '';
+    const id = (a.getAttribute('href') ?? '').match(/\/quote\/(\d+)/)?.[1] ?? '';
+    // Desde el 12/11 (US 5040) el Word es un boton ("Descargar en Word") que baja el archivo de
+    // /api/site/custom-tours/quotes/{id}/word: se toma esa direccion, la misma que pide el boton.
+    const botonWord = Array.from(fila.querySelectorAll('button')).some((b) => /Word/i.test(b.getAttribute('aria-label') ?? ''));
     return {
       codigo: lineas.find((l) => /^CC\d{8}$/.test(l)) ?? '',
-      id: (a.getAttribute('href') ?? '').match(/\/quote\/(\d+)/)?.[1] ?? '',
+      id,
       referencia: despuesDe(/^Referencia$/i),
       pasajero: despuesDe(/^Pax$/i),
       pdf: link(/PDF/i),
-      word: link(/Word/i),
+      word: link(/Word/i) || (botonWord && id ? `/api/site/custom-tours/quotes/${id}/word?ui-culture=es` : ''),
       texto: lineas.join(' '),
     };
   }));

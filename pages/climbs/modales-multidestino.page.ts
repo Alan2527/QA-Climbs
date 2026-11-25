@@ -20,9 +20,14 @@ const precioDelBoton = (texto: string) => importeANumero(texto.match(/[A-Z]{3}\s
 export class ModalesMultidestinoPage {
   constructor(private readonly page: Page) {}
 
-  destino(ciudad: string): Locator { return this.page.getByRole('region', { name: new RegExp(`^${ciudad}`) }); }
-  get modalDeServicios(): Locator { return this.page.getByRole('dialog', { name: /^Agregar servicio/ }); }
-  get modalDeHoteles(): Locator { return this.page.getByRole('dialog', { name: /^Agregar hotel/ }); }
+  // Desde noviembre el bloque del destino no tiene nombre accesible: se lo ubica por el boton
+  // con el nombre de la ciudad (el que pliega el destino).
+  destino(ciudad: string): Locator {
+    return this.page.getByRole('region', { name: new RegExp(`^${ciudad}`) })
+      .or(this.page.getByRole('region').filter({ has: this.page.getByRole('button', { name: ciudad, exact: true }) })).first();
+  }
+  get modalDeServicios(): Locator { return this.page.getByRole('dialog', { name: /^Agregar servicio/i }); }
+  get modalDeHoteles(): Locator { return this.page.getByRole('dialog', { name: /^Agregar hotel/i }); }
 
   private async esperarTarjetas(modal: Locator) {
     await expect(modal.getByRole('article').first(), 'El modal tiene que listar resultados').toBeVisible({ timeout: 60_000 });
@@ -32,16 +37,21 @@ export class ModalesMultidestinoPage {
   // --- Servicios ----------------------------------------------------------------------
 
   async abrirModalDeServicios(ciudad: string) {
-    await this.destino(ciudad).getByRole('button', { name: 'Agregar servicio', exact: true }).click();
+    await this.destino(ciudad).getByRole('button', { name: /^Agregar [Ss]ervicios?$/ }).first().click(); // el primero es Servicios; el segundo, Opcionales
     await expect(this.modalDeServicios).toBeVisible();
     await this.esperarTarjetas(this.modalDeServicios);
   }
 
   /** El rango del destino que muestra el modal ("02/11/2026 – 05/11/2026"). */
   async rangoDelModal(): Promise<{ desde: string; hasta: string }> {
-    const texto = await this.modalDeServicios.getByRole('banner').getByRole('paragraph').innerText();
-    const [desde, hasta] = texto.match(/\d{2}\/\d{2}\/\d{4}/g) ?? ['', ''];
-    return { desde, hasta };
+    // Desde noviembre el modal muestra un solo dia (campo "Fecha"), limitado al rango del destino.
+    const subtitulo = this.modalDeServicios.getByRole('banner').getByRole('paragraph');
+    if (await subtitulo.count()) {
+      const [desde, hasta] = (await subtitulo.innerText()).match(/\d{2}\/\d{2}\/\d{4}/g) ?? ['', ''];
+      return { desde, hasta };
+    }
+    const dia = await this.campoFecha.inputValue();
+    return { desde: dia, hasta: dia };
   }
 
   /**
@@ -63,12 +73,17 @@ export class ModalesMultidestinoPage {
 
   private async leerTarjetas(): Promise<Record<string, TarjetaNueva>> {
     const salida: Record<string, TarjetaNueva> = {};
-    for (const t of await this.modalDeServicios.getByRole('article').all()) {
-      const nombre = (await t.locator('strong').first().innerText()).trim();
-      const botones = (await t.getByRole('button').allInnerTexts()).map((b) => b.replace(/\s+/g, ' ').trim());
-      const de = (modalidad: string) => { const b = botones.find((x) => x.startsWith(modalidad)); return b ? precioDelBoton(b) : null; };
-      const aviso = (await t.getByRole('listitem').allInnerTexts()).find((l) => /no opera/i.test(l)) ?? null;
-      salida[nombre] = { nombre, regular: de('Regular'), privado: de('Privado'), aviso };
+    // Se leen todas juntas: la lista se redibuja al paginar o buscar y una lectura de a una se queda sin tarjeta.
+    const crudas = await this.modalDeServicios.getByRole('article').evaluateAll((els) => els.map((e) => ({
+      nombre: e.querySelector('strong')?.textContent?.trim() ?? '',
+      // textContent y no innerText: el rotulo va en mayusculas por CSS ("REGULAR").
+      botones: Array.from(e.querySelectorAll('button')).map((b) => (b.textContent ?? '').replace(/\s+/g, ' ').trim()),
+      items: Array.from(e.querySelectorAll('li')).map((l) => (l as HTMLElement).innerText.trim()),
+    })));
+    for (const t of crudas.filter((x) => x.nombre)) {
+      const de = (modalidad: string) => { const b = t.botones.find((x) => x.toLowerCase().startsWith(modalidad.toLowerCase())); return b ? precioDelBoton(b) : null; };
+      const aviso = t.items.find((l) => /no opera/i.test(l)) ?? null;
+      salida[t.nombre] = { nombre: t.nombre, regular: de('Regular'), privado: de('Privado'), aviso };
     }
     return salida;
   }
@@ -87,14 +102,15 @@ export class ModalesMultidestinoPage {
   }
 
   /** Elige el dia en el calendario del modal (dentro del destino) y busca por nombre. */
+  private get campoFecha(): Locator { return this.modalDeServicios.getByRole('textbox', { name: 'Fecha', exact: true }); }
+
   async buscarServicio(termino: string, dia?: Date) {
     if (dia) {
-      await this.modalDeServicios.getByRole('button', { name: /^Fecha:/ }).click();
-      await this.page.getByRole('dialog', { name: 'Calendario' }).getByRole('button', { name: String(dia.getDate()), exact: true }).click();
       const dd = `${String(dia.getDate()).padStart(2, '0')}/${String(dia.getMonth() + 1).padStart(2, '0')}/${dia.getFullYear()}`;
-      await expect(this.modalDeServicios.getByRole('button', { name: `Fecha: ${dd}` }), `El modal tiene que quedar en el ${dd}`).toBeVisible();
+      await this.campoFecha.fill(dd);
+      await expect(this.campoFecha, `El modal tiene que quedar en el ${dd}`).toHaveValue(dd);
     }
-    await this.modalDeServicios.getByRole('textbox', { name: 'Nombre o tipo' }).fill(termino);
+    await this.modalDeServicios.getByRole('textbox', { name: /^(Nombre o tipo|Buscar servicio)$/ }).fill(termino);
     await this.modalDeServicios.getByRole('button', { name: 'Buscar', exact: true }).click();
     await expect(this.modalDeServicios.getByRole('article').filter({ hasText: termino }).first(), `La busqueda "${termino}" tiene que traer resultados`).toBeVisible({ timeout: 60_000 });
     await this.page.waitForLoadState('networkidle');
@@ -108,17 +124,22 @@ export class ModalesMultidestinoPage {
     const boton = this.tarjeta(nombre).getByRole('button', { name: new RegExp(`^${modalidad}`) });
     await boton.click();
     await expect(boton, `Tiene que quedar elegida la modalidad ${modalidad}`).toHaveAttribute('aria-pressed', 'true');
-    await expect(this.modalDeServicios.getByRole('contentinfo'), 'El pie tiene que contar el servicio elegido').toContainText('1 seleccionado');
+    await expect(this.pie(this.modalDeServicios), 'El pie tiene que contar el servicio elegido').toContainText(/1 seleccionado|Agregar \(1\)/);
   }
 
+  /** El pie del modal (<footer>): el boton "Agregar (n)". */
+  private pie(modal: Locator): Locator { return modal.locator('footer').last(); }
+
   async confirmar(modal: Locator) {
-    await modal.getByRole('contentinfo').getByRole('button', { name: 'Agregar', exact: true }).click();
+    await this.pie(modal).getByRole('button', { name: /^Agregar( \(\d+\))?$/ }).click();
     await expect(modal, 'Agregar tiene que cerrar el modal').toBeHidden({ timeout: 120_000 });
     await this.page.waitForLoadState('networkidle');
   }
 
   async cerrar(modal: Locator) {
-    await modal.getByRole('contentinfo').getByRole('button', { name: 'Cancelar', exact: true }).click();
+    // El pie ya no tiene Cancelar: se cierra con la X del encabezado.
+    await this.pie(modal).getByRole('button', { name: 'Cancelar', exact: true })
+      .or(modal.getByRole('banner').getByRole('button', { name: 'Cerrar', exact: true })).first().click();
     await expect(modal).toBeHidden();
   }
 
@@ -132,7 +153,7 @@ export class ModalesMultidestinoPage {
 
   /** Busca el hotel y despliega sus habitaciones. */
   async verHabitaciones(termino: string, nombre: string) {
-    await this.modalDeHoteles.getByRole('textbox', { name: 'Nombre del hotel' }).fill(termino);
+    await this.modalDeHoteles.getByRole('textbox', { name: /^(Nombre del hotel|Buscar por hotel)$/ }).fill(termino);
     await this.modalDeHoteles.getByRole('button', { name: 'Buscar', exact: true }).click();
     const ver = this.modalDeHoteles.getByRole('button', { name: `Ver habitaciones: ${nombre}` });
     await expect(ver, `El modal tiene que listar el hotel ${nombre}`).toBeVisible({ timeout: 60_000 });
@@ -142,10 +163,13 @@ export class ModalesMultidestinoPage {
 
   /** La primera habitacion del hotel (la mas barata): nombre y precio por la estadia. */
   async primeraHabitacion(): Promise<HabitacionNueva & { casilla: Locator }> {
-    const item = this.modalDeHoteles.getByRole('listitem').filter({ has: this.page.getByRole('checkbox') }).first();
+    // Desde noviembre cada habitacion es una fila (label) con su nombre, la tarifa por tipo y la casilla.
+    const item = this.modalDeHoteles.locator('label.hp-room').filter({ has: this.page.getByRole('checkbox') }).first();
     const texto = (await item.innerText()).replace(/\s+/g, ' ').trim();
-    const precio = (await item.locator('strong').last().innerText()).trim();
-    return { nombre: texto.split(/ Disponible| A requerir/)[0].trim(), importe: importeANumero(precio.replace(/[A-Z]{3}\s*/, '')), texto, casilla: item.getByRole('checkbox') };
+    const nombre = (await item.locator('.hp-room__label, .hp-room__name').first().innerText()).trim();
+    const total = item.locator('.hp-room__total');
+    const precio = ((await total.count()) ? await total.innerText() : await item.locator('.hp-room__amount').last().innerText()).trim();
+    return { nombre, importe: importeANumero(precio.replace(/[A-Z]{3}\s*/, '')), texto, casilla: item.getByRole('checkbox') };
   }
 
   // --- Itinerario ---------------------------------------------------------------------
@@ -160,7 +184,7 @@ export class ModalesMultidestinoPage {
       let actual = '';
       for (const e of els) {
         if (e.tagName === 'H3') { actual = (e.textContent ?? '').trim(); continue; }
-        if (args.titulos.includes(actual)) out.push({ seccion: actual, texto: (e as HTMLElement).innerText.replace(/\s+/g, ' ').trim(), nombre: e.querySelector('strong')?.textContent?.trim() ?? '' });
+        if (args.titulos.includes(actual)) out.push({ seccion: actual, texto: (e as HTMLElement).innerText.replace(/\s+/g, ' ').trim(), nombre: e.querySelector('.ctd-name, strong')?.textContent?.trim() ?? '' }); // desde noviembre el nombre es el boton .ctd-name
       }
       return out;
     }, { titulos });

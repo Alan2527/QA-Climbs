@@ -741,20 +741,33 @@ export class SeriePage {
   /**
    * Confirma la reserva y devuelve su codigo.
    *
-   * La confirmacion redirige al historial (`bookinghistory.aspx`), no muestra
-   * ninguna pantalla de exito. La reserva de una serie es un circuito, asi que
-   * cae en la solapa "Reservas circuitos".
+   * Como el checkout (OnlineHelper.BookDoneScript, desde el 27/10 tambien en series), la
+   * confirmacion ya no redirige: estampa "Reserva generada" con el codigo y ofrece "Ver
+   * reserva" e "Ir a mis reservas". Si el i18n no cargo, el script redirige al historial
+   * como antes, asi que se espera cualquiera de las dos salidas. La reserva de una serie
+   * es un circuito, asi que cae en la solapa "Reservas circuitos".
    */
   async confirmarReserva(): Promise<string> {
     await this.page.locator(this.botonSiguiente).first().click();
-    await this.page.waitForURL(/bookinghistory/i, { timeout: 300_000 });
+    const sello = this.page.locator('.wpreloader__stamp--done small').first();
+    const enHistorial = () => /bookinghistory/i.test(this.page.url());
+    await expect.poll(async () => enHistorial() || await sello.isVisible(), {
+      message: 'Al confirmar tiene que aparecer "Reserva generada" o abrirse el historial',
+      timeout: 300_000,
+    }).toBe(true);
+    let delSello = '';
+    if (!enHistorial()) {
+      delSello = codigoDeReserva(await sello.innerText());
+      await this.page.locator('.wpreloader__actions a.wpreloader__btn:not(.wpreloader__btn--primary)').first().click();
+      await this.page.waitForURL(/bookinghistory/i, { timeout: 120_000 });
+    }
     await esperarFinDeCarga(this.page);
 
     const solapa = this.page.locator("a[href='#tabCustomTour']").first();
     if (await solapa.count()) await solapa.click();
 
-    const codigo = this.page
-      .locator("#tabCustomTour a[href*='BookingHistoryDetail.aspx?book=']").first();
+    const enlaces = this.page.locator("#tabCustomTour a[href*='BookingHistoryDetail.aspx?book=']");
+    const codigo = delSello ? enlaces.filter({ hasText: delSello }).first() : enlaces.first();
     await expect(codigo, 'El historial tiene que mostrar la reserva de la serie recien emitida')
       .toBeVisible({ timeout: 60_000 });
     // El enlace envuelve la fila entera del historial: el codigo es su primera linea.

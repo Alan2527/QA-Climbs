@@ -7,8 +7,20 @@ import {
 } from '../../utils/pasos';
 import candidatos from '../../data/candidatos.json';
 import lineaBase from '../../data/importes-lineabase.json';
+import { conBackofficeNuevo, tarifasDelCrucero, exigirPreciosDelCrucero } from '../../utils/markups';
 
 const T = candidatos.tarifario;
+
+/** US 5097: "02:00" -> "2 hs", "01:30" -> "1 hs 30 min", "00:45" -> "45 min" (sin el 0 adelante). */
+const enHorasYMinutos = (hhmm: string): string => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return [h ? `${h} hs` : '', m ? `${m} min` : ''].filter(Boolean).join(' ');
+};
+
+/** US 5086: los nombres de los idiomas en el idioma de la ficha (Español), no en el propio. */
+const NOMBRE_EN_ESPANOL: Record<string, string> = { English: 'Inglés', Portuguese: 'Portugués', Portugues: 'Portugués', French: 'Francés', Italian: 'Italiano', German: 'Alemán', Chinese: 'Chino' };
+const idiomasEnElIdiomaDeLaFicha = (lista: string): string =>
+  lista.split(',').map((x) => x.trim()).map((x) => NOMBRE_EN_ESPANOL[x] ?? x).join(', ');
 
 /**
  * Bloque A — Tarifario.
@@ -207,9 +219,11 @@ test.describe('Tarifario', () => {
 
       // Los idiomas se muestran unidos por coma: se compara el campo completo.
       if (ficha.idiomasEnFicha) {
+        // US 5086: "Los idiomas se tienen que ver en el mismo idioma": Español, Inglés, Portugués.
+        const idiomasEnEspanol = idiomasEnElIdiomaDeLaFicha(ficha.idiomasEnFicha);
         expect(norm(valorDe('Idiomas')),
-          `El campo Idiomas tiene que ser exactamente "${ficha.idiomasEnFicha}"`,
-        ).toBe(norm(ficha.idiomasEnFicha));
+          `El campo Idiomas tiene que ser exactamente "${idiomasEnEspanol}" (US 5086)`,
+        ).toBe(norm(idiomasEnEspanol));
       }
       if (ficha.puntoDeEncuentro) {
         expect(norm(valorDe('Punto de encuentro')),
@@ -222,14 +236,15 @@ test.describe('Tarifario', () => {
         ).toBe(norm(ficha.dropOff));
       }
 
-      // La duracion se muestra con las dos modalidades juntas y el formato lo
-      // pone el control ("Regular 02:00 Hs - Privado 04:00 Hs"). Se comparan los
-      // valores, que son el dato de la base, y no la etiqueta que los rodea.
+      // US 5097: la duracion va en horas y minutos ("4 hs", "3 hs 30 min", sin el 0 adelante) y,
+      // si Regular y Privado duran lo mismo, se muestra una sola vez. Se comparan los valores, que
+      // son el dato de la base, y no la etiqueta de la modalidad que los rodea.
       if (ficha.duraciones) {
-        const enPantalla = (valorDe('Duracion') || valorDe('Duración')).match(/\d{1,2}:\d{2}/g) ?? [];
+        const enPantalla = (valorDe('Duracion') || valorDe('Duración')).match(/\d+ hs(?: \d+ min)?|\d+ min/g) ?? [];
+        const esperadas = [...new Set((ficha.duraciones as string[]).map(enHorasYMinutos))];
         expect(enPantalla,
-          `La duracion tiene que mostrar exactamente ${ficha.duraciones.join(' y ')}`,
-        ).toEqual(ficha.duraciones);
+          `La duracion tiene que mostrar exactamente ${esperadas.join(' y ')} (US 5097, horas y minutos)`,
+        ).toEqual(esperadas);
       }
     });
 
@@ -563,9 +578,14 @@ test.describe('Tarifario', () => {
         // es el unico sin lista en el tooltip y que no es el calendario.
         const iDuracion = barra.findIndex((x) => !x.esCalendario && x.items.length === 0);
         await conResaltado(page, zonaItem(iDuracion), 'la duracion no coincide', () => {
-        const itemDuracion = barra.find((x) => x.texto === card.duracionRegular);
+        // US 5097: "4 hs (Regular) - 3 hs (Privado)" o, si coinciden, "4 hs 30 min (Regular y Privado)".
+        const duracion = enHorasYMinutos(card.duracionRegular);
+        const espacios = (s: string) => (s ?? '').replace(/\s+/g, ' ').trim();
+        // Las dos modalidades van en el mismo item ("2 hs (Regular) | 4 hs (Privado)"): se parte por el separador.
+        const itemDuracion = barra.find((x) => espacios(x.texto).split(/\s+[|\-–]\s+/)
+          .some((parte) => [`${duracion} (Regular)`, `${duracion} (Regular y Privado)`].includes(parte)));
         expect(itemDuracion,
-          `La barra de operatividad tiene que mostrar la duracion "${card.duracionRegular}" ` +
+          `La barra de operatividad tiene que mostrar la duracion "${duracion} (Regular)" (US 5097) ` +
           `y muestra: ${barra.map((x) => x.texto).filter(Boolean).join(' | ')}`,
         ).toBeDefined();
         });
@@ -768,6 +788,15 @@ test.describe('Tarifario', () => {
       sinPrecioDesde(esperado);
       sinPrecioDesde(actual);
 
+      // US 4999 (en produccion): "Los cortes no muestran la etiqueta de dias que opera". La linea
+      // base es del 21/09 y cada corte de hotel terminaba en "Todos los dias": se le saca al esperado.
+      // Precios, fechas y minimo de noches se siguen comparando igual.
+      if (clave === 'hoteles') {
+        for (const filas of Object.values(esperado.porIdioma) as string[][][]) {
+          for (const f of filas.slice(1)) f[0] = f[0].replace(/\s+Todos los d[ií]as\s*$/i, '');
+        }
+      }
+
       // Tarifario por temporadas (la oferta): las dos tablas se llevan al tramo que
       // va de hoy al fin de lo que conocia la linea base, para que una ventana que
       // termina no haga fallar el test. Ver alinearVigencias en utils/pasos.
@@ -866,9 +895,18 @@ test.describe('Tarifario', () => {
       // sus importes. Se verifica que cada cabina traiga su "Desde" en USD y salidas con
       // importes positivos, y que todas tengan la misma cantidad de salidas (completitud).
       const resumen: string[] = [];
+      // Importe exacto de cada salida: techo(tarifa por persona del BO nuevo / divisor). US 5107: el
+      // markup vale para "tarifario: servicios, hoteles, paquetes, cruceros, ..." y el crucero pertenece
+      // a la sucursal "de su ciudad de salida" (Chile, 0,95 de hoteles); el tarifario suma el
+      // CustomMarkup del usuario.
+      const costos = await conBackofficeNuevo(page.context().browser()!, (bo) => tarifasDelCrucero(bo, cfg.id));
+      const divisor = candidatos.tarifario.cruceros.markupHotelesDeLaSucursal * candidatos._formulaPrecio.markupPorDefecto;
+      const detalle: string[] = [];
+      const fuera: string[] = [];
       let salidasEsperadas = -1;
       for (let i = 0; i < cfg.cabinas.length; i++) {
         const boton = botones.nth(i);
+        const nombre = (await boton.locator('span.cruise-tariff__cabin-name').innerText()).trim();
         const desde = (await boton.locator('span.cruise-tariff__cabin-from').innerText()).replace(/\s+/g, ' ').trim();
         expect(desde, `La cabina ${i + 1} tiene que mostrar su precio "Desde" en USD`).toMatch(/USD\s*[\d.]+/);
         await boton.click();
@@ -885,11 +923,21 @@ test.describe('Tarifario', () => {
           if (importes.length) salidasOk++;
         }
         expect(salidasOk, `La cabina ${i + 1} tiene que traer salidas con importes USD positivos`).toBeGreaterThan(0);
+        // "Desde" es el menor precio por persona entre las salidas de la cabina (sin el impuesto).
+        const menor = Math.min(...celdasPorFila.flat().map(aUSD).filter((n) => n > 0));
+        expect(aUSD(desde), `El "Desde" de la cabina ${i + 1} tiene que ser el menor precio de sus salidas (USD ${menor})`).toBe(menor);
         if (salidasEsperadas === -1) salidasEsperadas = salidasOk;
         else expect(salidasOk, 'Todas las cabinas tienen que tener la misma cantidad de salidas').toBe(salidasEsperadas);
         resumen.push(`Cabina ${i + 1} (${desde}): ${salidasOk} salidas con importe`);
+        const tabla = await modal.locator('[data-departures-content] table').first().evaluate((t) => Array.from(t.querySelectorAll('tr')).map((tr) =>
+          Array.from(tr.querySelectorAll('th, td')).map((c) => ((c as HTMLElement).innerText ?? '').replace(/\s+/g, ' ').trim())));
+        const r = exigirPreciosDelCrucero(nombre, tabla, costos, divisor);
+        detalle.push(...r.lineas);
+        fuera.push(...r.fuera);
       }
       await adjuntarTexto('Precios por cabina del crucero', resumen.join(SALTO));
+      await adjuntarTexto('Importes del crucero contra las tarifas del Backoffice', detalle.join(SALTO));
+      expect.soft(fuera, 'Cada salida de cada cabina tiene que costar techo(tarifa por persona / markup), y estar todas las del Backoffice').toEqual([]);
     });
   }
 

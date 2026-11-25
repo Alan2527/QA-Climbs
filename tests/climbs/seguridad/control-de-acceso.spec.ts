@@ -97,9 +97,18 @@ test.describe('Seguridad — control de acceso a pantallas internas y cierre de 
         const cuenta = page.getByRole('banner').getByRole('button').filter({ hasText: 'AUTO-QA' }).first();
         const salir = page.getByRole('menuitem', { name: 'Cerrar sesión' });
         // El menu de la cuenta se abre al pasar el mouse (un clic sobre el boton lo cierra).
+        // Desde noviembre se abre con un clic (aria-haspopup="menu"): si el hover no lo abre, se hace clic.
         await cuenta.hover();
+        if (!(await salir.isVisible().catch(() => false))) await cuenta.click();
+        // Desde el #140 (19/11), con el "Modo invitado" del sitio en Si, sin sesion el inicio es la vidriera publica
+        // (Shell.tsx: solo sin invitados manda a /login). Se lee la config publica para saber cual corresponde.
+        const auth = await page.request.get('/api/site/auth').then((r) => r.json()).catch(() => ({})) as { guest?: boolean };
         await salir.click();
-        await expect(page, 'Cerrar sesion tiene que llevar al login').toHaveURL(/\/login/, { timeout: 30_000 });
+        if (auth.guest) {
+          await expect(page, 'Con el modo invitado, cerrar sesion tiene que llevar a la vidriera publica').toHaveURL(/\/site\/?$/, { timeout: 30_000 });
+        } else {
+          await expect(page, 'Cerrar sesion tiene que llevar al login').toHaveURL(/\/login/, { timeout: 30_000 });
+        }
         await adjuntarTexto('Despues del logout', `URL: ${page.url()}`);
       });
 

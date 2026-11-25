@@ -4,6 +4,8 @@ import { ServicioPage } from '../../pages/servicio.page';
 import { HotelPage } from '../../pages/hotel.page';
 import { CarritoPage, Pasajero } from '../../pages/carrito.page';
 import { BackOfficePage } from '../../pages/backoffice.page';
+import { conBackofficeNuevo, costosDelServicio, precioConIdioma, tarifaVigente, mismoIdioma } from '../../utils/markups';
+import candidatos from '../../data/candidatos.json';
 import {
   paso, adjuntarTexto, reiniciarNumeracionDePasos, fechaDeBusqueda,
   formatearFecha, esperarFinDeCarga, conResaltado, selloEnLetras,
@@ -86,6 +88,15 @@ test.describe('Reservas', () => {
       return importes[donde];
     };
 
+    // Guia en ingles, el idioma con recargo del servicio (US 4739): la reserva entera se arma con
+    // el recargo y sus dos numeros se anclan a la tarifa del Backoffice nuevo.
+    // `#sdLangSelect`: los values son los LanguageID del servicio; 2 es Ingles.
+    const SERVICIO_ID = 5;
+    const IDIOMA_CON_RECARGO = '2';
+    const MARKUP = candidatos._formulaPrecio.markupPorDefecto;
+    const costos = await conBackofficeNuevo(page.context().browser()!, (b) => costosDelServicio(b, SERVICIO_ID));
+    const esperado = { idioma: '', porPersona: 0, total: 0, neto: 0 };
+
     await paso(page, 'Vaciar el carrito y abrir la solapa SERVICIOS de INICIO', async () => {
       await carrito.vaciar();
       await inicio.abrir();
@@ -126,6 +137,9 @@ test.describe('Reservas', () => {
 
     await paso(page, 'Elegir la modalidad Regular con la cantidad minima de pax y reservar', async () => {
       const fila = servicio.bloqueDeModalidad(reserva.modalidad);
+      esperado.idioma = ((await page.locator(`#sdLangSelect option[value='${IDIOMA_CON_RECARGO}']`).first().textContent()) ?? '').trim();
+      await page.locator('#sdLangSelect').selectOption(IDIOMA_CON_RECARGO);
+      await esperarFinDeCarga(page);
 
       // El minimo se lee de la pantalla, no se fija en el test: es lo que ve la
       // persona ("Minimo 2 pasajeros") y lo que la ficha manda a la API.
@@ -133,8 +147,6 @@ test.describe('Reservas', () => {
       reserva.cantidadPax = Number(texto.match(/M[ií]nimo\s+(\d+)/i)?.[1] ?? 1);
       expect(reserva.cantidadPax, 'La ficha tiene que declarar la cantidad de pax').toBeGreaterThan(0);
 
-      // Precio unitario de la modalidad, tal como lo ve la persona en la fila.
-      capturarDelPortal('ficha (precio unitario)', texto.match(/[A-Z]{3}\s*\d[\d.,]*/)?.[0] ?? '');
 
       await fila.locator(servicio.comboPax).selectOption(String(reserva.cantidadPax));
       await esperarFinDeCarga(page);
@@ -142,6 +154,33 @@ test.describe('Reservas', () => {
       // Total que arma la ficha al elegir la cantidad: es el primer importe de
       // la cadena y el que despues tiene que reaparecer en el BO.
       capturarDelPortal('ficha (total)', await servicio.esperarTotal());
+
+      // Total = techo((costo + recargo) / cotizacion / markup) por pasajero; neto = lo mismo sin el
+      // markup de la agencia (lo que AMV le cobra y queda en el file).
+      const tarifa = tarifaVigente(costos, reserva.modalidad, fecha, reserva.cantidadPax);
+      expect(tarifa, `El servicio ${SERVICIO_ID} tiene que tener una tarifa ${reserva.modalidad} vigente el ${reserva.fecha}`).toBeDefined();
+      expect(tarifa!.recargos.some((x) => mismoIdioma(x.idioma, esperado.idioma)),
+        `La tarifa tiene que tener un recargo para ${esperado.idioma}. Tiene: ${tarifa!.recargos.map((x) => x.idioma).join(', ')}`).toBe(true);
+      esperado.porPersona = precioConIdioma(tarifa!, esperado.idioma, MARKUP, reserva.cantidadPax)!;
+      esperado.total = esperado.porPersona * reserva.cantidadPax;
+      esperado.neto = precioConIdioma(tarifa!, esperado.idioma, 1, reserva.cantidadPax)! * reserva.cantidadPax;
+      const precioDeLaFicha = await fila.locator('.sd-rate__price-val').first().innerText();
+      // Precio unitario de la modalidad, tal como lo ve la persona: desde la US 5082 (11/11/2026)
+      // va en "Precio por persona" (.sd-rate__price-val) y aparece recien con los pasajeros elegidos.
+      capturarDelPortal('ficha (precio unitario)', precioDeLaFicha);
+      await adjuntarTexto('Importes esperados con el recargo del ingles', [
+        `Tarifa: ${tarifa!.vigencia} | ${tarifa!.moneda} ${tarifa!.costo} | recargos ${JSON.stringify(tarifa!.recargos)} | markup ${MARKUP}`,
+        `Idioma: ${esperado.idioma} | ${reserva.cantidadPax} pax`,
+        `Precio por persona: esperado USD ${esperado.porPersona} / ficha ${precioDeLaFicha.trim()}`,
+        `Total: esperado USD ${esperado.total} / ficha ${importes['ficha (total)'].moneda} ${importes['ficha (total)'].valor}`,
+        `Neto esperado (detalle, historial, bandeja y file): USD ${esperado.neto}`,
+      ].join(SALTO));
+      await conResaltado(page, fila, 'Precio con el recargo del ingles', () => {
+        expect(importeDelPortal(precioDeLaFicha), 'La ficha tiene que mostrar el precio por persona con el recargo del ingles')
+          .toEqual({ moneda: 'USD', valor: esperado.porPersona });
+        expect(importes['ficha (total)'], 'El total de la ficha tiene que ser el precio con recargo por los pasajeros')
+          .toEqual({ moneda: 'USD', valor: esperado.total });
+      });
 
       await servicio.agregarAlCarrito();
 
@@ -232,6 +271,14 @@ test.describe('Reservas', () => {
         cantidadPax: reserva.cantidadPax,
         pasajeros: reserva.pasajeros,
       },
+    });
+
+    await paso(page, 'El neto de la reserva y del file es el de la tarifa con el recargo del ingles', async () => {
+      // La cadena ya exige que el detalle, el historial, la bandeja y el file lleven el mismo neto;
+      // aca se ancla ese neto a la tarifa.
+      for (const donde of ['detalle (Venta del item)', 'file (Venta del item)', 'file (Venta en Totales)']) {
+        expect(importes[donde]?.valor, `El importe en ${donde} tiene que ser el neto con el recargo del ingles (USD ${esperado.neto})`).toBe(esperado.neto);
+      }
     });
   });
 

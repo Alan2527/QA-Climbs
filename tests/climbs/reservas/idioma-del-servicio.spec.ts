@@ -2,6 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 import { PortalNuevoPage } from '../../../pages/climbs/portal.page';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado } from '../../../utils/pasos';
 import { importe } from './reservas-comun';
+import { conBackofficeNuevo, costosDelServicio, precioConIdioma, tarifaVigente, mismoIdioma } from '../../../utils/markups';
 import candidatos from '../../../data/candidatos.json';
 
 const CS = candidatos.tarifario.cenaShow;
@@ -15,6 +16,11 @@ const CS = candidatos.tarifario.cenaShow;
  * la ficha ("Idioma del servicio"), se agrega una vez en Ingles y otra en Espanol, y el
  * carrito tiene que traer cada item con su idioma y el total que mostro su ficha.
  * Fecha de enero 2031 (tarifas hasta fin de 2031). No emite: al final vacia el carrito.
+ *
+ * Importes (US 4739: "el valor final tiene que calcularse aplicando el markup de la agencia sobre
+ * costo + recargo en conjunto, nunca sobre el costo solo"): el precio por persona es exactamente
+ * techo(costo / markup) en Espanol y techo((costo + recargo) / markup) en Ingles, con el costo y el
+ * recargo de la tarifa Regular vigente leidos en el Backoffice nuevo.
  */
 test.describe('Idioma del servicio: de la ficha al carrito', () => {
   test.beforeEach(() => reiniciarNumeracionDePasos());
@@ -42,12 +48,28 @@ test.describe('Idioma del servicio: de la ficha al carrito', () => {
     const precioDeLaTarjeta = async () => valor(await portal.precioDeLaModalidad(MODALIDAD), 'Precio por persona de la tarjeta');
     const elegirPax = async () => {
       await portal.elegirPasajeros(MODALIDAD, f.pax);
-      return portal.totalDeLaFicha();
+      // La ficha recalcula por API al cambiar idioma o pasajeros: se lee el total cuando deja de
+      // cambiar (dos lecturas iguales seguidas), no el primero que aparece.
+      let previo = '';
+      let actual = await portal.totalDeLaFicha();
+      for (let i = 0; i < 10 && actual !== previo; i++) {
+        await page.waitForTimeout(1_000);
+        previo = actual;
+        actual = await portal.totalDeLaFicha();
+      }
+      return actual;
     };
     const agregar = async () => {
       await page.getByRole('button', { name: 'Agregar al carrito' }).click();
       await expect(page.getByRole('status').filter({ hasText: /Se agregó \d+ ítem al carrito/ }).last(), 'Agregar al carrito tiene que confirmar').toBeVisible();
     };
+
+    const MARKUP = candidatos._formulaPrecio.markupPorDefecto;
+    const costos = await conBackofficeNuevo(page.context().browser()!, (bo) => costosDelServicio(bo, CS.id));
+    const tarifa = tarifaVigente(costos, MODALIDAD, FECHA);
+    expect(tarifa, `El servicio ${CS.id} tiene que tener una tarifa ${MODALIDAD} vigente en la fecha`).toBeDefined();
+    expect(tarifa!.recargos.some((x) => mismoIdioma(x.idioma, IDIOMAS.conRecargo)), `La tarifa ${MODALIDAD} tiene que tener recargo para ${IDIOMAS.conRecargo}`).toBe(true);
+    await adjuntarTexto('Tarifa del Backoffice', `${tarifa!.vigencia} | ${tarifa!.modalidad} | ${tarifa!.moneda} ${tarifa!.costo} | recargos: ${JSON.stringify(tarifa!.recargos)} | markup ${MARKUP}`);
 
     try {
       await paso(page, 'Vaciar el carrito y abrir la ficha de la Cena Show', async () => {
@@ -70,15 +92,21 @@ test.describe('Idioma del servicio: de la ficha al carrito', () => {
       });
 
       await paso(page, 'Idioma base: elegir los pasajeros y leer el total de la ficha', async () => {
-        f.precioBase = await precioDeLaTarjeta();
+        // Desde la US 5040 la tarjeta muestra el precio por persona recien con los pasajeros elegidos.
         f.totalBase = await elegirPax();
+        f.precioBase = await precioDeLaTarjeta();
         await adjuntarTexto('Ficha en idioma base', `${IDIOMAS.base}: precio por persona ${f.precioBase}, total ${f.totalBase}`);
+        const esperado = precioConIdioma(tarifa!, null, MARKUP, f.pax);
+        await conResaltado(page, portal.bloqueDeModalidad(MODALIDAD), 'precio por persona en idioma base', () => {
+          expect(f.precioBase, `En ${IDIOMAS.base} el precio por persona tiene que ser techo(costo / ${MARKUP})`).toBe(esperado);
+          expect(valor(f.totalBase, 'Total en idioma base'), 'El total de la ficha tiene que ser el precio por persona por los pasajeros').toBe(esperado! * f.pax);
+        });
       });
 
       await paso(page, 'Cambiar al idioma con recargo, elegir la misma cantidad y agregar al carrito', async () => {
         await elegirIdioma(IDIOMAS.conRecargo);
-        f.precioRecargo = await precioDeLaTarjeta();
         f.totalRecargo = await elegirPax();
+        f.precioRecargo = await precioDeLaTarjeta();
         await adjuntarTexto('Ficha en idioma con recargo', `${IDIOMAS.conRecargo}: precio por persona ${f.precioRecargo}, total ${f.totalRecargo}`);
         const base = valor(f.totalBase, 'Total en idioma base');
         const conRecargo = valor(f.totalRecargo, 'Total en idioma con recargo');
@@ -87,6 +115,7 @@ test.describe('Idioma del servicio: de la ficha al carrito', () => {
         });
         await conResaltado(page, portal.bloqueDeModalidad(MODALIDAD), 'precio por persona de la tarjeta', () => {
           expect(f.precioRecargo, 'La tarjeta de la modalidad tiene que mostrar el precio por persona del idioma elegido').toBeGreaterThan(f.precioBase);
+          expect(f.precioRecargo, `En ${IDIOMAS.conRecargo} el precio por persona tiene que ser techo((costo + recargo) / ${MARKUP}) (US 4739)`).toBe(precioConIdioma(tarifa!, IDIOMAS.conRecargo, MARKUP, f.pax));
           expect(conRecargo, 'El total de la ficha tiene que ser el precio por persona de la tarjeta por los pasajeros').toBe(f.precioRecargo * f.pax);
         });
         await agregar();
@@ -112,7 +141,7 @@ test.describe('Idioma del servicio: de la ficha al carrito', () => {
         const plano = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
         const textos = (await items.allInnerTexts()).map(plano);
         await adjuntarTexto('Items del carrito', textos.join('\n'));
-        const conIdioma = (nombre: string) => textos.map((t, i) => (new RegExp(`\\b${plano(nombre)}\\b`).test(t) ? i : -1)).filter((i) => i >= 0);
+        const conIdioma = (nombre: string) => textos.map((t, i) => (new RegExp(`\\b${plano(nombre)}\\b`, 'i').test(t) ? i : -1)).filter((i) => i >= 0);
         for (const nombre of [IDIOMAS.base, IDIOMAS.conRecargo]) {
           expect(conIdioma(nombre), `El carrito tiene que mostrar un item en ${nombre}`).toHaveLength(1);
         }
@@ -122,8 +151,7 @@ test.describe('Idioma del servicio: de la ficha al carrito', () => {
         const lineaDe = async (it: typeof itemBase) => (await it.innerText()).replace(/\s+/g, ' ').match(/[A-Z]{3}\s*[\d.,]+/g)?.at(-1) ?? '';
         const lineaBaseTxt = await lineaDe(itemBase);
         const lineaRecargoTxt = await lineaDe(itemRecargo);
-        const lineas = (await page.locator('main').getByRole('complementary').innerText()).split('\n').map((l) => l.trim()).filter(Boolean);
-        const totalTxt = lineas[lineas.indexOf('Total') + 1] ?? '';
+        const totalTxt = await portal.totalDelCarrito();
         const lineaBase = valor(lineaBaseTxt, `Linea ${IDIOMAS.base}`);
         const lineaRecargo = valor(lineaRecargoTxt, `Linea ${IDIOMAS.conRecargo}`);
         const total = valor(totalTxt, 'Total del carrito');
@@ -137,13 +165,13 @@ test.describe('Idioma del servicio: de la ficha al carrito', () => {
           await conResaltado(page, it, `linea ${nombre}`, async () => {
             expect(linea, `El carrito tiene que cobrar ${nombre} lo que mostro su ficha (${ficha})`).toBe(valor(ficha, `Ficha en ${nombre}`));
             expect(importe(txt).moneda, 'El carrito tiene que cobrar en la moneda de la ficha').toBe(importe(ficha).moneda);
-            expect((await it.innerText()).replace(/\s+/g, ' '), 'El carrito tiene que traer la cantidad de pasajeros elegida en la ficha').toContain(`${f.pax} x ${MODALIDAD}`);
+            expect((await it.innerText()).replace(/\s+/g, ' '), 'El carrito tiene que traer la cantidad de pasajeros elegida en la ficha').toMatch(new RegExp(`\\b${f.pax}\\s+(x\\s+)?${MODALIDAD}\\b`, 'i'));
           });
         }
         await conResaltado(page, itemRecargo, 'recargo en el carrito', () => {
           expect(lineaRecargo, `El item en ${IDIOMAS.conRecargo} tiene que costar mas que el de ${IDIOMAS.base} por el recargo`).toBeGreaterThan(lineaBase);
         });
-        await conResaltado(page, page.locator('main').getByRole('complementary'), 'total del carrito', () => {
+        await conResaltado(page, portal.cajaDelTotal, 'total del carrito', () => {
           expect(total, 'El total del carrito tiene que ser la suma de sus lineas').toBe(lineaBase + lineaRecargo);
         });
       });

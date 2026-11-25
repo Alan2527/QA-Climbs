@@ -18,6 +18,11 @@ import { reservarServicioYGenerarFile, armarFacturaAprobada, cajaDeRegresion, PR
  * servicio, que esta a futuro, como haria una persona.
  */
 const coma = (x: number) => x.toFixed(2).replace('.', ',');
+/** El primer importe "XXX 9.999,99" de la fila de la bandeja, con su moneda. */
+const importeDeLaFila = (texto: string) => {
+  const m = texto.match(/\b(ARS|USD|PEN|EUR|BRL|CLP|COP|MXN|UYU)\s*(\d[\d.,]*)(?![\d/])/);
+  return { moneda: m?.[1] ?? '', valor: m ? importeANumero(m[2]) : null };
+};
 
 test.describe('Cobranzas — bandejas de no asignados', () => {
   test.beforeEach(() => reiniciarNumeracionDePasos());
@@ -40,7 +45,9 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
       await bandejas.abrir('items');
       await bandejas.filtrarHasta(pre.fecha);
       const figura = await bandejas.figura(numeroDeFile);
-      await adjuntarTexto('Fila del item en la bandeja', await bandejas.textoDeLaFila(numeroDeFile));
+      const filaDelItem = await bandejas.textoDeLaFila(numeroDeFile);
+      await adjuntarTexto('Fila del item en la bandeja', filaDelItem);
+      expect(importeDeLaFila(filaDelItem), `La bandeja tiene que mostrar el item por su costo. Fila: ${filaDelItem}`).toEqual({ moneda: pre.costoDelItem.moneda, valor: total });
       expect(figura, `El item del file ${pre.fileCode}, sin factura de proveedor, tiene que figurar como no asignado`).toBe(true);
     });
 
@@ -57,14 +64,16 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
       await factura.campo('comment').fill(`Factura de regresion automatica ${sello}. No operar.`);
       idDeLaFactura = await factura.guardar();
       await page.getByRole('button', { name: 'Ajustar & aprobar' }).click();
-      await expect(page.getByText('Aprobada', { exact: true }), 'La factura tiene que quedar aprobada sin imputar').toBeVisible({ timeout: 60_000 });
+      await expect(page.getByRole('dialog').or(page.locator('main')).last().getByText('Aprobada', { exact: true }).filter({ visible: true }).first(), 'La factura tiene que quedar aprobada sin imputar').toBeVisible({ timeout: 60_000 });
       await adjuntarTexto('Factura cargada', `0001-${numero} (id ${idDeLaFactura}) · ${pre.costoDelItem.moneda} ${coma(total)} · file ${pre.fileCode}`);
     });
 
     await paso(page, 'La factura aprobada y sin imputar figura en la bandeja de facturas sin asignar', async () => {
       await bandejas.abrir('invoices');
       const figura = await bandejas.figura(numero);
-      await adjuntarTexto('Fila de la factura en la bandeja', await bandejas.textoDeLaFila(numero));
+      const filaDeLaFactura = await bandejas.textoDeLaFila(numero);
+      await adjuntarTexto('Fila de la factura en la bandeja', filaDeLaFactura);
+      expect(importeDeLaFila(filaDeLaFactura), `La bandeja tiene que mostrar la factura por su total. Fila: ${filaDeLaFactura}`).toEqual({ moneda: pre.costoDelItem.moneda, valor: total });
       expect(figura, `La factura ${numero}, aprobada y sin imputar, tiene que figurar como no asignada`).toBe(true);
     });
 
@@ -101,21 +110,21 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
     const total = factura.total;
     let idDeLaOrden = '';
     let codigo = '';
-    const pendienteDeLaOrden = async () => importeANumero((await orden.pendienteDeAsignacion().innerText()).split(':')[1] ?? '') ?? 0;
+    const pendienteDeLaOrden = async () => importeANumero((await orden.pendienteDeAsignacion().innerText()).replace(/^\s*Pendiente de asignación:?/, '')) ?? 0;
 
     await paso(page, 'Cargar la orden de pago del proveedor y aprobarla sin imputar', async () => {
       await orden.abrirNueva();
       if (!(await orden.opcionElegida('branch')).includes('Argentina')) await orden.campo('branch').selectOption({ label: 'Argentina' });
       await orden.elegirProveedor(PROVEEDOR_DE_REGRESION.termino, PROVEEDOR_DE_REGRESION.razonSocial);
       await orden.campo('currency').selectOption({ label: factura.moneda });
-      await orden.campo('cf-0').selectOption({ label: cajaDeRegresion(factura.moneda) });
+      await orden.elegir('cf-0', cajaDeRegresion(factura.moneda));
       await orden.campo('amount-0').fill(coma(total));
       await orden.campo('amount-0').press('Tab');
       await orden.campo('detail').fill(`Orden de pago de regresion automatica ${sello}. No operar.`);
       idDeLaOrden = await orden.guardar();
       codigo = (await orden.campo('code').inputValue()).trim();
       await orden.aprobar(fechaDeHoy, `AUTOQAN${sello.slice(-7)}`);
-      await expect(page.getByText('Pago', { exact: true }), 'Aprobada y con el recibo aplicado, la orden tiene que quedar en estado Pago').toBeVisible({ timeout: 60_000 });
+      await expect(page.getByRole('dialog').or(page.locator('main')).last().getByText('Pago', { exact: true }).filter({ visible: true }).first(), 'Aprobada y con el recibo aplicado, la orden tiene que quedar en estado Pago').toBeVisible({ timeout: 60_000 });
       expect(await pendienteDeLaOrden(), 'Aprobada sin imputar, el pendiente de asignacion tiene que ser el total de la orden').toBe(total);
       await adjuntarTexto('Orden de pago cargada', `${codigo} (id ${idDeLaOrden}) · ${factura.moneda} ${coma(total)} · factura ${factura.puntoDeVenta}-${factura.numeroDeFactura}`);
     });
@@ -123,7 +132,9 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
     await paso(page, 'La orden aprobada y sin imputar figura en la bandeja de ordenes de pago sin asignar', async () => {
       await bandejas.abrir('pay-orders');
       const figura = await bandejas.figura(codigo);
-      await adjuntarTexto('Fila de la orden en la bandeja', await bandejas.textoDeLaFila(codigo));
+      const filaDeLaOrden = await bandejas.textoDeLaFila(codigo);
+      await adjuntarTexto('Fila de la orden en la bandeja', filaDeLaOrden);
+      expect(importeDeLaFila(filaDeLaOrden), `La bandeja tiene que mostrar la orden por su total. Fila: ${filaDeLaOrden}`).toEqual({ moneda: factura.moneda, valor: total });
       expect(figura, `La orden ${codigo}, aprobada y sin imputar, tiene que figurar como no asignada`).toBe(true);
     });
 

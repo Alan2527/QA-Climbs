@@ -66,7 +66,8 @@ test.describe('WebAdmin — humo de pantallas', () => {
     await page.goto('/');
     const nav = page.getByRole('navigation', { name: 'Áreas' });
     await expect(nav).toBeVisible({ timeout: 60_000 });
-    const fuera = /^(Favoritos|Idioma|Modo oscuro|Modo claro|Ir al inicio)$/;
+    // Desde noviembre el menu suma la sucursal de trabajo, notificaciones, el buscador y la cuenta.
+    const fuera = /^(Favoritos|Idioma|Modo oscuro|Modo claro|Ir al inicio|Sucursal de trabajo.*|Notificaciones|Buscar o ir a una pantalla|Mi cuenta|Ayuda|Soporte|Colapsar menú|Expandir menú)$/;
     // Los botones de area son iconos: su nombre va en aria-label.
     const areas = (await nav.getByRole('button').evaluateAll((bs) => bs.map((b) => b.getAttribute('aria-label') ?? '')))
       .filter((t) => t && !fuera.test(t));
@@ -101,7 +102,15 @@ test.describe('WebAdmin — humo de pantallas', () => {
     const nav = page.getByRole('navigation', { name: 'Áreas' });
     await expect(nav).toBeVisible({ timeout: 60_000 });
     const actual = async () => ((await page.evaluate(() => document.documentElement.getAttribute('data-theme'))) === 'dark' ? 'dark' : 'light');
-    if ((await actual()) !== tema) await nav.getByRole('button', { name: /^Modo (oscuro|claro)/ }).click();
+    // Desde noviembre el tema se cambia en el menu "Mi cuenta" (casilla "Modo oscuro").
+    if ((await actual()) !== tema) {
+      await nav.getByRole('button', { name: 'Mi cuenta' }).click();
+      // Es un interruptor: la pista dibujada tapa la casilla, se toca su rotulo.
+      const rotulo = page.getByRole('menu').locator('label.switch[for="account-dark"]');
+      await expect(rotulo).toBeVisible();
+      await rotulo.click();
+      await page.keyboard.press('Escape');
+    }
     await expect.poll(actual, { message: `El tema tiene que quedar en ${tema}` }).toBe(tema);
   }
 

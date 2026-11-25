@@ -96,28 +96,51 @@ export class SerieNuevaPage {
 
   get combo(): Locator { return this.page.getByRole('combobox', { name: /^(Categoría de hotelería|Hotel category|Categoria de hotelaria)$/ }); }
   get calendario(): Locator { return this.page.getByRole('grid'); }
-  get resumenLateral(): Locator { return this.page.locator('main').getByRole('complementary').last(); }
+  /** La columna del "Resumen de reserva" (desde el 04/11 un div.sbk__side; antes un aside). */
+  get resumenLateral(): Locator { return this.page.locator('main .sbk__side').or(this.page.locator('main').getByRole('complementary')).last(); }
 
   /** El paso en curso del asistente (el que esta marcado). */
   async pasoActual(): Promise<string> {
-    return (await this.page.locator('main ol li.is-current').innerText()).replace(/^\s*\d+\s*/, '').trim();
+    // Desde el pase de la 5040 la barra son div.sbk-step (el activo con is-active); antes era una lista ol/li.is-current.
+    const actual = this.page.locator('main .sbk-step.is-active .sbk-step__label').or(this.page.locator('main ol li.is-current')).first();
+    return (await actual.innerText()).replace(/^\s*\d+\s*/, '').trim();
+  }
+
+  // Desde noviembre la categoria es un desplegable propio (TsSelect, como el TomSelect del viejo):
+  // un div con rol combobox que al tocarlo abre una lista de opciones dentro de su envoltura.
+  private get desplegable(): Locator { return this.combo.locator('xpath=..').getByRole('listbox'); }
+
+  private async abrirCombo() {
+    if (!(await this.desplegable.isVisible().catch(() => false))) await this.combo.click();
+    await expect(this.desplegable).toBeVisible();
+    // La lista se monta ~20 ms antes de quedar abierta (TsSelect.show): en ese hueco el Escape no cierra nada.
+    await expect(this.combo).toHaveAttribute('aria-expanded', 'true');
   }
 
   async categorias(): Promise<string[]> {
-    return (await this.combo.locator('option').allInnerTexts()).map((t) => t.trim());
+    await this.abrirCombo();
+    const opciones = (await this.desplegable.getByRole('option').allInnerTexts()).map((t) => t.trim());
+    // Abierto, el clic cae en el campo de busqueda (que no cierra, como el TomSelect del viejo): se cierra con Escape.
+    await this.page.keyboard.press('Escape');
+    await expect(this.desplegable).toBeHidden();
+    return opciones;
   }
 
   async elegirCategoria(nombre: string) {
-    await this.combo.selectOption({ label: nombre });
+    await this.abrirCombo();
+    await this.desplegable.getByRole('option', { name: nombre, exact: true }).click();
+    await expect(this.combo).toContainText(nombre);
   }
 
   async categoriaElegida(): Promise<string> {
-    return this.combo.evaluate((s: HTMLSelectElement) => s.options[s.selectedIndex]?.text.trim() ?? '');
+    return ((await this.combo.locator('.sbk-ts__item').textContent()) ?? '').trim();
   }
 
   async mesDelCalendario(): Promise<string> {
     const texto = (await this.page.locator('main').innerText());
-    return texto.match(new RegExp(`(${MESES.join('|')}) de \\d{4}`, 'i'))?.[0] ?? '';
+    // Desde noviembre el encabezado dice "Diciembre 2026" (antes "diciembre de 2026"): se devuelve siempre con "de".
+    const m = texto.match(new RegExp(`(${MESES.join('|')})(?: de)? (\\d{4})`, 'i'));
+    return m ? `${m[1]} de ${m[2]}` : '';
   }
 
   /** Las salidas que el calendario ofrece en el mes a la vista: dia, clave aaaa-mm-dd y precio por persona. */
@@ -126,6 +149,8 @@ export class SerieNuevaPage {
     const mes = MESES.indexOf(nombreMes) + 1;
     const botones = await this.calendario.getByRole('button').evaluateAll((bs) => bs
       .filter((b) => !(b as HTMLButtonElement).disabled)
+      // Los dias del mes anterior o siguiente que completan la grilla (is-adjacent) son botones que cambian de mes, no salidas.
+      .filter((b) => !b.classList.contains('is-adjacent'))
       // innerText y no textContent: el dia y el precio van en elementos separados y
       // textContent los pega ("26" + "1.250" = "261.250").
       .map((b) => (b as HTMLElement).innerText.replace(/\s+/g, ' ').trim()));
@@ -181,7 +206,8 @@ export class SerieNuevaPage {
     await boton.click();
     const fecha = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${anio}`;
     const elegida = this.page.locator('main').getByText(/^(Fecha seleccionada|Selected date|Data selecionada):?$/).locator('xpath=following-sibling::strong[1]');
-    await expect(this.page.locator('main'), `Tiene que quedar elegida la salida del ${fecha}`).toContainText(fecha);
+    // La pantalla escribe la fecha sin ceros a la izquierda ("20/9/2027"): vale con o sin.
+    await expect(this.page.locator('main'), `Tiene que quedar elegida la salida del ${fecha}`).toContainText(new RegExp(`\\b0?${dia}/0?${mes}/${anio}\\b`));
     const tarifa = (await this.page.locator('main').innerText()).match(/(?:Tarifa por habitación|Rate per room|Tarifa por quarto):?\s*([A-Z]{3}\s*[\d.,]+)/)?.[1] ?? '';
     void elegida;
     return { fecha, clave, precio: importeANumero(texto.replace(/^\d+\s*/, '')) ?? 0, tarifaPorHabitacion: importe(tarifa) };
@@ -190,7 +216,8 @@ export class SerieNuevaPage {
   private contador(nombre: 'Adultos' | 'Menores'): Locator { return this.page.getByRole('group', { name: nombre }); }
 
   async valor(nombre: 'Adultos' | 'Menores'): Promise<number> {
-    return Number((await this.contador(nombre).getByRole('status').innerText()).trim());
+    // Desde el 04/11 el valor es un span con aria-live (antes role="status").
+    return Number((await this.contador(nombre).locator('[aria-live], [role="status"]').first().innerText()).trim());
   }
 
   /** Lleva los contadores a esa ocupacion y elige las edades de los menores. */
@@ -206,7 +233,13 @@ export class SerieNuevaPage {
     expect(await this.valor('Adultos'), `Tienen que quedar ${o.adultos} adultos`).toBe(o.adultos);
     expect(await this.valor('Menores'), `Tienen que quedar ${menores} menores`).toBe(menores);
     for (const [i, edad] of (o.edades ?? []).entries()) {
-      await this.page.getByRole('combobox', { name: `Edad menor ${i + 1}` }).selectOption(String(edad));
+      // Desde el 04/11 la edad es el desplegable propio (TsSelect) "Edad niño N", con opciones "1 año o menos" / "N años".
+      const combo = this.page.getByRole('combobox', { name: new RegExp(`^Edad (niño|menor) ${i + 1}$`) });
+      await combo.click();
+      const lista = combo.locator('xpath=..').getByRole('listbox');
+      await expect(lista).toBeVisible();
+      await lista.getByRole('option', { name: edad === 1 ? '1 año o menos' : `${edad} años`, exact: true }).click();
+      await expect(lista).toBeHidden();
     }
   }
 
@@ -226,7 +259,8 @@ export class SerieNuevaPage {
     await this.page.waitForTimeout(500);
   }
 
-  habitaciones(): Locator { return this.resumenLateral.getByRole('listitem').filter({ has: this.page.locator('strong', { hasText: /^Habitación \d+$/ }) }); }
+  /** Las habitaciones del resumen: un renglon .sbk-room-row por habitacion ("Habitación Nro. 1 Doble ..."). */
+  habitaciones(): Locator { return this.resumenLateral.locator('.sbk-room-row'); }
 
   async habitacionesDelResumen(): Promise<string[]> {
     return (await this.habitaciones().allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
@@ -238,18 +272,25 @@ export class SerieNuevaPage {
 
   async quitarLaHabitacion(indice: number) {
     const antes = await this.habitaciones().count();
-    await this.habitaciones().nth(indice).getByRole('button', { name: 'Quitar habitación' }).click();
+    await this.habitaciones().nth(indice).locator('button[title="Quitar habitación"]').click();
     await expect(this.habitaciones()).toHaveCount(antes - 1);
   }
 
-  /** Los datos del "Resumen de reserva" por su rotulo, y el total. */
+  /**
+   * Los datos del "Resumen de reserva", y el total. Desde el 04/11: categoria y salida en dos columnas (.sbk-sum__col), habitaciones
+   * y pasajeros en renglones (.sbk-sum__item) y el total en .sbk-total__price. Se leen por posicion, asi sirve en cualquier idioma.
+   */
   async resumen(): Promise<{ categoria: string; salida: string; habitaciones: string; pasajeros: string; total: number }> {
-    const dato = async (rotulo: string) => {
-      // Por el rotulo del dato (un span): algunos renglones arrancan con un icono.
-      const p = this.resumenLateral.locator('p').filter({ has: this.page.locator('span', { hasText: new RegExp(`^${rotulo}$`) }) }).first();
-      return (await p.locator('strong').innerText().catch(() => '')).trim();
+    const r = this.resumenLateral;
+    const texto = async (l: Locator) => ((await l.count()) ? (await l.first().innerText()).replace(/\s+/g, ' ').trim() : '');
+    const cols = r.locator('.sbk-sum__col .sbk-sum__svalue');
+    const items = r.locator('.sbk-sum__item .sbk-sum__value');
+    const total = await texto(r.locator('.sbk-total__price'));
+    return {
+      categoria: await texto(cols.nth(0)), salida: await texto(cols.nth(1)),
+      habitaciones: await texto(items.nth(0)), pasajeros: await texto(items.nth(1)),
+      total: total && total !== '—' ? importe(/^[A-Z]{3}/.test(total) ? total : `USD ${total}`) : 0,
     };
-    return { categoria: await dato('Categoría'), salida: await dato('Salida'), habitaciones: await dato('Habitaciones'), pasajeros: await dato('Pasajeros'), total: importe(await dato('Total')) };
   }
 
   get botonSiguiente(): Locator { return this.page.getByRole('button', { name: /^(Siguiente|Confirmar reserva)$/ }); }
@@ -274,14 +315,20 @@ export class SerieNuevaPage {
     return (await this.page.locator('main').getByText(/(Quedan \d+ habitaciones|Queda 1 habitación) disponibles? para esta fecha/).allInnerTexts()).join(' ').trim();
   }
 
+  /** Los modales del asistente (desde el 04/11 div.sbk-modal__box con su titulo en h3, sin role=dialog, como el .cupo-modal del viejo). */
+  private modalDelAsistente(titulo: RegExp): Locator {
+    return this.page.locator('.sbk-modal__box').filter({ has: this.page.locator('h3', { hasText: titulo }) })
+      .or(this.page.getByRole('dialog', { name: titulo })).first();
+  }
+
   async textoDelModalDeCupo(): Promise<string> {
-    const modal = this.page.getByRole('dialog', { name: /^(Sin más disponibilidad|Reserva de grupo)$/ });
+    const modal = this.modalDelAsistente(/^(Sin más disponibilidad|Reserva de grupo)$/);
     if (!(await modal.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true).catch(() => false))) return '';
     return (await modal.innerText()).replace(/\s+/g, ' ').trim();
   }
 
   async cerrarModalDeCupo() {
-    const modal = this.page.getByRole('dialog', { name: /^(Sin más disponibilidad|Reserva de grupo)$/ });
+    const modal = this.modalDelAsistente(/^(Sin más disponibilidad|Reserva de grupo)$/);
     await modal.getByRole('button', { name: /^(Cerrar|Cancelar)$/ }).first().click();
     await expect(modal).toBeHidden();
   }
@@ -292,7 +339,7 @@ export class SerieNuevaPage {
 
   // --- Cambio de categoria ------------------------------------------------------------
 
-  get modalDeCategoria(): Locator { return this.page.getByRole('dialog', { name: 'Cambiar categoría' }); }
+  get modalDeCategoria(): Locator { return this.modalDelAsistente(/^Cambiar categoría$/); }
 
   async intentarCambiarCategoria(nombre: string) { await this.elegirCategoria(nombre); }
 
@@ -313,26 +360,33 @@ export class SerieNuevaPage {
 
   // --- Paso 2: pasajeros --------------------------------------------------------------
 
-  bloques(): Locator { return this.page.getByRole('group', { name: /^Habitación \d+ · / }); }
+  /** Un bloque por habitacion (desde el 04/11 div.sbk-paxroom, como el PassengerRoomControl del viejo). */
+  bloques(): Locator { return this.page.locator('main .sbk-paxroom'); }
 
+  /** "Habitación 1 · Doble · 2 adultos · 1 menor". */
   async titulosDeLasHabitaciones(): Promise<string[]> {
-    return (await this.bloques().evaluateAll((gs) => gs.map((g) => g.getAttribute('aria-label') ?? (g.querySelector('legend')?.textContent ?? '')))).map((t) => t.trim());
+    return (await this.bloques().locator('.sbk-paxroom__header').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
   }
 
   /** Los ocupantes que pide cada habitacion ("Adulto 1", "Menor 3 (8 años)"), en orden. */
   async ocupantesDeLaHabitacion(indice: number): Promise<string[]> {
-    return (await this.bloques().nth(indice).locator('strong').allInnerTexts()).map((t) => t.trim()).filter((t) => /^(Adulto|Menor)\b/.test(t));
+    // textContent: la etiqueta se dibuja en mayusculas por CSS y innerText devolveria "ADULTO 1".
+    return (await this.bloques().nth(indice).locator('.sbk-pax__label').allTextContents()).map((t) => t.trim()).filter((t) => /^(Adulto|Menor)\b/.test(t));
   }
 
+  /**
+   * Los campos no tienen etiqueta asociada (cada uno va bajo un h5 con su rotulo), asi que se ubican por ese rotulo
+   * dentro del ocupante. La nacionalidad es un texto libre desde el 04/11 (antes un desplegable).
+   */
   async completarPasajero(habitacion: number, indice: number, pax: PasajeroNuevo) {
-    const g = this.bloques().nth(habitacion);
-    await g.getByRole('textbox', { name: /^Nombre/ }).nth(indice).fill(pax.nombre);
-    await g.getByRole('textbox', { name: /^Apellido/ }).nth(indice).fill(pax.apellido);
-    await g.getByRole('textbox', { name: /^Pasaporte/ }).nth(indice).fill(pax.pasaporte);
-    const nac = g.getByRole('textbox', { name: /^Fecha de nacimiento/ }).nth(indice);
+    const ocupante = this.bloques().nth(habitacion).locator('.sbk-pax').nth(indice);
+    const campo = (rotulo: string) => ocupante.locator('.sbk-pax__col').filter({ has: this.page.locator('h5', { hasText: new RegExp(`^${rotulo}$`) }) }).locator('input');
+    await campo('Nombre').fill(pax.nombre);
+    await campo('Apellido').fill(pax.apellido);
+    await campo('Pasaporte').fill(pax.pasaporte);
+    const nac = campo('Fecha de nacimiento');
     await nac.fill(pax.nacimiento);
-    await nac.press('Tab');
-    await g.getByRole('combobox', { name: /^Nacionalidad/ }).nth(indice).selectOption({ label: pax.nacionalidad });
+    await campo('Nacionalidad').fill(pax.nacionalidad);
     await expect(nac, 'La fecha de nacimiento tiene que quedar cargada').toHaveValue(pax.nacimiento);
   }
 
@@ -350,9 +404,11 @@ export class SerieNuevaPage {
     await expect(this.page.getByRole('button', { name: 'Confirmar reserva' })).toBeEnabled();
   }
 
+  /** Desde el 02/11 la confirmacion es el "pasaporte" (role=status, fuera de main) con el sello "Reserva generada" y el codigo. */
   async confirmarReserva(): Promise<string> {
     await this.page.getByRole('button', { name: 'Confirmar reserva' }).click();
-    await expect(this.page.getByRole('heading', { name: 'Reserva enviada' }), 'Confirmar tiene que registrar la reserva').toBeVisible({ timeout: 120_000 });
-    return (await this.page.locator('main').innerText()).match(/BO\d{8}/)?.[0] ?? '';
+    const aviso = this.page.getByRole('status').filter({ hasText: /BO\d{8}/ }).first();
+    await expect(aviso, 'Confirmar tiene que registrar la reserva y mostrar su codigo').toBeVisible({ timeout: 180_000 });
+    return ((await aviso.textContent()) ?? '').match(/BO\d{8}/)?.[0] ?? '';
   }
 }

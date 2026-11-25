@@ -89,10 +89,11 @@ test.describe('WebAdmin — extension de tarifas de habitacion', () => {
       const tramo = (await hab.tramos()).find((t) => t.desde === P1.desde && t.hasta === P1.hasta);
       await adjuntarTexto('Tramo en la solapa Tarifas', JSON.stringify(tramo));
       expect(tramo?.extension, 'La solapa Tarifas tiene que informar el incremento del tramo extendido').toBe(`+${P1.porcentaje} %`);
-      // El WebAdmin nombraba el corte de origen en el tooltip del corte ya grabado. La app
-      // nueva lo dice solo en el cambio pendiente; grabado, no queda a la vista.
-      expect(pendientesDeLaPrimera, 'Antes de guardar, el cambio tiene que nombrar el corte de origen')
-        .toContain(`del ${B.desde} al ${B.hasta}`);
+      // El WebAdmin nombraba el corte de origen en el tooltip del corte ya grabado ("Extendido desde
+      // el corte dd/MM/yyyy - dd/MM/yyyy", RoomTarrifCutControl.ascx.cs). Antes de guardar no hay con
+      // que comparar: el WebAdmin no tenia resumen de cambios y el origen se elige en el modal, igual
+      // que en el combo Origen de la app nueva; el resumen pendiente solo se adjunta.
+      await adjuntarTexto('Cambios pendientes antes de guardar', String(pendientesDeLaPrimera));
       expect.soft(JSON.stringify(cortes.find((c) => c.desde === P1.desde)) + JSON.stringify(tramo),
         'DIFERENCIA con el WebAdmin: grabada la extension, ni el Tarifario ni Tarifas nombran el corte de origen')
         .toContain(B.desde);
@@ -116,7 +117,7 @@ test.describe('WebAdmin — extension de tarifas de habitacion', () => {
       const error = await hab.extender(B, P1.desde, P1.hasta, '50');
       expect(error, 'La extension tiene que sumarse a los cambios').toBeNull();
       const aviso = await hab.textoDePendientes();
-      await adjuntarTexto('Aviso', aviso);
+      await adjuntarTexto('Aviso', `Confirmacion: ${hab.avisoDePisar || '(no aparecio)'}${SALTO}Cambios pendientes: ${aviso}`);
       expect(aviso, 'El resumen tiene que avisar que los 31 dias con tarifa se modifican').toMatch(/31 días modificados/i);
       await hab.descartarCambios();
       exigirCorte(await hab.tarifario(), P1.desde, P1.hasta, primera, true);

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { fechaDelPaquete } from '../climbs/reservas/reservas-comun';
 import { InicioPage } from '../../pages/inicio.page';
 import { CustomToursPage } from '../../pages/customtours.page';
 import { CarritoCustomToursPage } from '../../pages/carrito-customtours.page';
@@ -11,6 +12,7 @@ import {
 import {
   importe, importeDelPortal, armarCircuitoYEmitir, verificarEnElBackOffice,
 } from './reservas-comun';
+import candidatos from '../../data/candidatos.json';
 
 /**
  * Bloque B - riel de CustomTours: oferta y multidestino.
@@ -36,7 +38,9 @@ test.describe('Reservas', () => {
     const bo = new BackOfficePage(page);
 
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
-    const fecha = fechaDeBusqueda();
+    // El traslado del paquete no opera en marzo, junio, septiembre y diciembre, y Park Hyatt no
+    // tiene tarifa en las fiestas: la misma fecha que usa el test de la app nueva.
+    const fecha = fechaDelPaquete();
 
     const reserva = {
       oferta: 'AUTO-QA NO TOCAR - Oferta Buenos Aires y Ushuaia (6 días / 5 noches)',
@@ -120,7 +124,9 @@ test.describe('Reservas', () => {
     const bo = new BackOfficePage(page);
 
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
-    const fecha = fechaDeBusqueda();
+    // El traslado del paquete no opera en marzo, junio, septiembre y diciembre, y Park Hyatt no
+    // tiene tarifa en las fiestas: la misma fecha que usa el test de la app nueva.
+    const fecha = fechaDelPaquete();
 
     const reserva = {
       paquete: 'AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia (6 días / 5 noches)',
@@ -168,6 +174,8 @@ test.describe('Reservas', () => {
         id: reserva.paqueteId,
         combo: 'ddSelectedTour',
       },
+      // La Cena Show AUTO-QA (163) del paquete tiene English USD 15 por pasajero en su tarifa Regular.
+      idioma: { servicioId: candidatos.tarifario.cenaShow.id, item: 'Angelitos' },
     });
 
     await verificarEnElBackOffice({

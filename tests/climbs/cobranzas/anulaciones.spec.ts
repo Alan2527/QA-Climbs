@@ -28,7 +28,7 @@ async function guardarOrdenSinImputar(page: Page, moneda: string, monto: number,
   if (!(await orden.opcionElegida('branch')).includes('Argentina')) await orden.campo('branch').selectOption({ label: 'Argentina' });
   await orden.elegirProveedor(PROVEEDOR_DE_REGRESION.termino, PROVEEDOR_DE_REGRESION.razonSocial);
   await orden.campo('currency').selectOption({ label: moneda });
-  await orden.campo('cf-0').selectOption({ label: cajaDeRegresion(moneda) });
+  await orden.elegir('cf-0', cajaDeRegresion(moneda));
   await orden.campo('amount-0').fill(coma(monto));
   await orden.campo('amount-0').press('Tab');
   await orden.campo('detail').fill(detalle);
@@ -41,7 +41,7 @@ async function guardarOrdenSinImputar(page: Page, moneda: string, monto: number,
 /** La fila de una orden en el listado, buscada con el buscador del propio listado. */
 async function filaEnElListado(page: Page, codigo: string): Promise<Locator> {
   await page.goto('/finance/pay-orders');
-  await page.getByPlaceholder('Código, proveedor, referencia u observación').fill(codigo);
+  await page.getByRole('searchbox', { name: /^Código, / }).first().fill(codigo);
   await page.waitForLoadState('networkidle');
   return page.locator('tbody tr').filter({ hasText: codigo });
 }
@@ -114,7 +114,7 @@ test.describe('Cobranzas — anulaciones', () => {
     });
 
     await paso(page, 'Dar de baja la carta desde Cartas emitidas', async () => {
-      await page.goto(`/finance/invoicing/letters?state=issued&q=${digitos}`);
+      await page.goto(`/finance/invoicing?state=issued&type=2100&q=${digitos}`);
       const fila = page.locator('tbody tr').filter({ hasText: carta.comprobante }).first();
       await expect(fila, `Cartas emitidas tiene que listar la carta ${carta.comprobante}`).toBeVisible({ timeout: 60_000 });
       await adjuntarTexto('Fila de la carta antes de darla de baja', (await fila.innerText()).replace(/\s+/g, ' '));
@@ -210,7 +210,7 @@ test.describe('Cobranzas — anulaciones', () => {
         const enOtra = new OrdenDePagoNuevaPage(otra);
         await otra.goto(`/finance/pay-orders/${segunda.id}`);
         await enOtra.asignar(await enOtra.abrirAsignacion(enOtra.filaPendiente(factura.numeroDeFactura)), coma(factura.total), `AUTO-QA ${sello.slice(-8)}`);
-        await expect.poll(async () => n((await enOtra.pendienteDeAsignacion().innerText()).split(':')[1] ?? ''),
+        await expect.poll(async () => n((await enOtra.pendienteDeAsignacion().innerText()).replace(/^\s*Pendiente de asignación:?/, '')),
           { message: 'Imputada la factura entera, la orden no tiene que tener pendiente', timeout: 30_000 }).toBe(0);
       } finally {
         await otra.close();
@@ -233,14 +233,14 @@ test.describe('Cobranzas — anulaciones', () => {
       await adjuntarTexto('Orden despues del intento de anulacion', `${estado} · ${pendiente}`);
       expect(estado.toUpperCase(), 'La orden imputada a una factura no se puede anular').not.toContain('ANULAD');
       expect(estado.toUpperCase(), 'La orden tiene que seguir pendiente de aprobar').toContain('PENDIENTE');
-      expect(n(pendiente.split(':')[1] ?? ''), 'La imputacion a la factura tiene que seguir en pie: sin pendiente de asignacion').toBe(0);
+      expect(n(pendiente.replace(/^\s*Pendiente de asignación:?/, '')), 'La imputacion a la factura tiene que seguir en pie: sin pendiente de asignacion').toBe(0);
       await expect(await filaEnElListado(page, segunda.codigo), 'La orden tiene que seguir listada').toBeVisible({ timeout: 60_000 });
     });
 
     await paso(page, 'Aprobada la orden, el listado deja de ofrecer Anular', async () => {
       await page.goto(`/finance/pay-orders/${segunda.id}`);
       await orden.aprobar(fechaDeHoy, `AUTOQAN${sello.slice(-7)}`);
-      await expect(page.getByText('Pago', { exact: true }), 'Aprobada, la orden tiene que quedar en estado Pago').toBeVisible({ timeout: 60_000 });
+      await expect(page.getByRole('dialog').or(page.locator('main')).last().getByText('Pago', { exact: true }).filter({ visible: true }).first(), 'Aprobada, la orden tiene que quedar en estado Pago').toBeVisible({ timeout: 60_000 });
       const fila = await filaEnElListado(page, segunda.codigo);
       await expect(fila, `La orden ${segunda.codigo} tiene que seguir en el listado`).toBeVisible({ timeout: 60_000 });
       expect(await ofreceAnular(page, fila, segunda.codigo), 'Una orden aprobada e imputada no tiene que ofrecer Anular').toBe(false);
@@ -264,7 +264,7 @@ test.describe('Cobranzas — anulaciones', () => {
     const sobrante = Math.max(10, Math.round(parcial * 0.1));
     await adjuntarTexto('Montos de la prueba', `Factura ${factura.puntoDeVenta}-${factura.numeroDeFactura}: ${factura.moneda} ${coma(total)}\nParcial: ${coma(parcial)}\nResto: ${coma(resto)}`);
 
-    const pendienteDeLaOrden = async () => n((await orden.pendienteDeAsignacion().innerText()).split(':')[1] ?? '');
+    const pendienteDeLaOrden = async () => n((await orden.pendienteDeAsignacion().innerText()).replace(/^\s*Pendiente de asignación:?/, ''));
     const saldoDeLaFactura = async () => {
       const fila = orden.filaPendiente(factura.numeroDeFactura);
       await expect(fila, 'La factura tiene que seguir entre las pendientes').toBeVisible({ timeout: 60_000 });

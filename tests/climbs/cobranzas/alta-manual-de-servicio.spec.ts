@@ -3,6 +3,26 @@ import { BackofficeNuevoPage } from '../../../pages/climbs/backoffice.page';
 import { ServiciosDelDestinoPage, ItemDeLaFicha, FilaDeLaGrilla, ResultadoDelBuscador, numero } from '../../../pages/climbs/servicios-del-destino.page';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos } from '../../../utils/pasos';
 import { reservarServicioYGenerarFile, PROVEEDOR_DE_REGRESION } from '../comun/precondiciones';
+import { conBackofficeNuevo, costosDelServicio, tarifaVigente, mismoIdioma, precioEsperado } from '../../../utils/markups';
+import candidatos from '../../../data/candidatos.json';
+
+/**
+ * Recargo por idioma en el alta manual (US 4739): el servicio AUTO-QA 7967 (copia de Tigre y Delta) tiene la
+ * tarifa Regular en pesos y English ARS 15.000 fijos por pasajero, leidos en el BackOffice nuevo. La US pide:
+ * "Al elegir un idioma en esa columna, el costo de la fila tiene que recalcularse como costo de tarifa + recargo
+ * de idioma [...] generando ese recargo como un item de costo adicional propio" y "Al vender el item, el valor
+ * final tiene que calcularse aplicando el markup de la agencia sobre costo + recargo en conjunto". Con la misma
+ * regla que la venta del item reservado (precondicion del file): techo((costo + recargo) por persona / cotizacion /
+ * markup de la agencia) x pasajeros. La agencia de pablo1 (1) tiene markup 1: con este file se verifica la
+ * conversion y el redondeo del recargo, pero no se distingue si el markup se aplica tambien al recargo (los
+ * tests del portal con otros markups si lo distinguen).
+ */
+const RP = candidatos.recargoFijoEnPesos;
+/** La venta es un entero (techo por persona x pasajeros): se exige exacta. */
+const TOLERANCIA_RELACION = 0.011;
+/** Markup de servicios de la agencia del file (agencia 1, la de pablo1). */
+const MARKUP_DE_LA_AGENCIA = 1;
+
 
 /**
  * FILES — app nueva (ClimbsApp). Alta manual de un servicio en el file.
@@ -197,6 +217,61 @@ test.describe('Files — alta manual de servicio', () => {
       casi(original.costo, item1Antes.costo.valor, 'El costo del item existente se conserva');
       casi(original.venta, item1Antes.venta.valor, 'La venta del item existente se conserva');
       expect(original.monedaDeCosto, 'La moneda del costo del item existente se conserva').toBe(item1Antes.costo.moneda);
+    });
+
+    await paso(page, 'Alta con idioma: English suma el recargo al costo, lo agrega como item adicional y la venta lleva el markup sobre costo + recargo', async () => {
+      const pax = base.cantidadPax;
+      const FECHA = item1Antes.checkin;
+      const [dd, mm, aa] = FECHA.split('/').map(Number);
+      const tarifas = await conBackofficeNuevo(page.context().browser()!, (bo) => costosDelServicio(bo, RP.id));
+      const tarifa = tarifaVigente(tarifas, 'Regular', new Date(aa, mm - 1, dd), pax);
+      const recargo = tarifa?.recargos.find((r) => mismoIdioma(r.idioma, 'English'));
+      expect(recargo, `${RP.nombre} tiene que tener recargo English en su tarifa Regular del ${FECHA}`).toBeDefined();
+      expect(recargo!.tipo, 'El recargo de English del servicio AUTO-QA es por pasajero').toBe('porPasajero');
+      const recargoTotal = recargo!.valor * pax;
+
+      await sd.abrirBuscador();
+      const resultados = await sd.buscarServicio(RP.terminoBusqueda, new RegExp(RP.nombre, 'i'), rooming, 'Regular');
+      const r = resultados.find((x) => new RegExp(RP.terminoBusqueda, 'i').test(x.celdas['Servicio / Hotel'] ?? '') && /regular/i.test(x.celdas['Tipo de tarifa'] ?? ''));
+      expect(r, `El buscador tiene que ofrecer la tarifa Regular de ${RP.nombre}`).toBeDefined();
+      const relacion = r!.venta.valor / r!.costo.valor;
+      const combo = r!.fila.getByRole('combobox', { name: /^Idioma · / });
+      await expect(combo, 'Con idiomas configurados, el listado tiene que mostrar el combo de la columna Idioma').toBeVisible();
+      await combo.selectOption({ label: 'English' });
+      const importes = (await r!.fila.locator('td').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim()).filter((t) => /^[A-Z]{3} [\d.,]+$/.test(t));
+      const costoCon = numero(importes[0] ?? '');
+      const ventaCon = numero(importes[1] ?? '');
+      const costoEsperado = r!.costo.valor + recargoTotal;
+      const ventaEsperada = precioEsperado(tarifa!.costo! + recargo!.valor, tarifa!.moneda, MARKUP_DE_LA_AGENCIA)! * pax;
+      const ventaSinEsperada = precioEsperado(tarifa!.costo!, tarifa!.moneda, MARKUP_DE_LA_AGENCIA)! * pax;
+      await adjuntarTexto('Alta con idioma: buscador', [
+        `Tarifa del BackOffice: ${tarifa!.vigencia} | ${tarifa!.moneda} ${tarifa!.costo} | recargo ${JSON.stringify(recargo)} x ${pax} pax = ${recargoTotal}`,
+        `Sin recargo: costo ${r!.costo.moneda} ${r!.costo.valor}, venta ${r!.venta.moneda} ${r!.venta.valor} (venta/costo ${relacion})`,
+        `Con English: costo ${importes[0]}, venta ${importes[1]}`,
+        `Esperado: costo ${costoEsperado}, venta techo((${tarifa!.costo} + ${recargo!.valor}) / cotizacion / ${MARKUP_DE_LA_AGENCIA}) x ${pax} = ${ventaEsperada} (sin idioma ${ventaSinEsperada})`,
+      ].join('\n'));
+      expect(r!.venta.valor, `Sin idioma, la venta del buscador tiene que ser techo(costo / cotizacion / ${MARKUP_DE_LA_AGENCIA}) x ${pax}`).toBe(ventaSinEsperada);
+      expect.soft(Math.abs(costoCon - costoEsperado), `Con English el costo de la fila tiene que ser costo de tarifa + recargo (${costoEsperado}) y es ${costoCon} (US 4739)`).toBeLessThanOrEqual(0.011);
+      expect.soft(Math.abs(ventaCon - ventaEsperada), `Con English la venta tiene que llevar el markup sobre costo + recargo (${ventaEsperada.toFixed(2)}) y es ${ventaCon} (US 4739)`).toBeLessThanOrEqual(TOLERANCIA_RELACION);
+
+      const filasAntes = await sd.filasDeLaGrilla().count();
+      await sd.agregar(r!);
+      await expect(sd.filasDeLaGrilla(), 'Con English, Agregar tiene que sumar el servicio y su item adicional de idioma').toHaveCount(filasAntes + 2);
+      const servicio = await sd.leerFila(sd.filasDeLaGrilla().nth(filasAntes));
+      const adicional = await sd.leerFila(sd.filasDeLaGrilla().nth(filasAntes + 1));
+      await adjuntarTexto('Alta con idioma: filas agregadas', JSON.stringify({ servicio, adicional }, null, 1));
+      expect.soft(Math.abs(adicional.costo - recargoTotal), `El recargo tiene que agregarse como item de costo adicional de ${recargoTotal} (US 4739)`).toBeLessThanOrEqual(0.011);
+      expect.soft(Math.abs(servicio.costo + adicional.costo - costoEsperado), 'El costo de las dos filas tiene que sumar costo de tarifa + recargo').toBeLessThanOrEqual(0.011);
+      expect.soft(Math.abs(servicio.venta + adicional.venta - ventaEsperada),
+        `La venta de las dos filas tiene que ser (costo + recargo) con el markup (${ventaEsperada.toFixed(2)}) y suma ${(servicio.venta + adicional.venta).toFixed(2)} (US 4739)`).toBeLessThanOrEqual(TOLERANCIA_RELACION);
+
+      await sd.guardarYVolver(base.fileId);
+      await sd.verDestinosYServicios();
+      const items = await sd.itemsDeLaFicha(CIUDAD);
+      await adjuntarTexto('Alta con idioma: items del file', items.map((i) => i.texto).join('\n'));
+      expect(items, 'Despues de guardar, el file tiene que listar los dos servicios anteriores, el nuevo y su item adicional de idioma').toHaveLength(4);
+      const ventaGuardada = items.slice(2).reduce((t, i) => t + i.venta.valor, 0);
+      expect.soft(Math.abs(ventaGuardada - ventaEsperada), `En la ficha, la venta del servicio y su recargo tiene que ser ${ventaEsperada.toFixed(2)} y suma ${ventaGuardada.toFixed(2)} (US 4739)`).toBeLessThanOrEqual(TOLERANCIA_RELACION);
     });
 
     expect(erroresJS, 'La app nueva no tiene que tirar errores de JavaScript durante el flujo').toEqual([]);

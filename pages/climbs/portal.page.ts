@@ -36,21 +36,22 @@ export class PortalNuevoPage {
    * Se espera a que aparezca y se cierra con su boton, como haria la persona.
    */
   async cerrarNovedades() {
-    const novedades = this.page.getByRole('dialog', { name: 'Novedades' });
-    const aparecio = await novedades.waitFor({ state: 'visible', timeout: 8_000 }).then(() => true).catch(() => false);
-    if (!aparecio) return;
-    await novedades.getByRole('button', { name: 'Cerrar' }).click();
-    await expect(novedades).toBeHidden();
+    // Desde noviembre la novedad de Cruceros abre su propio pop-up ("Cruceros en AMV Travel",
+    // #amvcp-overlay) en lugar del folleto: tambien tapa la pagina y se cierra con su boton.
+    const novedades = this.page.getByRole('dialog', { name: /^(Novedades|Cruceros en AMV Travel)$/ }).first();
+    for (let i = 0; i < 2; i++) {
+      const aparecio = await novedades.waitFor({ state: 'visible', timeout: 8_000 }).then(() => true).catch(() => false);
+      if (!aparecio) return;
+      await novedades.getByRole('button', { name: 'Cerrar', exact: true }).first().click();
+      await expect(this.page.locator('#amvcp-overlay.is-open')).toHaveCount(0, { timeout: 10_000 });
+    }
   }
 
   // --- Idioma del sitio ---------------------------------------------------------------
 
   /** Como se nombra cada idioma en el menu, segun el idioma en que esta el sitio. */
-  private static readonly NOMBRES_DE_IDIOMA: Record<string, Record<string, string>> = {
-    ES: { ES: 'Español', PT: 'Portugués', EN: 'Inglés' },
-    EN: { ES: 'Spanish', PT: 'Portuguese', EN: 'English' },
-    PT: { ES: 'Espanhol', PT: 'Português', EN: 'Inglês' },
-  };
+  // Desde la US 5040 el menu nombra cada idioma en su propia lengua, sea cual sea el activo.
+  private static readonly NOMBRES_DE_IDIOMA: Record<string, string> = { ES: 'Español', PT: 'Português', EN: 'English' };
 
   get botonDeIdioma(): Locator {
     return this.page.getByRole('banner').getByRole('button', { name: /^(ES|EN|PT)$/ });
@@ -62,14 +63,18 @@ export class PortalNuevoPage {
   }
 
   /**
-   * Cambia el idioma desde el encabezado. El menu se abre al pasar el mouse por el boton
-   * (un clic sobre el boton lo vuelve a cerrar), y ofrece los otros dos idiomas.
+   * Cambia el idioma desde el encabezado. Desde la US 5040 el menu se abre con un clic en el
+   * boton (antes, al pasar el mouse), ofrece los otros dos idiomas y al elegir recarga la pagina.
    */
   async cambiarIdioma(codigo: 'ES' | 'EN' | 'PT') {
     const actual = await this.idiomaActivo();
     if (actual === codigo) return;
-    await this.botonDeIdioma.hover();
-    await this.page.getByRole('menuitem', { name: PortalNuevoPage.NOMBRES_DE_IDIOMA[actual][codigo], exact: true }).click();
+    const opcion = this.page.getByRole('banner').getByRole('menuitem', { name: PortalNuevoPage.NOMBRES_DE_IDIOMA[codigo], exact: true });
+    await expect(async () => {
+      if (!(await opcion.isVisible())) await this.botonDeIdioma.click();
+      await expect(opcion).toBeVisible({ timeout: 5_000 });
+    }, 'El menu de idioma tiene que abrirse').toPass({ timeout: 30_000 });
+    await opcion.click();
     await expect(this.botonDeIdioma, `El encabezado tiene que quedar en ${codigo}`).toHaveText(codigo);
     await this.page.waitForLoadState('networkidle');
   }
@@ -79,31 +84,56 @@ export class PortalNuevoPage {
     await this.cerrarNovedades();
   }
 
+  /**
+   * El carrito del encabezado abre un panel lateral ("Tu carrito") con Vaciar e "Ir al
+   * carrito" (US 5040, como el portal viejo). Con el carrito vacio, /site/cart vuelve al inicio.
+   */
+  get panelDelCarrito(): Locator {
+    return this.page.getByRole('dialog', { name: 'Tu carrito' });
+  }
+
+  async abrirPanelDelCarrito() {
+    if (!/\/site/.test(this.page.url())) await this.abrirInicio();
+    await this.page.getByRole('banner').getByRole('link', { name: 'Carrito' }).click();
+    await expect(this.panelDelCarrito.getByRole('heading', { name: 'Tu carrito' })).toBeVisible();
+  }
+
+  async cerrarPanelDelCarrito() {
+    const cerrar = this.panelDelCarrito.getByRole('button', { name: 'Cerrar' });
+    if (await cerrar.isVisible()) await cerrar.click();
+  }
+
   async vaciarCarrito() {
-    await this.page.goto('/site/cart');
-    await expect(this.page.getByRole('heading', { name: 'Carrito', level: 1 })).toBeVisible();
-    const vaciar = this.page.getByRole('button', { name: 'Vaciar el carrito' });
-    if (await vaciar.isVisible()) {
-      await vaciar.click();
-      // Si pide confirmacion, se confirma.
-      const dialogo = this.page.getByRole('dialog');
-      if (await dialogo.waitFor({ state: 'visible', timeout: 3_000 }).then(() => true).catch(() => false)) {
-        await dialogo.getByRole('button', { name: /vaciar|aceptar|confirmar|s[ií]/i }).first().click();
-      }
-    }
-    await expect(this.page.getByText('El carrito está vacío'), 'El carrito tiene que quedar vacio antes de empezar').toBeVisible();
+    await this.abrirInicio();
+    await this.abrirPanelDelCarrito();
+    const vaciar = this.panelDelCarrito.getByRole('button', { name: 'Vaciar', exact: true });
+    if (await vaciar.isVisible()) await vaciar.click();
+    await expect(this.panelDelCarrito.getByText('Tu carrito está vacío'), 'El carrito tiene que quedar vacio antes de empezar').toBeVisible();
+    await this.cerrarPanelDelCarrito();
   }
 
   /**
    * Solapa SERVICIOS de la portada: Argentina / Buenos Aires / Excursion vienen por defecto.
    * Otro tipo ("Cena Show") se elige en su buscador, como la persona.
    */
-  async buscarServicios(fecha: Date, tipo = 'Excursión') {
+  async buscarServicios(fecha: Date, tipo = 'Excursión', destino?: { pais: string; ciudad: string }) {
     await this.abrirInicio();
-    await this.page.getByRole('tab', { name: 'SERVICIOS' }).click();
-    const panel = this.page.getByRole('tabpanel', { name: 'SERVICIOS' });
-    await expect(panel.getByRole('combobox', { name: 'País' })).toHaveValue('Argentina');
-    await expect(panel.getByRole('combobox', { name: 'Ciudad' })).toHaveValue('Buenos Aires');
+    await this.page.getByRole('tab', { name: 'Servicios', exact: true }).click();
+    const panel = this.page.getByRole('tabpanel', { name: 'Servicios' });
+    if (!destino) {
+      await expect(panel.getByRole('combobox', { name: 'País' })).toHaveValue('Argentina');
+      await expect(panel.getByRole('combobox', { name: 'Ciudad' })).toHaveValue('Buenos Aires');
+    }
+    // Otro destino: se elige el pais y despues la ciudad, como una persona (el buscador recuerda el ultimo).
+    for (const [rotulo, valor] of destino ? [['País', destino.pais], ['Ciudad', destino.ciudad]] as const : []) {
+      const c = panel.getByRole('combobox', { name: rotulo });
+      await expect(c).not.toHaveValue('', { timeout: 30_000 });
+      if ((await c.inputValue()) === valor) continue;
+      await c.click();
+      await c.fill(valor);
+      await this.page.getByRole('option', { name: valor, exact: true }).first().click();
+      await expect(c, `El buscador tiene que quedar en ${valor}`).toHaveValue(valor);
+    }
     const combo = panel.getByRole('combobox', { name: 'Tipo' });
     if ((await combo.inputValue()) !== tipo) {
       await combo.click();
@@ -115,16 +145,19 @@ export class PortalNuevoPage {
     await checkin.fill(formatearFecha(fecha));
     await checkin.press('Tab');
     await expect(checkin, 'La fecha del servicio tiene que quedar cargada').toHaveValue(formatearFecha(fecha));
-    await panel.getByRole('button', { name: 'Buscar' }).click();
-    await expect(this.page).toHaveURL(/\/site\/services\?/);
+    // Mientras la solapa termina de cargar pais y ciudad, Buscar no hace nada: se reintenta.
+    await expect(async () => {
+      await panel.getByRole('button', { name: 'Buscar' }).click();
+      await expect(this.page).toHaveURL(/\/site\/services\?/, { timeout: 5_000 });
+    }).toPass({ timeout: 60_000 });
   }
 
-  /** Buscador "Buscar por nombre" de los resultados: elige la sugerencia y abre la ficha. */
+  /** Buscador "Buscá un servicio por nombre" de los resultados: elige la sugerencia y abre la ficha. */
   async elegirServicio(termino: string, nombre: string) {
-    const buscador = this.page.getByPlaceholder('Buscar por nombre');
+    const buscador = this.page.getByRole('combobox', { name: 'Buscá un servicio por nombre' });
     await buscador.click();
     await buscador.pressSequentially(termino, { delay: 50 });
-    await this.page.getByRole('option', { name: nombre }).click();
+    await this.page.getByRole('option').filter({ hasText: nombre }).first().click();
     await expect(this.page.getByRole('heading', { level: 1, name: nombre }), `Tiene que abrir la ficha de ${nombre}`).toBeVisible();
   }
 
@@ -138,62 +171,87 @@ export class PortalNuevoPage {
     return Number(texto.match(/M[ií]nimo\s+(\d+)/i)?.[1] ?? 1);
   }
 
-  /** Precio de la modalidad tal como lo muestra la ficha ("PRECIO USD 95"). */
+  /**
+   * Precio por persona de la modalidad tal como lo muestra la ficha ("Precio por persona
+   * USD 48"). Desde la US 5040 aparece recien con los pasajeros elegidos; antes muestra "-".
+   */
   async precioDeLaModalidad(modalidad: string): Promise<string> {
     const texto = (await this.bloqueDeModalidad(modalidad).innerText()).replace(/\s+/g, ' ');
-    return texto.match(/PRECIO\s+([A-Z]{3}\s*[\d.,]+)/i)?.[1] ?? '';
+    return texto.match(/PRECIO(?: POR PERSONA)?\s+([A-Z]{3}\s*[\d.,]+)/i)?.[1] ?? '';
   }
 
   async elegirPasajeros(modalidad: string, pasajeros: number) {
-    await this.bloqueDeModalidad(modalidad).getByRole('combobox', { name: `Pasajeros · ${modalidad}` }).selectOption(String(pasajeros));
+    await this.bloqueDeModalidad(modalidad).getByRole('combobox', { name: `PAX · ${modalidad}` }).selectOption(String(pasajeros));
   }
 
   /** Total que arma la ficha con los pasajeros elegidos ("Total USD 190", junto a "Agregar al carrito"). */
   async totalDeLaFicha(): Promise<string> {
-    const total = this.page.locator('main').getByText(/^Total\s+[A-Z]{3}\s*[\d.,]+$/).last();
-    await expect(total, 'La ficha tiene que mostrar el total con los pasajeros elegidos').toBeVisible({ timeout: 30_000 });
-    return (await total.innerText()).replace(/^Total\s+/, '').trim();
+    // "Total" y el importe van en elementos separados, junto a "Agregar al carrito".
+    const total = this.page.locator('main').getByText('Total', { exact: true }).last().locator('xpath=following-sibling::strong[1]');
+    await expect(total, 'La ficha tiene que mostrar el total con los pasajeros elegidos').toHaveText(/[A-Z]{3}\s*[\d.,]+/, { timeout: 30_000 });
+    return (await total.innerText()).trim();
   }
 
   async agregarAlCarrito(modalidad: string, pasajeros: number) {
     await this.elegirPasajeros(modalidad, pasajeros);
     await this.page.getByRole('button', { name: 'Agregar al carrito' }).click();
-    await expect(this.page.getByRole('status').filter({ hasText: /Se agregó \d+ ítem al carrito/ }),
+    await expect(this.page.getByRole('status').filter({ hasText: /Se agregó \d+ ítem al carrito/ }).first(),
       'Agregar al carrito tiene que confirmar').toBeVisible();
   }
 
   /** Contador del carrito en el encabezado: cuenta items, no pasajeros. */
   async itemsEnElCarrito(): Promise<number> {
     // Por su direccion y no por el nombre: el rotulo se traduce ("Carrito", "Cart").
-    return Number((await this.page.getByRole('banner').locator('a[href="/site/cart"]').first().innerText()).match(/\d+/)?.[0] ?? 0);
+    return Number((await this.page.getByRole('banner').locator('a[href="/site/cart"] #lblCartCount').first().innerText()).match(/\d+/)?.[0] ?? 0);
   }
 
-  /** El item del carrito: "02/11/2026 2 x Regular Excursion Español" y su importe. */
+  /** El item del resumen de la compra: "Excursión Español · 2 Regular 30/11/2026 USD 96". */
   itemDelCarrito(nombre: string): Locator {
     return this.page.locator('main article').filter({ has: this.page.getByRole('heading', { name: nombre, exact: true }) }).first();
   }
 
+  /** Como la persona: el panel del encabezado y "Ir al carrito" (pantalla "Resumen de la compra"). */
+  /** La caja del total del carrito: desde noviembre "Total compra" (.scp-total); antes, el panel lateral. */
+  get cajaDelTotal(): Locator {
+    return this.page.locator('main .scp-total').or(this.page.locator('main').getByRole('complementary')).first();
+  }
+
+  /** El importe del total del carrito, como lo muestra la pantalla ("USD 1.234"). */
+  async totalDelCarrito(): Promise<string> {
+    const texto = (await this.cajaDelTotal.innerText()).replace(/\s+/g, ' ');
+    const desde = texto.toLowerCase().lastIndexOf('total');
+    return texto.slice(Math.max(desde, 0)).match(/(?:[A-Z]{3}|\$)\s*-?\d[\d.,]*/)?.[0] ?? '';
+  }
+
   async irAlCarrito() {
-    await this.page.goto('/site/cart');
-    await expect(this.page.getByRole('heading', { name: 'Carrito', level: 1 })).toBeVisible();
+    await this.abrirPanelDelCarrito();
+    await this.panelDelCarrito.getByRole('link', { name: 'Ir al carrito' }).click();
+    await expect(this.page.getByRole('heading', { name: 'Resumen de la compra', level: 1 })).toBeVisible();
   }
 
   async reservarDesdeElCarrito(referencia: string, comentarios: string) {
-    await this.page.goto('/site/cart');
+    await this.irAlCarrito();
     await this.page.getByRole('textbox', { name: 'Referencia' }).fill(referencia);
     await this.page.getByRole('textbox', { name: 'Comentarios' }).fill(comentarios);
-    await this.page.getByRole('button', { name: 'Reservar', exact: true }).click();
+    await this.page.getByRole('button', { name: 'Continuar', exact: true }).click();
     await expect(this.page, 'Reservar tiene que llevar a los datos de la reserva').toHaveURL(/\/site\/checkout/);
   }
 
   /** Datos de la reserva: observaciones del item, un formulario por pasajero y terminos. */
   async completarDatosDeLaReserva(pasajeros: PasajeroNuevo[], observacionesDelItem: string) {
-    await this.page.getByRole('textbox', { name: /^Observaciones · / }).first().fill(observacionesDelItem);
-    // Arranca con un grupo "Datos del pasajero"; al agregar, los grupos pasan a llamarse
-    // "Pasajero 1", "Pasajero 2"... Se los ubica por lo que tienen adentro y no por el nombre.
-    const grupos = this.page.getByRole('group').filter({ has: this.page.getByRole('textbox', { name: 'Pasaporte', exact: true }) });
+    await this.page.getByRole('textbox', { name: /^Comentario\(s\) \/ fecha\(s\) \/ vuelo · / }).first().fill(observacionesDelItem);
+    // Un grupo por pasajero ("Datos del pasajero" o "Pasajero 1", "Pasajero 2"...): se los
+    // ubica por lo que tienen adentro y no por el nombre. Los opcionales suman "opcional" al rotulo.
+    // La cantidad de pasajeros la carga la persona, igual que en el portal actual: en un
+    // servicio viene con la del carrito, pero en un hotel viene con las habitaciones (1).
+    // Desde noviembre "Añadir pasajero" aparece solo mientras haya menos pasajeros que esa cantidad:
+    // primero se carga la cantidad.
+    const cantidad = this.page.getByRole('spinbutton', { name: 'Cantidad de PAX' });
+    await cantidad.fill(String(pasajeros.length));
+    await expect(cantidad, 'La cantidad de pasajeros tiene que quedar cargada').toHaveValue(String(pasajeros.length));
+    const grupos = this.page.getByRole('group').filter({ has: this.page.getByRole('textbox', { name: /^Pasaporte/ }) });
     for (let n = await grupos.count(); n < pasajeros.length; n++) {
-      await this.page.getByRole('button', { name: 'Agregar pasajero' }).click();
+      await this.page.getByRole('button', { name: 'Añadir pasajero' }).click();
       await expect(grupos).toHaveCount(n + 1);
     }
     for (const [i, pax] of pasajeros.entries()) {
@@ -202,13 +260,16 @@ export class PortalNuevoPage {
       const nombre = g.getByRole('textbox', { name: 'Nombre', exact: true });
       const apellido = g.getByRole('textbox', { name: 'Apellido', exact: true });
       const nacimiento = g.getByRole('textbox', { name: 'Fecha de nacimiento', exact: true });
-      const nacionalidad = g.getByRole('combobox', { name: 'Nacionalidad', exact: true });
-      const pasaporte = g.getByRole('textbox', { name: 'Pasaporte', exact: true });
+      const nacionalidad = g.getByRole('combobox', { name: /^Nacionalidad/ });
+      const pasaporte = g.getByRole('textbox', { name: /^Pasaporte/ });
       await nombre.fill(pax.nombre);
       await apellido.fill(pax.apellido);
       await nacimiento.fill(pax.nacimiento);
       await nacimiento.press('Tab');
-      await nacionalidad.selectOption({ label: pax.nacionalidad });
+      // Combobox con buscador (no un select nativo): se escribe y se elige la opcion.
+      await nacionalidad.click();
+      await nacionalidad.fill(pax.nacionalidad);
+      await this.page.getByRole('option', { name: pax.nacionalidad, exact: true }).click();
       await pasaporte.fill(pax.pasaporte);
       const quien = `Pasajero ${i + 1}`;
       await expect(nombre, `${quien}: el nombre tiene que quedar cargado`).toHaveValue(pax.nombre);
@@ -216,23 +277,20 @@ export class PortalNuevoPage {
       await expect(nacimiento, `${quien}: la fecha de nacimiento tiene que quedar cargada`).toHaveValue(pax.nacimiento);
       await expect(pasaporte, `${quien}: el pasaporte tiene que quedar cargado`).toHaveValue(pax.pasaporte);
     }
-    // La cantidad de pasajeros la carga la persona, igual que en el portal actual: en un
-    // servicio viene con la del carrito, pero en un hotel viene con las habitaciones (1).
-    const cantidad = this.page.getByRole('spinbutton', { name: 'Cantidad de pasajeros' });
-    await cantidad.fill(String(pasajeros.length));
-    await expect(cantidad, 'La cantidad de pasajeros tiene que quedar cargada').toHaveValue(String(pasajeros.length));
-    await this.page.getByRole('checkbox', { name: 'Acepto los términos y condiciones' }).check();
+    await this.page.getByRole('checkbox', { name: 'Términos y condiciones' }).check();
   }
 
   /**
-   * Confirma la reserva y devuelve su codigo. El resultado se muestra en la misma
-   * direccion (/site/checkout): "Reserva enviada · La reserva BO00025832 quedo registrada".
+   * Confirma la reserva y devuelve su codigo. Desde la US 5040 el resultado es un aviso
+   * sobre la misma pantalla (/site/checkout) con el codigo y "Ver la reserva".
    */
   async confirmarReserva(): Promise<string> {
-    await this.page.getByRole('button', { name: 'Reservar', exact: true }).click();
-    await expect(this.page.getByRole('heading', { name: 'Reserva enviada' }), 'Confirmar tiene que registrar la reserva')
+    await this.page.getByRole('button', { name: 'Confirmar reserva', exact: true }).click();
+    const aviso = this.page.getByRole('status').filter({ hasText: '¡Reserva generada!' });
+    await expect(aviso.getByRole('link', { name: 'Ver reserva' }), 'Confirmar tiene que registrar la reserva')
       .toBeVisible({ timeout: 90_000 });
-    const texto = (await this.page.locator('main').innerText()).replace(/\s+/g, ' ');
+    // El codigo va en el sello del aviso ("BO00025832").
+    const texto = ((await aviso.textContent()) ?? '').replace(/\s+/g, ' ');
     const codigo = texto.match(/BO\d{8}/)?.[0] ?? '';
     expect(codigo, `La confirmacion tiene que mostrar el codigo de la reserva. Dice: "${texto.slice(0, 200)}"`).toMatch(/^BO\d{8}$/);
     return codigo;
@@ -261,10 +319,12 @@ export class PortalNuevoPage {
   }
 
   /** Un dato de la cabecera del detalle por su rotulo ("Referencia", "Comentario(s)", "Total de la reserva"...). */
-  async datoDelDetalle(rotulo: string): Promise<string> {
+  async datoDelDetalle(rotulo: string | string[]): Promise<string> {
+    // Acepta varios rotulos: el de la US 5040 ("Comentario") y el anterior ("Comentario(s)").
+    const rotulos = (Array.isArray(rotulo) ? rotulo : [rotulo]).map((r) => r.toLowerCase());
     const texto = (await this.page.locator('main').innerText()).replace(/\r/g, '');
     const lineas = texto.split('\n').map((l) => l.trim()).filter(Boolean);
-    const i = lineas.findIndex((l) => l.toLowerCase() === rotulo.toLowerCase());
+    const i = lineas.findIndex((l) => rotulos.includes(l.toLowerCase()));
     return i >= 0 ? lineas[i + 1] ?? '' : '';
   }
 }

@@ -83,8 +83,8 @@ export class WebAdminSeriePage {
     await this.aviso(/salidas se guardaron correctamente/, 'Guardar las salidas tiene que confirmar');
   }
 
-  /** Carga las tarifas de una salida para todas las categorias. Punto decimal. */
-  async tarifas(serie: number, clave: string, valores: TarifasPorCategoria) {
+  /** Abre el modal "Cargar Tarifas" de una sola salida y devuelve sus filas, una por categoria. */
+  private async modalDeTarifas(serie: number, clave: string) {
     await this.abrir(serie, 'pnlSeriesTariffs');
     const dia = this.page.locator(`[id$="ctrlSerieTariffsControl_grid"] .tariff-day[data-key="${clave}"]`);
     for (let i = 0; i < 4 && !(await dia.isVisible().catch(() => false)); i++) {
@@ -98,8 +98,39 @@ export class WebAdminSeriePage {
     const modal = this.page.locator('.tariff-modal');
     await expect(modal, 'Tiene que abrirse el modal de tarifas').toBeVisible({ timeout: 60_000 });
     const filas = modal.locator('tr').filter({ has: this.page.locator('input[id$="hfGroupOrder"]') });
+    expect(await filas.count(), 'El modal tiene que mostrar las categorias del paquete').toBeGreaterThan(0);
+    return filas;
+  }
+
+  /**
+   * Lee las tarifas cargadas de una salida (por habitacion, USD) y cierra el modal con Cancelar,
+   * sin grabar. Un campo vacio es una tarifa que no esta cargada (null).
+   */
+  async leerTarifas(serie: number, clave: string): Promise<{ grupo: number; categoria: string; sgl: number | null; dbl: number | null; tpl: number | null; mnr: number | null }[]> {
+    const filas = await this.modalDeTarifas(serie, clave);
+    const valor = async (fila: ReturnType<typeof filas.nth>, sufijo: string) => {
+      const v = (await fila.locator(`input[id$="_${sufijo}"]`).inputValue()).trim().replace(',', '.');
+      return v === '' ? null : Number(v);
+    };
+    const leidas = [];
+    for (let i = 0; i < await filas.count(); i++) {
+      const fila = filas.nth(i);
+      leidas.push({
+        grupo: Number(await fila.locator('input[id$="hfGroupOrder"]').inputValue()),
+        categoria: (await fila.locator('td').first().innerText()).trim(),
+        sgl: await valor(fila, 'txtSglRate'), dbl: await valor(fila, 'txtDblRate'),
+        tpl: await valor(fila, 'txtTplRate'), mnr: await valor(fila, 'txtMnrRate'),
+      });
+    }
+    await this.page.locator('[id$="ctrlSerieTariffsControl_btnCancel"]').click();
+    await expect(this.page.locator('.tariff-modal'), 'Cancelar tiene que cerrar el modal sin grabar').toBeHidden({ timeout: 60_000 });
+    return leidas;
+  }
+
+  /** Carga las tarifas de una salida para todas las categorias. Punto decimal. */
+  async tarifas(serie: number, clave: string, valores: TarifasPorCategoria) {
+    const filas = await this.modalDeTarifas(serie, clave);
     const n = await filas.count();
-    expect(n, 'El modal tiene que mostrar las categorias del paquete').toBeGreaterThan(0);
     for (let i = 0; i < n; i++) {
       const fila = filas.nth(i);
       const g = Number(await fila.locator('input[id$="hfGroupOrder"]').inputValue());

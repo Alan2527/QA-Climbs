@@ -42,9 +42,10 @@ test.describe('WebAdmin — observaciones y regimen de habitacion', () => {
     const dialogo = await t.verTarifario(t.card(E.hotelNombre));
     const cabecera = dialogo.locator('.hr__room-name').first();
     await expect(cabecera, 'El tarifario tiene que mostrar la habitacion del hotel').toBeVisible({ timeout: 60_000 });
-    const fila = dialogo.locator('tbody tr').filter({ has: page.locator('.hr__dates', { hasText: PERIODO }) }).first();
+    // Desde el 20/11 (#176) las fechas del corte van en .hr__rate-dates y la observacion, en negrita debajo.
+    const fila = dialogo.locator('tbody tr').filter({ has: page.locator('.hr__rate-dates, .hr__dates', { hasText: PERIODO }) }).first();
     await expect(fila, `El tarifario tiene que mostrar el corte ${PERIODO}`).toBeVisible({ timeout: 60_000 });
-    const observacion = fila.locator('th small:not(.hr__extended)');
+    const observacion = fila.locator('.hr__rate-dates strong, th small:not(.hr__extended)');
     const estado = {
       cabecera: (await cabecera.innerText()).replace(/\s+/g, ' ').trim(),
       observacion: (await observacion.count()) ? (await observacion.first().innerText()).replace(/\s+/g, ' ').trim() : '',

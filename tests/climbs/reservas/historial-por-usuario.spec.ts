@@ -90,7 +90,8 @@ test.describe('Historial de reservas y cotizaciones por agencia', () => {
       while (fila.parentElement && !/CC\d{8}/.test(fila.innerText)) fila = fila.parentElement;
       const lineas = fila.innerText.split('\n').map((l) => l.trim()).filter(Boolean);
       const despuesDe = (r: RegExp) => { const i = lineas.findIndex((l) => r.test(l)); return i >= 0 ? lineas[i + 1] ?? '' : ''; };
-      const iFecha = lineas.findIndex((l) => /^\d{2}\/\d{2}\/\d{4}/.test(l));
+      // Desde la US 5040 la fecha va con guiones (27-10-2026 10:21); antes, con barras.
+      const iFecha = lineas.findIndex((l) => /^\d{2}[/-]\d{2}[/-]\d{4}/.test(l));
       return {
         codigo: lineas.find((l) => /^CC\d{8}$/.test(l)) ?? '',
         id: (a.getAttribute('href') ?? '').match(/\/quote\/(\d+)/)?.[1] ?? '',

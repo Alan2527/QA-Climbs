@@ -76,6 +76,13 @@ export class CajaDiariaNuevaPage {
   }
 
   private async abrirFiltroDeCaja(): Promise<Locator> {
+    // Con la caja bajada, el encabezado se compacta y se mueve al llevar el filtro a la vista:
+    // se sube primero con la rueda, como lo haria una persona, y se espera que quede quieto.
+    const vista = this.page.viewportSize();
+    if (vista) await this.page.mouse.move(vista.width / 2, vista.height / 2);
+    await this.page.mouse.wheel(0, -20_000);
+    await expect(this.page.locator('#dc-filter')).toBeInViewport();
+    await this.page.waitForTimeout(500);
     await this.page.locator('#dc-filter').click();
     const lista = this.page.getByRole('listbox', { name: 'Medio' });
     await expect(lista).toBeVisible();
@@ -88,7 +95,9 @@ export class CajaDiariaNuevaPage {
     }
     const lista = await this.abrirFiltroDeCaja();
     const cajas = (await lista.getByRole('option').allInnerTexts()).map((t) => t.trim());
-    await this.page.keyboard.press('Escape');
+    // La caja abre como dialogo sobre el listado: Escape cerraria tambien la caja. La lista se
+    // cierra tocando afuera, en el titulo "Totales".
+    await this.page.getByText('Totales', { exact: true }).first().click();
     await expect(lista).toBeHidden();
     return cajas;
   }

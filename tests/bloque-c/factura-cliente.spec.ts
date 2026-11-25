@@ -60,7 +60,8 @@ test.describe('Cobranzas', () => {
     // La factura al cliente **no necesita** la factura del proveedor ni la orden
     // de pago: entra por el file. Por eso su precondicion es la mas corta de la
     // cadena, apenas la reserva y su file.
-    const precondicion = await reservarServicioYGenerarFile(page, sello);
+    // En English (US 4739): el file trae el servicio y su Adicional Idioma, y lo que se exige es la venta de los dos.
+    const precondicion = await reservarServicioYGenerarFile(page, sello, { conIdioma: true });
 
     // El buscador de files filtra por el cliente elegido, y la grilla muestra el
     // numero sin el prefijo ni el sufijo del codigo que se ve en el file. Se
@@ -157,10 +158,12 @@ test.describe('Cobranzas', () => {
           .toContain('TIGRE Y DELTA');
       });
 
-      // Un unico concepto, el del servicio reservado.
+      // Un concepto por item del file: el servicio y su Adicional Idioma.
       await conResaltado(page, page.locator(factura.grillaDeConceptos), 'Cantidad de conceptos', () => {
         expect(conceptos.length, 'El file tiene que traer un concepto por item reservado')
-          .toBe(1);
+          .toBe(precondicion.itemsDelFile);
+        expect(conceptos.flat().join(' | ').toUpperCase(), 'Los conceptos tienen que traer el Adicional Idioma del file (US 4739)')
+          .toContain('ADICIONAL IDIOMA');
       });
 
       // Columnas del concepto: tipo, codigo, nombre, ciudad, fecha, cantidad,
@@ -198,7 +201,7 @@ test.describe('Cobranzas', () => {
       totalDelComprobante = importe(await page.locator(factura.campoTotal).inputValue());
       const total = totalDelComprobante;
       await adjuntarTexto('Total del comprobante',
-        `${total.valor} (venta del item en el file: ${precondicion.ventaDelItem.valor})`);
+        `${total.valor} (venta del file: ${precondicion.ventaDelItem.valor} + Adicional Idioma ${precondicion.adicionalDelIdioma?.venta.valor} = ${precondicion.ventaDelFile.valor})`);
 
       await conResaltado(page, page.locator(factura.campoTotal), 'Total del comprobante', () => {
         if (aviso) {
@@ -207,11 +210,11 @@ test.describe('Cobranzas', () => {
           expect(total.valor as number,
             `El comprobante aplica un descuento (${aviso}), asi que su total tiene que ser ` +
             'menor que la venta del item del file')
-            .toBeLessThan(precondicion.ventaDelItem.valor as number);
+            .toBeLessThan(precondicion.ventaDelFile.valor as number);
         } else {
           expect(total.valor,
-            'Sin descuento, el total del comprobante tiene que ser la venta del item del file')
-            .toBe(precondicion.ventaDelItem.valor);
+            'Sin descuento, el total del comprobante tiene que ser la venta del file (servicio + Adicional Idioma)')
+            .toBe(precondicion.ventaDelFile.valor);
         }
       });
     });

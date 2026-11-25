@@ -3,6 +3,7 @@ import { InicioPage } from '../../pages/inicio.page';
 import { ServicioPage } from '../../pages/servicio.page';
 import { CarritoPage, Pasajero } from '../../pages/carrito.page';
 import { BackOfficePage } from '../../pages/backoffice.page';
+import { conBackofficeNuevo, costosDelServicio, tarifaVigente, precioEsperado } from '../../utils/markups';
 import {
   paso, adjuntarTexto, esperarFinDeCarga, fechaDeBusqueda, formatearFecha,
   importeANumero, selloEnLetras,
@@ -97,12 +98,27 @@ export type Precondicion = Awaited<ReturnType<typeof reservarServicioYGenerarFil
  * se corta con un motivo claro cuando algo no esta, para que un problema de
  * precondicion no se lea como un fallo de la factura.
  */
-export async function reservarServicioYGenerarFile(page: Page, sello: string): Promise<{
+/** Tigre y Delta (AUTO-QA), el servicio de la precondicion: su costo se lee en el Backoffice nuevo. */
+const SERVICIO_REGRESION_ID = 5;
+
+/**
+ * Con `conIdioma` la reserva se hace en English (US 4739): Tigre y Delta tiene un recargo del 10% para English en
+ * su tarifa Regular. El file suma la fila "Adicional Idioma" del servicio y la venta de las dos filas tiene que ser
+ * techo((costo + recargo) por persona / cotizacion / markup de la agencia) x pasajeros: la US pide que "el valor
+ * final tiene que calcularse aplicando el markup de la agencia sobre costo + recargo en conjunto, nunca sobre el
+ * costo solo", y que el idioma y el recargo "tienen que llegar completos hasta el item de la reserva".
+ */
+export async function reservarServicioYGenerarFile(page: Page, sello: string, opciones: { conIdioma?: boolean } = {}): Promise<{
   codigo: string;
   fileId: string;
   fileCode: string;
   costoDelItem: { moneda: string; valor: number | null };
   ventaDelItem: { moneda: string; valor: number | null };
+  /** Con `conIdioma`: la fila "Adicional Idioma" del file. */
+  adicionalDelIdioma: { costo: { moneda: string; valor: number | null }; venta: { moneda: string; valor: number | null } } | null;
+  /** La venta de todo el file (el servicio y, si hay, su Adicional Idioma) y cuantos items tiene. */
+  ventaDelFile: { moneda: string; valor: number | null };
+  itemsDelFile: number;
   apellidoDelPax: string;
   servicio: string;
   cliente: string;
@@ -137,6 +153,14 @@ export async function reservarServicioYGenerarFile(page: Page, sello: string): P
     });
     await servicio.buscarPorNombre(datos.terminoDeBusqueda, datos.servicio);
     await servicio.abrirFicha(datos.servicio.slice(0, 24));
+    if (opciones.conIdioma) {
+      const idiomas = await page.locator('#sdLangSelect option').evaluateAll(
+        (os) => os.map((o) => ({ valor: (o as HTMLOptionElement).value, texto: (o.textContent ?? '').trim() })));
+      const ingles = idiomas.find((o) => /^(English|Ingl[eé]s)$/i.test(o.texto));
+      expect(ingles, `La ficha tiene que ofrecer el idioma English. Ofrece: ${idiomas.map((o) => o.texto).join(', ')}`).toBeDefined();
+      await page.locator('#sdLangSelect').selectOption(ingles!.valor);
+      await esperarFinDeCarga(page);
+    }
 
     const fila = servicio.bloqueDeModalidad(datos.modalidad);
     await expect(
@@ -181,6 +205,8 @@ export async function reservarServicioYGenerarFile(page: Page, sello: string): P
   let fileCode = '';
   let costoDelItem = { moneda: '', valor: null as number | null };
   let ventaDelItem = { moneda: '', valor: null as number | null };
+  let adicionalDelIdioma: { costo: { moneda: string; valor: number | null }; venta: { moneda: string; valor: number | null } } | null = null;
+  let itemsDelFile = 0;
   let cliente = '';
 
   await paso(page, 'Confirmar la reserva y generar su file en el BackOffice', async () => {
@@ -220,6 +246,13 @@ export async function reservarServicioYGenerarFile(page: Page, sello: string): P
     const montos = await bo.montosDelItemDelFile(filaDelServicio);
     costoDelItem = importe(montos.costo);
     ventaDelItem = importe(montos.venta);
+    itemsDelFile = await page.locator(bo.filaServicioDelFile).count();
+    if (opciones.conIdioma) {
+      const filaDelAdicional = page.locator(bo.filaServicioDelFile).filter({ hasText: /Adicional Idioma/i }).first();
+      await expect(filaDelAdicional, 'Reservado en English, el file tiene que traer la fila "Adicional Idioma" del servicio (US 4739)').toBeVisible();
+      const m = await bo.montosDelItemDelFile(filaDelAdicional);
+      adicionalDelIdioma = { costo: importe(m.costo), venta: importe(m.venta) };
+    }
 
     await adjuntarTexto('Precondicion generada', [
       `Reserva: ${codigo}`,
@@ -229,6 +262,8 @@ export async function reservarServicioYGenerarFile(page: Page, sello: string): P
       `Cliente: ${cliente}`,
       `Costo del item: ${montos.costo || '?'}`,
       `Venta del item: ${montos.venta || '?'}`,
+      ...(adicionalDelIdioma ? [`Adicional Idioma: costo ${adicionalDelIdioma.costo.valor} / venta ${adicionalDelIdioma.venta.valor}`] : []),
+      `Items del file: ${itemsDelFile}`,
     ].join(SALTO));
 
     // Sin costo no hay nada que facturar: el item ni siquiera se listaria
@@ -240,8 +275,49 @@ export async function reservarServicioYGenerarFile(page: Page, sello: string): P
     ).toBeGreaterThan(0);
   });
 
+  await paso(page, 'El item del file tiene el costo y la venta de la tarifa del servicio', async () => {
+    // Costo = costo por persona de la tarifa Regular vigente x pasajeros, en su moneda.
+    // Venta = lo que AMV le cobra a la agencia: techo(costo por persona / cotizacion / markup de la
+    // agencia) x pasajeros. La agencia de pablo1 (1) no tiene markup de mercado (1); el CustomMarkup
+    // de pablo1 es el que la agencia muestra en el sitio y no entra en la venta de AMV.
+    const costos = await conBackofficeNuevo(page.context().browser()!, (b) => costosDelServicio(b, SERVICIO_REGRESION_ID));
+    const tarifa = tarifaVigente(costos, datos.modalidad, fecha, datos.cantidadPax);
+    expect(tarifa, `El servicio ${SERVICIO_REGRESION_ID} tiene que tener una tarifa ${datos.modalidad} vigente el ${datos.fecha}`).toBeDefined();
+    const costo = Number((tarifa!.costo! * datos.cantidadPax).toFixed(2));
+    const venta = precioEsperado(tarifa!.costo!, tarifa!.moneda, 1)! * datos.cantidadPax;
+    await adjuntarTexto('Costo y venta esperados', [
+      `Tarifa: ${tarifa!.vigencia} | ${tarifa!.modalidad} | ${tarifa!.moneda} ${tarifa!.costo} por persona | ${datos.cantidadPax} pax`,
+      `Costo esperado: ${tarifa!.moneda} ${costo} / en el file: ${costoDelItem.moneda} ${costoDelItem.valor}`,
+      `Venta esperada: USD ${venta} / en el file: ${ventaDelItem.moneda} ${ventaDelItem.valor}`,
+    ].join(SALTO));
+    expect(costoDelItem.moneda, 'El costo del item tiene que estar en la moneda de la tarifa').toBe(tarifa!.moneda);
+    expect(costoDelItem.valor, 'El costo del item tiene que ser el costo por persona de la tarifa por los pasajeros').toBe(costo);
+    expect(ventaDelItem.moneda, 'La venta del item tiene que estar en USD').toBe('USD');
+    // Con idioma la venta se reparte entre el servicio y su Adicional Idioma, y la US no dice como: se exige la suma (abajo).
+    if (!opciones.conIdioma) expect(ventaDelItem.valor, 'La venta del item tiene que ser techo(costo / cotizacion) por pasajero, por los pasajeros').toBe(venta);
+    const adicional = adicionalDelIdioma;
+    if (adicional) {
+      const recargo = tarifa!.recargos.find((r) => /^(English|Ingl[eé]s)$/i.test(r.idioma));
+      expect(recargo, `La tarifa ${datos.modalidad} del servicio ${SERVICIO_REGRESION_ID} tiene que tener recargo para English`).toBeDefined();
+      const recargoPax = recargo!.tipo === 'porcentaje' ? tarifa!.costo! * recargo!.valor / 100 : recargo!.tipo === 'porPasajero' ? recargo!.valor : recargo!.valor / datos.cantidadPax;
+      const costoDelRecargo = Number((recargoPax * datos.cantidadPax).toFixed(2));
+      const ventaConRecargo = precioEsperado(tarifa!.costo! + recargoPax, tarifa!.moneda, 1)! * datos.cantidadPax;
+      const ventaDeLasDos = Number(((ventaDelItem.valor ?? 0) + (adicional.venta.valor ?? 0)).toFixed(2));
+      await adjuntarTexto('Adicional Idioma esperado', [
+        `Recargo English: ${JSON.stringify(recargo)} -> ${tarifa!.moneda} ${recargoPax} por persona`,
+        `Costo del adicional esperado: ${tarifa!.moneda} ${costoDelRecargo} / en el file: ${adicional.costo.moneda} ${adicional.costo.valor}`,
+        `Venta del servicio + adicional esperada: techo((${tarifa!.costo} + ${recargoPax}) / cotizacion) x ${datos.cantidadPax} = USD ${ventaConRecargo} / en el file: ${ventaDelItem.valor} + ${adicional.venta.valor} = ${ventaDeLasDos}`,
+      ].join(String.fromCharCode(10)));
+      expect(adicional.costo.valor, 'El file tiene que traer el recargo de English como item de costo propio ("Adicional Idioma")').toBe(costoDelRecargo);
+      expect(ventaDeLasDos, 'La venta del servicio mas su Adicional Idioma tiene que ser techo((costo + recargo) / cotizacion / markup) x pasajeros (US 4739)').toBe(ventaConRecargo);
+    }
+  });
+
+  // TypeScript no ve la asignacion dentro del paso: se tipa a mano.
+  const ad = adicionalDelIdioma as { venta: { valor: number | null } } | null;
+  const ventaDelFile = { moneda: ventaDelItem.moneda, valor: ad ? Number(((ventaDelItem.valor ?? 0) + (ad.venta.valor ?? 0)).toFixed(2)) : ventaDelItem.valor };
   return {
-    codigo, fileId, fileCode, costoDelItem, ventaDelItem,
+    codigo, fileId, fileCode, costoDelItem, ventaDelItem, adicionalDelIdioma, ventaDelFile, itemsDelFile,
     apellidoDelPax: datos.apellido, servicio: datos.servicio,
     cliente, fechaDelServicio: datos.fecha, cantidadPax: datos.cantidadPax,
   };

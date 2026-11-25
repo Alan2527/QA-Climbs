@@ -1,6 +1,7 @@
 import { test } from '@playwright/test';
-import { reiniciarNumeracionDePasos, fechaDeBusqueda } from '../../../utils/pasos';
-import { Importe, verificarEnElBackofficeNuevo, armarCircuitoYEmitir, reservaDeCircuito, CONTEXTO } from './reservas-comun';
+import { reiniciarNumeracionDePasos } from '../../../utils/pasos';
+import { Importe, verificarEnElBackofficeNuevo, armarCircuitoYEmitir, reservaDeCircuito, CONTEXTO, fechaDelPaquete } from './reservas-comun';
+import candidatos from '../../../data/candidatos.json';
 
 /**
  * RESERVAS — app nueva (ClimbsApp). Riel de circuitos: oferta y multidestino.
@@ -15,7 +16,8 @@ test.describe('Reservas', () => {
   test('Oferta: la reserva emitida conserva los datos en el BackOffice', async ({ page }) => {
     test.setTimeout(600_000);
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
-    const fecha = fechaDeBusqueda();
+    // La oferta lleva el mismo traslado que el paquete (cerrado en marzo, junio, septiembre y diciembre) y el mismo hotel.
+    const fecha = fechaDelPaquete();
     const reserva = { ...reservaDeCircuito(sello, fecha), item: 'AUTO-QA NO TOCAR - Oferta Buenos Aires y Ushuaia (6 días / 5 noches)' };
     const importes: Record<string, Importe> = {};
     const codigo = await armarCircuitoYEmitir(page, { solapa: 'OFERTAS', viaje: reserva.item, fecha, sello, reserva, importes });
@@ -29,10 +31,12 @@ test.describe('Reservas', () => {
   test('Multidestino: la reserva emitida conserva los datos en el BackOffice', async ({ page }) => {
     test.setTimeout(600_000);
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
-    const fecha = fechaDeBusqueda();
+    const fecha = fechaDelPaquete();
     const reserva = { ...reservaDeCircuito(sello, fecha), item: 'AUTO-QA NO TOCAR - Paquete Buenos Aires y Ushuaia (6 días / 5 noches)' };
     const importes: Record<string, Importe> = {};
-    const codigo = await armarCircuitoYEmitir(page, { solapa: 'MULTIDESTINO', viaje: reserva.item, fecha, sello, reserva, importes });
+    // La Cena Show AUTO-QA (163) del paquete tiene English USD 15 por pasajero en su tarifa Regular.
+    const codigo = await armarCircuitoYEmitir(page, { solapa: 'MULTIDESTINO', viaje: reserva.item, fecha, sello, reserva, importes,
+      idioma: { servicioId: candidatos.tarifario.cenaShow.id, item: 'Angelitos' } });
     await verificarEnElBackofficeNuevo({
       page, codigo, reserva, contexto: CONTEXTO, importes,
       claveDeReferencia: 'itinerario (total)', modalidadEnElFile: 'DOBLE', itemUnico: false,

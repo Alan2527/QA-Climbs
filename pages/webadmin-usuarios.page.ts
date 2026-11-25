@@ -276,6 +276,44 @@ export class WebAdminUsuariosPage {
     };
   }
 
+  // --------------------------------------------------------------- edicion
+
+  /**
+   * Cambia campos de la ficha abierta. Solo toca los que se le pasan: cada guardado del
+   * usuario vuelve a evaluar las condiciones de sincronizacion, asi que un cambio de mas
+   * (el tipo, el estado) hace que un resultado no se pueda atribuir al campo que se
+   * estaba probando.
+   */
+  async editar(campos: { email?: string; pais?: string; estado?: string; tipo?: string; publicado?: boolean }) {
+    if (campos.email !== undefined) await this.page.locator(this.email).fill(campos.email);
+    if (campos.pais !== undefined) await this.page.locator(this.pais).selectOption({ label: campos.pais });
+    if (campos.estado !== undefined) await this.page.locator(this.estado).selectOption({ label: campos.estado });
+    if (campos.tipo !== undefined) await this.page.locator(this.tipo).selectOption({ label: campos.tipo });
+    if (campos.publicado !== undefined) await this.marcarPublicado(campos.publicado);
+  }
+
+  /** "Publicado" es un interruptor estilizado: se toca el label, como el de la contrasena. */
+  private async marcarPublicado(valor: boolean) {
+    const check = this.page.locator(this.publicado);
+    if ((await check.isChecked()) === valor) return;
+    const id = await check.getAttribute('id');
+    await this.page.locator(`label[for="${id}"]`).click({ timeout: 10_000 }).catch(() => {});
+    if ((await check.isChecked()) !== valor) await check.click({ force: true });
+    expect(await check.isChecked(), `"Publicado" tenia que quedar en ${valor}`).toBe(valor);
+  }
+
+  /**
+   * "Guardar" sobre una ficha ya creada. A diferencia del alta no redirige: hace PostBack
+   * y vuelve a la misma ficha. El aviso de guardado (Customers/Detail.aspx.cs:493) es un
+   * mensaje que no queda en pantalla al terminar el PostBack, asi que no se espera: lo que
+   * importa es el efecto, y eso lo verifica el test contra MailerLite y releyendo la ficha.
+   */
+  async guardarEdicion() {
+    await this.page.locator(this.guardar).click();
+    await esperarFinDeCarga(this.page);
+    await expect(this.page.locator(this.guardar), 'La ficha tiene que volver del guardado').toBeVisible({ timeout: 60_000 });
+  }
+
   /** Valor y texto de la opcion elegida de un combo (los combos pueden venir estilizados). */
   private async opcion(css: string): Promise<OpcionElegida> {
     const combo = this.page.locator(css);

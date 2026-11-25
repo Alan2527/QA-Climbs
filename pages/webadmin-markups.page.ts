@@ -4,10 +4,14 @@ import { esperarFinDeCarga } from '../utils/pasos';
 /**
  * WebAdmin (BaseCamp): markup de un mercado y markup propio de una agencia.
  *
- * - Mercado: `administration/markets/detail.aspx?market=<id>` (Markets/Detail.aspx),
- *   campos Markup hoteles / Markup servicios.
- * - Agencia: `administration/agencies/detail.aspx?agency=<id>` (Agencies/Detail.aspx
- *   con AgencyMarketMarkupControl). Vacio = sigue al mercado.
+ * - Mercado: `administration/markets/detail.aspx?market=<id>` (Markets/Detail.aspx). Desde la
+ *   5107 (17/11/2026) el markup va por sucursal, en la tabla "Markups por sucursal": el de los
+ *   productos de Buenos Aires es la fila Argentina (casa matriz), que en el mercado 37 esta en
+ *   Manual. Se leen y escriben sus campos Hoteles / Servicios.
+ * - Agencia: `administration/agencies/detail.aspx?agency=<id>` (Agencies/Detail.aspx). Desde la
+ *   5107 el markup propio va en la solapa "Markup" (AgencyBranchMarkupControl), una fila por
+ *   sucursal: "Segun mercado" toma el del mercado; "Manual" fija los dos numeros (hoteles y
+ *   servicios) solo para esa agencia. Se usa la fila Argentina.
  *
  * Los importes se escriben con coma decimal, como los muestra la pantalla ("0,80").
  */
@@ -15,8 +19,9 @@ export class WebAdminMarkupsPage {
   constructor(private readonly page: Page) {}
 
   // Mercado
-  private readonly mercadoHotel = '[id$="pnlDetails_txtHotelMarkup_txtValue"]';
-  private readonly mercadoServicio = '[id$="pnlDetails_txtServiceMarkup_txtValue"]';
+  private readonly filaArgentina = 'table.bm-grid tbody tr:has(strong:text-is("Argentina"))';
+  private readonly mercadoHotel = `${this.filaArgentina} [id$="txtRowHotel"]`;
+  private readonly mercadoServicio = `${this.filaArgentina} [id$="txtRowService"]`;
   private readonly mercadoGuardar = '[id$="tabContainer_pnlDetails_btnSave"]';
   // Si alguna agencia del mercado tiene markup propio, guardar abre este modal en vez
   // de guardar. Los tests usan un mercado con una sola agencia y sin override, asi
@@ -24,9 +29,14 @@ export class WebAdminMarkupsPage {
   private readonly modalAgenciasConMarkup = '#pnlCustomMarkupModal';
 
   // Agencia
-  private readonly agenciaHotel = '[id$="ctrlMarketMarkup_txtHotelMarkup_txtValue"]';
-  private readonly agenciaServicio = '[id$="ctrlMarketMarkup_txtServiceMarkup_txtValue"]';
   private readonly agenciaGuardar = '[id$="AgencyTabContainer_pnlDetails_btnSave"]';
+  private readonly solapaMarkup = '[id$="AgencyTabContainer_pnlMarkup_tab"]';
+  private readonly filaArgentinaAgencia = '[id$="ctrlBranchMarkup_updBranchMarkup"] table.bm-grid tbody tr:has(strong:text-is("Argentina"))';
+  private readonly agenciaHotel = `${this.filaArgentinaAgencia} [id$="txtRowHotel"]`;
+  private readonly agenciaServicio = `${this.filaArgentinaAgencia} [id$="txtRowService"]`;
+  private readonly agenciaManual = `${this.filaArgentinaAgencia} input[type="radio"][value="manual"]`;
+  private readonly agenciaSegunMercado = `${this.filaArgentinaAgencia} input[type="radio"][value="auto"]`;
+  private readonly agenciaGuardarMarkup = '[id$="AgencyTabContainer_pnlMarkup_btnSaveMarkup"]';
   // Al guardar, el WebAdmin avisa si hay agencias con nombre parecido y pide confirmar.
   private readonly continuarAgenciaSimilar = '[id$="btnContinueSimilarAgencySave"]';
 
@@ -70,13 +80,77 @@ export class WebAdminMarkupsPage {
       .toEqual({ hotel, servicio });
   }
 
+  /** Fila de una sucursal en "Markups por sucursal" del mercado. */
+  private filaDelMercado(sucursal: string) {
+    return this.page.locator(`table.bm-grid tbody tr:has(strong:text-is("${sucursal}"))`).first();
+  }
+
+  /**
+   * Modo y markups de una sucursal del mercado (US 5107). En "Por defecto" los campos no se ven y
+   * la fila muestra en gris los que hereda ("0,88 de Peru 0,92 de Peru"): se leen de ese texto.
+   */
+  async markupDeLaSucursalDelMercado(sucursal: string): Promise<{ manual: boolean; hotel: number | null; servicio: number | null }> {
+    const fila = this.filaDelMercado(sucursal);
+    await expect(fila, `El mercado tiene que tener la fila de la sucursal ${sucursal}`).toBeVisible();
+    const manual = await fila.locator('input[type="radio"][id$="rblMode_1"]').isChecked();
+    if (manual) {
+      return {
+        manual,
+        hotel: WebAdminMarkupsPage.leer(await fila.locator('[id$="txtRowHotel"]').inputValue()),
+        servicio: WebAdminMarkupsPage.leer(await fila.locator('[id$="txtRowService"]').inputValue()),
+      };
+    }
+    const heredados = ((await fila.innerText()).replace(/\s+/g, ' ').match(/\d+,\d{2}(?= de )/g) ?? []).map((x) => WebAdminMarkupsPage.leer(x));
+    return { manual, hotel: heredados[0] ?? null, servicio: heredados[1] ?? null };
+  }
+
+  /** Pasa la sucursal del mercado a "Por defecto" o a Manual con los dos markups, guarda y relee. */
+  async guardarSucursalDelMercado(id: number, sucursal: string, valor: 'Por defecto' | { hotel: number; servicio: number }) {
+    await this.abrirMercado(id);
+    const fila = this.filaDelMercado(sucursal);
+    const manual = valor !== 'Por defecto';
+    const radio = fila.locator(`input[type="radio"][id$="rblMode_${manual ? 1 : 0}"]`);
+    if (!(await radio.isChecked())) {
+      // El cambio de modo hace postback parcial; la etiqueta tapa al radio.
+      await fila.locator(`label[for="${await radio.getAttribute('id')}"]`).click();
+      await esperarFinDeCarga(this.page);
+      await expect(this.filaDelMercado(sucursal).locator(`input[type="radio"][id$="rblMode_${manual ? 1 : 0}"]`)).toBeChecked();
+    }
+    if (manual) {
+      const f = this.filaDelMercado(sucursal);
+      await f.locator('[id$="txtRowHotel"]').fill(WebAdminMarkupsPage.formatear(valor.hotel));
+      await f.locator('[id$="txtRowService"]').fill(WebAdminMarkupsPage.formatear(valor.servicio));
+      await f.locator('[id$="txtRowService"]').blur();
+    }
+    await Promise.all([this.page.waitForLoadState('load'), this.page.locator(this.mercadoGuardar).click()]);
+    await esperarFinDeCarga(this.page);
+    await expect(this.page.locator(this.modalAgenciasConMarkup),
+      'Guardar el mercado no tiene que pedir revisar agencias con markup propio').toBeHidden();
+    await this.abrirMercado(id);
+    const guardado = await this.markupDeLaSucursalDelMercado(sucursal);
+    expect(guardado.manual, `${sucursal} tiene que quedar en ${manual ? 'Manual' : '"Por defecto"'}`).toBe(manual);
+    if (manual) expect(guardado, `${sucursal} tiene que quedar con los markups cargados`).toEqual({ manual, ...valor });
+  }
+
+  /** La ficha de la agencia en la solapa Detalle (tipo de cambio, datos generales). */
   async abrirAgencia(id: number) {
     await this.page.goto(`/administration/agencies/detail.aspx?agency=${id}`);
     await esperarFinDeCarga(this.page);
-    await expect(this.page.locator(this.agenciaHotel)).toBeVisible();
+    await expect(this.page.locator(this.agenciaGuardar)).toBeAttached();
   }
 
+  /** La ficha de la agencia en la solapa Markup, con la fila Argentina a la vista. */
+  async abrirMarkupDeLaAgencia(id: number) {
+    await this.abrirAgencia(id);
+    await this.page.locator(this.solapaMarkup).click();
+    await expect(this.page.locator(this.filaArgentinaAgencia)).toBeVisible();
+  }
+
+  /** Argentina en "Segun mercado" = sin markup propio ({null, null}); en Manual, sus dos numeros. */
   async markupsDeLaAgencia(): Promise<{ hotel: number | null; servicio: number | null }> {
+    if (!(await this.page.locator(this.filaArgentinaAgencia).isVisible())) await this.page.locator(this.solapaMarkup).click();
+    await expect(this.page.locator(this.filaArgentinaAgencia)).toBeVisible();
+    if (!(await this.page.locator(this.agenciaManual).isChecked())) return { hotel: null, servicio: null };
     return {
       hotel: WebAdminMarkupsPage.leer(await this.page.locator(this.agenciaHotel).inputValue()),
       servicio: WebAdminMarkupsPage.leer(await this.page.locator(this.agenciaServicio).inputValue()),
@@ -127,23 +201,35 @@ export class WebAdminMarkupsPage {
     }
   }
 
-  /** `null` deja el campo vacio: la agencia sigue al mercado en ese tipo. */
+  /**
+   * `null, null` deja Argentina en "Segun mercado" (sin markup propio). Con valores la pasa a
+   * Manual, que fija los dos numeros: para cambiar solo uno hay que repetir el del mercado en el otro.
+   */
   async guardarAgencia(id: number, hotel: number | null, servicio: number | null) {
-    await this.abrirAgencia(id);
-    await this.page.locator(this.agenciaHotel).fill(WebAdminMarkupsPage.formatear(hotel));
-    await this.page.locator(this.agenciaServicio).fill(WebAdminMarkupsPage.formatear(servicio));
-    await this.page.locator(this.agenciaServicio).blur();
-    await Promise.all([
-      this.page.waitForLoadState('load'),
-      this.page.locator(this.agenciaGuardar).click(),
-    ]);
+    const manual = hotel !== null || servicio !== null;
+    expect(!manual || (hotel !== null && servicio !== null), 'Manual fija los dos markups de la sucursal: hay que pasar hoteles y servicios').toBe(true);
+    await this.abrirMarkupDeLaAgencia(id);
+    const radio = this.page.locator(manual ? this.agenciaManual : this.agenciaSegunMercado);
+    if (!(await radio.isChecked())) {
+      // El cambio de modo hace postback parcial (UpdatePanel): se espera a que vuelva la fila.
+      // Se hace clic en la etiqueta ("Manual" / "Segun mercado"): tapa al radio.
+      await this.page.locator(`${this.filaArgentinaAgencia} label[for="${await radio.getAttribute('id')}"]`).click();
+      await esperarFinDeCarga(this.page);
+      await expect(this.page.locator(manual ? this.agenciaManual : this.agenciaSegunMercado)).toBeChecked();
+    }
+    if (manual) {
+      await this.page.locator(this.agenciaHotel).fill(WebAdminMarkupsPage.formatear(hotel));
+      await this.page.locator(this.agenciaServicio).fill(WebAdminMarkupsPage.formatear(servicio));
+      await this.page.locator(this.agenciaServicio).blur();
+    }
+    await Promise.all([this.page.waitForLoadState('load'), this.page.locator(this.agenciaGuardarMarkup).click()]);
     await esperarFinDeCarga(this.page);
     const continuar = this.page.locator(this.continuarAgenciaSimilar);
     if (await continuar.isVisible().catch(() => false)) {
       await Promise.all([this.page.waitForLoadState('load'), continuar.click()]);
       await esperarFinDeCarga(this.page);
     }
-    await this.abrirAgencia(id);
+    await this.abrirMarkupDeLaAgencia(id);
     expect(await this.markupsDeLaAgencia(), 'La agencia tiene que quedar con los markups cargados')
       .toEqual({ hotel, servicio });
   }

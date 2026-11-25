@@ -65,7 +65,7 @@ test.describe('Cobranzas', () => {
         const texto = celdas.join(' | ').toUpperCase();
         await adjuntarTexto(`Movimiento del ${r.que}`, celdas.join(' | '));
         expect(texto, `El ${r.que} tiene que quedar registrado en ${r.caja}`).toContain(r.caja.toUpperCase());
-        const importes = celdas.filter((c) => /^-?\d[\d.]*,\d+$/.test(c)).map((c) => Math.abs(n(c)));
+        const importes = celdas.filter((c) => /^-?\d[\d.]*(?:,\d+)?$/.test(c)).map((c) => Math.abs(n(c)));
         expect(importes, `El movimiento de ${r.que} tiene que ser por ${r.queImporte}`).toContain(r.importe);
         expect(celdas.join(' | '), `El movimiento de ${r.que} tiene que llevar la fecha de la caja`).toContain(fechaDeHoy);
         expect(texto, `El movimiento de ${r.que} tiene que identificar a ${r.contraparte}`).toContain(r.contraparte);

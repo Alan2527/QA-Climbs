@@ -71,7 +71,10 @@ test.describe('WebAdmin — cotizacion de grupo a reserva', () => {
       await paso(page, 'La cotizacion queda bloqueada para una segunda reserva', async () => {
         await cotizacion.abrir(id);
         await expect(cotizacion.botonCrearReserva, 'Con reserva creada, "Crear reserva" tiene que quedar deshabilitado').toBeDisabled();
-        await expect(cotizacion.botonCrearReserva).toHaveAttribute('title', 'Ya existe una reserva para esta cotización');
+        // El motivo ya no es el title nativo: sale en el tooltip de la app al pasar el mouse por la envoltura del boton.
+        await cotizacion.botonCrearReserva.locator('xpath=..').hover();
+        await expect(page.getByRole('tooltip'), 'Al pasar el mouse, el boton tiene que explicar por que esta deshabilitado')
+          .toHaveText('Ya existe una reserva para esta cotización');
       });
 
       await paso(page, 'BO: la reserva llega a la solapa Grupos de la bandeja', async () => {

@@ -26,12 +26,13 @@ export class ServiciosDelDestinoPage {
 
   get ficha(): Locator { return this.page.getByRole('dialog').first(); }
   get pantalla(): Locator { return this.page.getByRole('dialog', { name: /^Servicios del destino/ }); }
-  get buscador(): Locator { return this.page.getByRole('dialog', { name: 'Búsqueda de servicios y hoteles' }); }
+  get buscador(): Locator { return this.page.getByRole('dialog', { name: /^Búsqueda de servicios/ }); }
 
   // --- Ficha del file, solapa "Destinos y servicios" ----------------------------------
 
   async verDestinosYServicios() {
-    await this.ficha.getByRole('tab', { name: /^Destinos y servicios/ }).click();
+    // Desde noviembre los destinos y servicios van dentro de la solapa Datos.
+    await this.ficha.getByRole('tab', { name: 'Datos', exact: true }).click();
     await expect(this.ficha.locator('section.fs-dest').first(), 'La solapa tiene que mostrar los destinos').toBeVisible({ timeout: 60_000 });
   }
 
@@ -120,7 +121,9 @@ export class ServiciosDelDestinoPage {
     await nombre.pressSequentially(termino, { delay: 40 });
     await this.page.getByRole('option', { name: opcion }).first().click();
     await b.locator('#fd-bsq-rooming').fill(rooming);
-    await b.locator('#fd-bsq-rate').selectOption({ label: tarifa });
+    // Desde noviembre el buscador no filtra por tipo de tarifa: trae Regular y Privado y se elige la fila.
+    const filtroDeTarifa = b.locator('#fd-bsq-rate');
+    if (await filtroDeTarifa.count()) await filtroDeTarifa.selectOption({ label: tarifa });
     await b.getByRole('button', { name: 'Buscar', exact: true }).click();
     const tabla = b.locator('table').last();
     await expect(tabla.locator('tbody tr').first(), 'El buscador tiene que traer resultados').toBeVisible({ timeout: 60_000 });
@@ -151,13 +154,21 @@ export class ServiciosDelDestinoPage {
    * caso se elige "Descartar cambios", que es lo que haria quien ya vio que quedo guardado.
    */
   async guardarYVolver(fileId: string): Promise<{ preguntoSinCambios: boolean }> {
-    await this.pantalla.getByRole('button', { name: 'Guardar y volver', exact: true }).click();
-    await expect(this.page.getByText('Se guardaron los servicios del destino.').first(), 'Guardar tiene que confirmar').toBeVisible({ timeout: 60_000 });
+    // Desde noviembre el pie tiene solo "Guardar" (antes "Guardar y volver"): se guarda, se
+    // espera el "Al día" del pie y, si la pantalla queda en el destino, se vuelve a la ficha.
+    const pie = this.pantalla.getByRole('contentinfo').last();
+    const guardar = pie.getByRole('button', { name: /^Guardar( y volver)?$/ }).first();
+    await guardar.click();
+    // Guardado, el pie ya no dice "Al día": el boton Guardar queda deshabilitado (sin cambios pendientes).
+    await expect(guardar, 'Guardar tiene que grabar y quedar sin cambios pendientes').toBeDisabled({ timeout: 60_000 });
     const pregunta = this.page.getByRole('alertdialog').filter({ hasText: 'Hay cambios sin guardar' });
     const pregunto = await pregunta.waitFor({ state: 'visible', timeout: 8_000 }).then(() => true).catch(() => false);
     if (pregunto) {
-      await expect(this.pantalla.getByText('Al día', { exact: true }), 'Para descartar sin perder nada, el pie tiene que decir "Al día"').toBeVisible();
+      await expect(guardar, 'Para descartar sin perder nada, Guardar tiene que estar deshabilitado').toBeDisabled();
       await pregunta.getByRole('button', { name: 'Descartar cambios', exact: true }).click();
+    }
+    if (/\/destinations\//.test(this.page.url())) {
+      await this.page.goto(`/files/files/${fileId}`);
     }
     await expect(this.page, 'Guardar y volver tiene que volver a la ficha del file').toHaveURL(new RegExp(`/files/files/${fileId}(\\?|$)`), { timeout: 60_000 });
     return { preguntoSinCambios: pregunto };

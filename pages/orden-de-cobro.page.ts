@@ -139,12 +139,25 @@ export class OrdenDeCobroPage {
       `El combo tiene que ofrecer "${etiqueta}". Ofrece: ${opciones.join(' | ')}`,
     ).toBeTruthy();
 
+    // Desde la US 5050 (04/11/2026) los medios de cobro tienen buscador (chosen): el combo nativo
+    // queda oculto y se elige como una persona, abriendo el buscador, escribiendo y eligiendo.
+    const id = selector.startsWith('#') ? selector.slice(1) : '';
+    const buscador = this.page.locator(`#${id}_chosen`);
+    const elegir = async () => {
+      if (id && await buscador.isVisible().catch(() => false)) {
+        await buscador.locator('.chosen-single').click();
+        await buscador.locator('.chosen-search input').fill(etiqueta);
+        await buscador.locator('.chosen-results li.active-result').filter({ hasText: elegida! }).first().click();
+      } else {
+        await this.page.locator(selector).selectOption({ label: elegida! });
+      }
+    };
     await Promise.all([
       this.page.waitForResponse(
         (r) => r.request().method() === 'POST' && /chargeorder/i.test(r.url()),
         { timeout: 60_000 },
       ).catch(() => null),
-      this.page.locator(selector).selectOption({ label: elegida! }),
+      elegir(),
     ]);
     await this.esperarPostback();
     return elegida!;

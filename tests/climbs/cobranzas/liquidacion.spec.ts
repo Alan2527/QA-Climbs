@@ -22,7 +22,8 @@ test.describe('Cobranzas — liquidacion', () => {
 
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
     const marca = `AUTO-QA MARCA ${sello}`;
-    const pre = await reservarServicioYGenerarFile(page, sello);
+    // En English (US 4739): el file trae el servicio y su Adicional Idioma, y lo que se exige es la venta de los dos.
+    const pre = await reservarServicioYGenerarFile(page, sello, { conIdioma: true });
 
     /** Lo que el documento tiene que traer del file recien generado. */
     const delFile = [pre.fileCode, pre.apellidoDelPax.toUpperCase(), SERVICIO_DE_REGRESION.nombre, 'PRECIO TOTAL NETO'];
@@ -32,8 +33,8 @@ test.describe('Cobranzas — liquidacion', () => {
       for (const dato of delFile) {
         expect(texto.toUpperCase(), `${momento}, la liquidacion tiene que traer "${dato}" del file`).toContain(dato.toUpperCase());
       }
-      expect(texto, `${momento}, el total neto tiene que ser la venta del item del file`)
-        .toMatch(new RegExp(`PRECIO TOTAL NETO\\s+[A-Z]{3}\\s*${pre.ventaDelItem.valor}(?![\\d])`));
+      expect(texto, `${momento}, el total neto tiene que ser la venta del file (servicio + Adicional Idioma)`)
+        .toMatch(new RegExp(`PRECIO TOTAL NETO\\s+[A-Z]{3}\\s*${pre.ventaDelFile.valor}(?![\\d])`));
     };
 
     await paso(page, 'Abrir la liquidacion con el boton del file', async () => {

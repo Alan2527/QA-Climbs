@@ -4,6 +4,7 @@ import { TarifarioNuevoPage, Tabla } from '../../../pages/climbs/tarifario.page'
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos, alinearVigencias, sinSeparadorDeMiles, precioMostrado, importeANumero } from '../../../utils/pasos';
 import candidatos from '../../../data/candidatos.json';
 import lineaBase from '../../../data/importes-lineabase.json';
+import { conBackofficeNuevo, tarifasDelCrucero, exigirPreciosDelCrucero } from '../../../utils/markups';
 
 const T = candidatos.tarifario as Record<string, any>;
 const SALTO = '\n';
@@ -42,6 +43,16 @@ test.describe('Tarifario', () => {
     const extendida = texto.includes('TARIFA EXTENDIDA');
     return texto.replace(/\s*TARIFA EXTENDIDA/g, '') + (extendida ? ' [TARIFA EXTENDIDA]' : '');
   };
+
+  /**
+   * La linea base se capturo el 21/09/2026 con pablo1 en CustomMarkup 0,50 (precio = techo(tarifa / 0,50)).
+   * Los importes se comparan exactos, sin margen: si la pantalla muestra otro markup, el paso lo dice y
+   * falla (asi se detecto el 24/11/2026 que pablo1 habia quedado en 0,00; se restauro a 0,50).
+   */
+  const MARKUP_DE_LA_LINEA_BASE = 0.5;
+  const markupEfectivo = (m: number) => (m > 0 ? m : 1);
+  /** La fila de la pantalla coincide con la de la base: mismo texto y mismos importes. */
+  const coincide = (act: string, esp: string) => act === esp;
 
   async function abrirItem(page: Page, clave: string): Promise<{ t: TarifarioNuevoPage; card: Locator }> {
     const cfg = T[clave];
@@ -146,12 +157,19 @@ test.describe('Tarifario', () => {
     const esperado = structuredClone(original) as { porIdioma: Record<string, string[][]>; solapasIdioma: number; tarifaExtendida: number };
 
     await paso(page, 'Los importes coinciden con la linea base', async () => {
+      const leido = await t.markupActivo();
+      await adjuntarTexto('Markup de la pantalla', `${leido ?? '(no se pudo leer)'} (la linea base es con ${MARKUP_DE_LA_LINEA_BASE})`);
+      expect(markupEfectivo(leido ?? MARKUP_DE_LA_LINEA_BASE), `pablo1 tiene que tener el markup ${MARKUP_DE_LA_LINEA_BASE} con el que se capturo la linea base`).toBe(MARKUP_DE_LA_LINEA_BASE);
       const actual = await capturarTarifas(t, clave);
       const sinDesde = (x: { porIdioma: Record<string, string[][]> }) => {
         x.porIdioma = Object.fromEntries(Object.entries(x.porIdioma).map(([k, v]) => [k.replace(/\s+Desde\s+[A-Z]{3}\s*[\d.,]+[^·]*/, ' ').replace(/\s+/g, ' ').trim(), v]));
       };
       sinDesde(esperado);
       sinDesde(actual);
+      // La US 4999 saco de los hoteles los dias que opera: el portal viejo ponia "Todos los dias" en la vigencia de cada corte.
+      if (clave === 'hoteles') {
+        for (const filas of Object.values(esperado.porIdioma)) for (const f of filas.slice(1)) f[0] = f[0].replace(/\s+Todos los d[ií]as\s*$/i, '');
+      }
       if (cfg.alinearVigencias) {
         const captura = new Date(`${lineaBase._capturada}T00:00:00`);
         const hoy = new Date();
@@ -177,7 +195,8 @@ test.describe('Tarifario', () => {
         for (let i = 0; i < maximo; i++) {
           const esp = filasEsperadas[i] ? fila(filasEsperadas[i]) : '(no existe)';
           const act = filasActuales[i] ? fila(filasActuales[i]) : '(no existe)';
-          expect.soft(act, `La fila ${i} de "${k}" tiene que coincidir con la linea base`).toBe(esp);
+          if (coincide(act, esp)) continue;
+          expect.soft(act, `La fila ${i} de "${k}" tiene que coincidir con la linea base, importes exactos`).toBe(esp);
         }
       }
     });
@@ -402,8 +421,9 @@ test.describe('Tarifario', () => {
     await validarImportes(page, t, card, 'cenaShow');
     await paso(page, 'Las tarifas coinciden con las de la base de datos', async () => {
       const leido = await t.markupActivo();
-      const markup = leido ?? candidatos._formulaPrecio.markupPorDefecto;
-      await adjuntarTexto('Markup aplicado', leido !== null ? `leido de la pantalla: ${leido}` : `no se pudo leer; se usa el documentado: ${markup}`);
+      // Con markup 0 el sistema no divide (PriceRules.Markup): cuenta como 1.
+      const markup = markupEfectivo(leido ?? candidatos._formulaPrecio.markupPorDefecto);
+      await adjuntarTexto('Markup aplicado', leido !== null ? `leido de la pantalla: ${leido} (se aplica ${markup})` : `no se pudo leer; se usa el documentado: ${markup}`);
       // Precio mostrado = Math.ceil(TotalRate / markup), en la tabla en espanol.
       const esperados = (cfg.tarifasBase as { tipo: string; totalRate: number }[]).map((x) => ({ tipo: x.tipo, base: x.totalRate, esperado: precioMostrado(x.totalRate, markup) }));
       await t.verTarifario(card);
@@ -429,24 +449,42 @@ test.describe('Tarifario', () => {
     const { t, card } = await abrirItem(page, 'cruceros');
     await paso(page, 'Cada cabina del crucero muestra su "Desde" y sus salidas con importes', async () => {
       await t.verTarifario(card);
-      const cabinas = t.dialogo.getByRole('button', { name: /^Cabina .* desde USD/ });
+      const cabinas = t.dialogo.getByRole('button', { name: /^Cabina .* desde USD/i });
       await expect(cabinas, `Tiene que mostrar las ${cfg.cabinas.length} cabinas del crucero`).toHaveCount(cfg.cabinas.length);
       const resumen: string[] = [];
+      // Importe exacto de cada salida: techo(tarifa por persona del BO nuevo / divisor). US 5107: el
+      // markup vale para "tarifario: servicios, hoteles, paquetes, cruceros, ..." y el crucero pertenece
+      // a la sucursal "de su ciudad de salida" (Chile, 0,95 de hoteles); el tarifario suma el
+      // CustomMarkup del usuario.
+      const costos = await conBackofficeNuevo(page.context().browser()!, (bo) => tarifasDelCrucero(bo, cfg.id));
+      const divisor = candidatos.tarifario.cruceros.markupHotelesDeLaSucursal * candidatos._formulaPrecio.markupPorDefecto;
+      const detalle: string[] = [];
+      const fuera: string[] = [];
       let salidasEsperadas = -1;
       for (let i = 0; i < cfg.cabinas.length; i++) {
         const boton = cabinas.nth(i);
         const desde = (await boton.innerText()).replace(/\s+/g, ' ').trim();
+        const nombre = desde.match(/^(Cabina .*?)\s+desde/i)?.[1] ?? desde;
         expect.soft(desde, `La cabina ${i + 1} tiene que mostrar su precio "Desde" en USD`).toMatch(/desde USD\s*[\d.]+/i);
         await boton.click();
         await page.waitForTimeout(500);
         const filas = await t.tablaDelExplorador();
         const conImporte = filas.slice(1).filter((f) => f.some((c) => Number((c.match(/USD\s*([\d.]+)/)?.[1] ?? '0').replace(/\./g, '')) > 0)).length;
         expect.soft(conImporte, `La cabina ${i + 1} tiene que traer salidas con importes USD positivos`).toBeGreaterThan(0);
+        // "Desde" es el menor precio por persona entre las salidas de la cabina (sin el impuesto).
+        const aUSD = (c: string) => Number((c.match(/USD\s*([\d.]+)/)?.[1] ?? '0').replace(/\./g, ''));
+        const menor = Math.min(...filas.slice(1).flat().map(aUSD).filter((n) => n > 0));
+        expect.soft(aUSD(desde), `El "Desde" de la cabina ${i + 1} tiene que ser el menor precio de sus salidas (USD ${menor})`).toBe(menor);
         if (salidasEsperadas === -1) salidasEsperadas = conImporte;
         else expect.soft(conImporte, 'Todas las cabinas tienen que tener la misma cantidad de salidas').toBe(salidasEsperadas);
         resumen.push(`${desde}: ${conImporte} salidas con importe`);
+        const r = exigirPreciosDelCrucero(nombre, filas, costos, divisor);
+        detalle.push(...r.lineas);
+        fuera.push(...r.fuera);
       }
       await adjuntarTexto('Precios por cabina del crucero', resumen.join(SALTO));
+      await adjuntarTexto('Importes del crucero contra las tarifas del Backoffice', detalle.join(SALTO));
+      expect.soft(fuera, 'Cada salida de cada cabina tiene que costar techo(tarifa por persona / markup), y estar todas las del Backoffice').toEqual([]);
       await t.cerrarDialogo();
     });
     await paso(page, 'El modal "Ver detalle" del crucero abre con su nombre y descripcion', async () => {

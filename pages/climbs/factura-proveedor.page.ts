@@ -19,7 +19,7 @@ export class FacturaProveedorNuevaPage {
 
   async abrirNueva() {
     await this.page.goto('/finance/supplier-invoices');
-    await this.page.getByRole('button', { name: 'Nueva factura' }).click();
+    await this.page.getByRole('button', { name: 'Nueva factura' }).or(this.page.getByRole('link', { name: 'Nueva factura' })).click();
     await expect(this.page).toHaveURL(/\/finance\/supplier-invoices\/new/);
     await expect(this.page.getByRole('heading', { name: 'Carga del comprobante de proveedores' })).toBeVisible();
   }
@@ -52,7 +52,8 @@ export class FacturaProveedorNuevaPage {
   }
 
   pendienteDeAsignacion(): Locator {
-    return this.page.getByRole('status').filter({ hasText: 'Pendiente de asignación:' });
+    // Desde noviembre el rotulo va sin dos puntos ("Pendiente de asignación ARS 94.600").
+    return this.page.getByRole('status').filter({ hasText: /^\s*Pendiente de asignación/ }).first();
   }
 
   tarjeta(titulo: string): Locator {

@@ -5,6 +5,7 @@ import { FacturaProveedorNuevaPage } from '../../../pages/climbs/factura-proveed
 import { OrdenDePagoNuevaPage } from '../../../pages/climbs/orden-de-pago.page';
 import { OrdenDeCobroNuevaPage } from '../../../pages/climbs/orden-de-cobro.page';
 import { paso, adjuntarTexto, fechaDeBusqueda, formatearFecha, selloEnLetras, importeANumero } from '../../../utils/pasos';
+import { conBackofficeNuevo, costosDelServicio, tarifaVigente, precioEsperado } from '../../../utils/markups';
 
 /**
  * Precondiciones de la app nueva, por pantalla y como un usuario real: la agencia
@@ -31,7 +32,7 @@ export type ReservaNueva = {
 };
 
 /** `diasExtra`: a cuantos dias de hoy se reserva (una semana por defecto, como la suite actual). */
-export async function reservarServicioEnElPortalNuevo(page: Page, sello: string, diasExtra = 7): Promise<ReservaNueva> {
+export async function reservarServicioEnElPortalNuevo(page: Page, sello: string, diasExtra = 7, conIdioma = false): Promise<ReservaNueva> {
   const portal = new PortalNuevoPage(page);
   const fecha = fechaDeBusqueda(diasExtra);
   const referencia = `AUTO-QA ${sello}`;
@@ -46,6 +47,15 @@ export async function reservarServicioEnElPortalNuevo(page: Page, sello: string,
     await portal.elegirServicio(SERVICIO_DE_REGRESION.termino, SERVICIO_DE_REGRESION.nombre);
     await expect(portal.bloqueDeModalidad(SERVICIO_DE_REGRESION.modalidad),
       `La ficha tiene que ofrecer la modalidad ${SERVICIO_DE_REGRESION.modalidad} para el ${formatearFecha(fecha)}`).toBeVisible();
+    if (conIdioma) {
+      const idioma = page.locator('main').getByRole('combobox', { name: 'Idioma del servicio' });
+      await expect(idioma, 'La ficha tiene que mostrar el selector "Idioma del servicio"').toBeVisible();
+      const opciones = (await idioma.locator('option').allInnerTexts()).map((t) => t.trim());
+      const ingles = opciones.find((o) => /^(English|Ingl[eé]s)$/i.test(o));
+      expect(ingles, `La ficha tiene que ofrecer el idioma English. Ofrece: ${opciones.join(', ')}`).toBeDefined();
+      await idioma.selectOption({ label: ingles! });
+      await page.waitForLoadState('networkidle');
+    }
     cantidadPax = await portal.minimoDePasajeros(SERVICIO_DE_REGRESION.modalidad);
     await portal.agregarAlCarrito(SERVICIO_DE_REGRESION.modalidad, cantidadPax);
     // El contador cuenta items, no pasajeros: una sola excursion.
@@ -73,6 +83,12 @@ export type FileNuevo = ReservaNueva & {
   cliente: string;
   costoDelItem: ImporteNuevo;
   ventaDelItem: ImporteNuevo;
+  /** Con `conIdioma`: el item "Adicional Idioma" del file. */
+  adicionalDelIdioma: { costo: ImporteNuevo; venta: ImporteNuevo } | null;
+  /** La venta de todo el file (el servicio y, si hay, su Adicional Idioma). */
+  ventaDelFile: ImporteNuevo;
+  /** Cuantos items trae el file. */
+  itemsDelFile: number;
 };
 
 /**
@@ -80,12 +96,24 @@ export type FileNuevo = ReservaNueva & {
  * generado desde la bandeja del Backoffice. No se verifica aca —de eso se ocupa el bloque
  * de Reservas—, pero se corta con un motivo claro si algo no esta.
  */
-export async function reservarServicioYGenerarFile(page: Page, sello: string): Promise<FileNuevo> {
-  const reserva = await reservarServicioEnElPortalNuevo(page, sello);
+/** Tigre y Delta (AUTO-QA), el servicio de la precondicion: su costo se lee en el Backoffice nuevo. */
+const SERVICIO_REGRESION_ID = 5;
+
+/**
+ * Con `conIdioma` la reserva se hace en English (US 4739): Tigre y Delta tiene un recargo del 10% para English en
+ * su tarifa Regular. El file suma la fila "Adicional Idioma" del servicio y la venta de las dos filas tiene que ser
+ * techo((costo + recargo) por persona / cotizacion / markup de la agencia) x pasajeros: la US pide que "el valor
+ * final tiene que calcularse aplicando el markup de la agencia sobre costo + recargo en conjunto, nunca sobre el
+ * costo solo", y que el idioma y el recargo "tienen que llegar completos hasta el item de la reserva".
+ */
+export async function reservarServicioYGenerarFile(page: Page, sello: string, opciones: { conIdioma?: boolean } = {}): Promise<FileNuevo> {
+  const reserva = await reservarServicioEnElPortalNuevo(page, sello, 7, opciones.conIdioma);
   const bo = new BackofficeNuevoPage(page);
   let file = { fileId: '', fileCode: '' };
   let cliente = '';
   let item = { costo: { moneda: '', valor: null } as ImporteNuevo, venta: { moneda: '', valor: null } as ImporteNuevo, texto: '' };
+  let adicionalDelIdioma: { costo: ImporteNuevo; venta: ImporteNuevo } | null = null;
+  let itemsDelFile = 0;
 
   await paso(page, 'Backoffice nuevo: generar el file de la reserva desde la bandeja', async () => {
     const dialogo = await bo.abrirReservaDeLaBandeja(reserva.codigo);
@@ -93,11 +121,18 @@ export async function reservarServicioYGenerarFile(page: Page, sello: string): P
     expect(file.fileId, 'Generar el file tiene que devolver su id').toMatch(/^\d+$/);
     cliente = await bo.clienteDelFile();
     item = await bo.importesDelItem(SERVICIO_DE_REGRESION.termino);
+    if (opciones.conIdioma) {
+      const a = await bo.importesDelItem('Adicional Idioma');
+      adicionalDelIdioma = { costo: a.costo, venta: a.venta };
+    }
+    itemsDelFile = await bo.fichaDelFile.locator('section.fs-dest tbody tr').filter({ has: page.locator('td') }).count();
     await adjuntarTexto('Precondicion generada', [
       `Reserva: ${reserva.codigo}`,
       `File: ${file.fileCode} (id ${file.fileId})`,
       `Cliente: ${cliente}`,
       `Item: ${item.texto}`,
+      ...(adicionalDelIdioma ? [`Adicional Idioma: costo ${adicionalDelIdioma.costo.valor} / venta ${adicionalDelIdioma.venta.valor}`] : []),
+      `Items del file: ${itemsDelFile}`,
     ].join('\n'));
     expect(cliente, 'El file tiene que quedar con el cliente de la agencia').not.toBe('');
     // Sin costo no hay nada que facturar al proveedor; sin venta, nada al cliente.
@@ -105,7 +140,49 @@ export async function reservarServicioYGenerarFile(page: Page, sello: string): P
     expect(item.venta.valor, 'El item del file tiene que tener venta').toBeGreaterThan(0);
   });
 
-  return { ...reserva, ...file, cliente, costoDelItem: item.costo, ventaDelItem: item.venta };
+  await paso(page, 'El item del file tiene el costo y la venta de la tarifa del servicio', async () => {
+    // Costo = costo por persona de la tarifa Regular vigente x pasajeros, en su moneda.
+    // Venta = lo que AMV le cobra a la agencia: techo(costo por persona / cotizacion / markup de la
+    // agencia) x pasajeros. La agencia de pablo1 (1) no tiene markup de mercado (1); el CustomMarkup
+    // de pablo1 es el que la agencia muestra en el sitio y no entra en la venta de AMV.
+    const [d, m, a] = reserva.fecha.split('/').map(Number);
+    const costos = await conBackofficeNuevo(page.context().browser()!, (b) => costosDelServicio(b, SERVICIO_REGRESION_ID));
+    const tarifa = tarifaVigente(costos, SERVICIO_DE_REGRESION.modalidad, new Date(a, m - 1, d), reserva.cantidadPax);
+    expect(tarifa, `El servicio ${SERVICIO_REGRESION_ID} tiene que tener una tarifa ${SERVICIO_DE_REGRESION.modalidad} vigente el ${reserva.fecha}`).toBeDefined();
+    const costo = Number((tarifa!.costo! * reserva.cantidadPax).toFixed(2));
+    const venta = precioEsperado(tarifa!.costo!, tarifa!.moneda, 1)! * reserva.cantidadPax;
+    await adjuntarTexto('Costo y venta esperados', [
+      `Tarifa: ${tarifa!.vigencia} | ${tarifa!.modalidad} | ${tarifa!.moneda} ${tarifa!.costo} por persona | ${reserva.cantidadPax} pax`,
+      `Costo esperado: ${tarifa!.moneda} ${costo} / en el file: ${item.costo.moneda} ${item.costo.valor}`,
+      `Venta esperada: USD ${venta} / en el file: ${item.venta.moneda} ${item.venta.valor}`,
+    ].join(String.fromCharCode(10)));
+    expect(item.costo.moneda, 'El costo del item tiene que estar en la moneda de la tarifa').toBe(tarifa!.moneda);
+    expect(item.costo.valor, 'El costo del item tiene que ser el costo por persona de la tarifa por los pasajeros').toBe(costo);
+    expect(item.venta.moneda, 'La venta del item tiene que estar en USD').toBe('USD');
+    // Con idioma la venta se reparte entre el servicio y su Adicional Idioma, y la US no dice como: se exige la suma (abajo).
+    if (!opciones.conIdioma) expect(item.venta.valor, 'La venta del item tiene que ser techo(costo / cotizacion) por pasajero, por los pasajeros').toBe(venta);
+    const adicional = adicionalDelIdioma;
+    if (adicional) {
+      const recargo = tarifa!.recargos.find((r) => /^(English|Ingl[eé]s)$/i.test(r.idioma));
+      expect(recargo, `La tarifa ${SERVICIO_DE_REGRESION.modalidad} del servicio ${SERVICIO_REGRESION_ID} tiene que tener recargo para English`).toBeDefined();
+      const recargoPax = recargo!.tipo === 'porcentaje' ? tarifa!.costo! * recargo!.valor / 100 : recargo!.tipo === 'porPasajero' ? recargo!.valor : recargo!.valor / reserva.cantidadPax;
+      const costoDelRecargo = Number((recargoPax * reserva.cantidadPax).toFixed(2));
+      const ventaConRecargo = precioEsperado(tarifa!.costo! + recargoPax, tarifa!.moneda, 1)! * reserva.cantidadPax;
+      const ventaDeLasDos = Number(((item.venta.valor ?? 0) + (adicional.venta.valor ?? 0)).toFixed(2));
+      await adjuntarTexto('Adicional Idioma esperado', [
+        `Recargo English: ${JSON.stringify(recargo)} -> ${tarifa!.moneda} ${recargoPax} por persona`,
+        `Costo del adicional esperado: ${tarifa!.moneda} ${costoDelRecargo} / en el file: ${adicional.costo.moneda} ${adicional.costo.valor}`,
+        `Venta del servicio + adicional esperada: techo((${tarifa!.costo} + ${recargoPax}) / cotizacion) x ${reserva.cantidadPax} = USD ${ventaConRecargo} / en el file: ${item.venta.valor} + ${adicional.venta.valor} = ${ventaDeLasDos}`,
+      ].join(String.fromCharCode(10)));
+      expect(adicional.costo.valor, 'El file tiene que traer el recargo de English como item de costo propio ("Adicional Idioma")').toBe(costoDelRecargo);
+      expect(ventaDeLasDos, 'La venta del servicio mas su Adicional Idioma tiene que ser techo((costo + recargo) / cotizacion / markup) x pasajeros (US 4739)').toBe(ventaConRecargo);
+    }
+  });
+
+  // TypeScript no ve la asignacion dentro del paso: se tipa a mano.
+  const ad = adicionalDelIdioma as { venta: { valor: number | null } } | null;
+  const ventaDelFile = { moneda: item.venta.moneda, valor: ad ? Number(((item.venta.valor ?? 0) + (ad.venta.valor ?? 0)).toFixed(2)) : item.venta.valor } as ImporteNuevo;
+  return { ...reserva, ...file, cliente, costoDelItem: item.costo, ventaDelItem: item.venta, adicionalDelIdioma, ventaDelFile, itemsDelFile };
 }
 
 /** El proveedor que carga el costo del servicio de regresion. */
@@ -128,13 +205,14 @@ export async function armarFacturaAlCliente(page: Page, sello: string, file: Fil
   let moneda = '';
 
   await paso(page, 'Emitir la carta de cobranza al cliente sobre el file', async () => {
-    await page.goto('/finance/invoicing/letters?state=issued');
-    await page.getByRole('button', { name: 'Nuevo', exact: true }).click();
+    await page.goto('/finance/invoicing?state=issued&type=2100');
+    await page.getByRole('button', { name: 'Nuevo', exact: true }).or(page.getByRole('link', { name: 'Nuevo', exact: true })).click();
+    await page.locator('#inv-type').selectOption({ label: 'Carta de Cobranza' });
     await page.getByRole('button', { name: 'Elegir destinatario' }).click();
     const destinatarios = page.getByRole('dialog', { name: 'Destinatarios' });
     await destinatarios.getByRole('searchbox').fill(file.cliente);
     await destinatarios.locator('tbody tr').filter({ hasText: file.cliente }).first().click();
-    await page.getByRole('button', { name: 'Cargar desde un file' }).click();
+    await page.getByRole('button', { name: 'Seleccionar file', exact: true }).click();
     const files = page.getByRole('dialog', { name: 'Files del cliente' });
     await files.getByRole('searchbox').fill(digitos);
     await files.locator('tbody tr').filter({ hasText: digitos }).first().click();
@@ -148,7 +226,7 @@ export async function armarFacturaAlCliente(page: Page, sello: string, file: Fil
     await page.getByRole('button', { name: 'Guardar', exact: true }).click();
     expect((await guardado).status(), 'La precondicion tiene que poder emitir la carta de cobranza').toBe(200);
 
-    await page.goto(`/finance/invoicing/letters?state=issued&q=${digitos}`);
+    await page.goto(`/finance/invoicing?state=issued&type=2100&q=${digitos}`);
     const fila = page.locator('tbody tr').filter({ hasText: digitos }).first();
     await expect(fila, `La precondicion necesita la carta del file ${file.fileCode} en Cartas emitidas`).toBeVisible({ timeout: 60_000 });
     comprobante = (await fila.innerText()).match(/[A-Z]{2}\d{5}-\d{8}/)?.[0] ?? '';
@@ -194,7 +272,7 @@ export async function armarFacturaAprobada(page: Page, sello: string, ahora: Dat
     await factura.asignar(await factura.abrirAsignacion(fila), totalComoTexto, `AUTO-QA ${sello.slice(-8)}`);
     await expect(factura.filaAsignada(file.fileCode), 'La precondicion necesita la factura imputada al servicio').toBeVisible({ timeout: 60_000 });
     await page.getByRole('button', { name: 'Ajustar & aprobar' }).click();
-    await expect(page.getByText('Aprobada', { exact: true }), 'La precondicion necesita la factura aprobada').toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole('dialog').or(page.locator('main')).last().getByText('Aprobada', { exact: true }).filter({ visible: true }).first(), 'La precondicion necesita la factura aprobada').toBeVisible({ timeout: 60_000 });
     await adjuntarTexto('Factura de proveedor de la precondicion', `${puntoDeVenta}-${numero} (id ${id}) · ${file.costoDelItem.moneda} ${totalComoTexto}`);
   });
 
@@ -214,7 +292,7 @@ export async function armarOrdenDePagoAprobada(page: Page, sello: string, fechaD
     if (!(await orden.opcionElegida('branch')).includes('Argentina')) await orden.campo('branch').selectOption({ label: 'Argentina' });
     await orden.elegirProveedor(PROVEEDOR_DE_REGRESION.termino, PROVEEDOR_DE_REGRESION.razonSocial);
     await orden.campo('currency').selectOption({ label: factura.moneda });
-    await orden.campo('cf-0').selectOption({ label: cajaDeRegresion(factura.moneda) });
+    await orden.elegir('cf-0', cajaDeRegresion(factura.moneda));
     await orden.campo('amount-0').fill(monto);
     await orden.campo('amount-0').press('Tab');
     await orden.campo('detail').fill(`Orden de pago de regresion automatica ${sello}. No operar.`);
@@ -225,7 +303,7 @@ export async function armarOrdenDePagoAprobada(page: Page, sello: string, fechaD
     await orden.asignar(await orden.abrirAsignacion(fila), monto, `AUTO-QA ${sello.slice(-8)}`);
     await expect(orden.filaAsignada(factura.numeroDeFactura), 'La precondicion necesita la factura asignada a la orden').toBeVisible({ timeout: 60_000 });
     await orden.aprobar(fechaDeHoy, `AUTOQA${sello.slice(-8)}`);
-    await expect(page.getByText('Pago', { exact: true }), 'La precondicion necesita la orden de pago aprobada').toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole('dialog').or(page.locator('main')).last().getByText('Pago', { exact: true }).filter({ visible: true }).first(), 'La precondicion necesita la orden de pago aprobada').toBeVisible({ timeout: 60_000 });
     await adjuntarTexto('Orden de pago de la precondicion', `${codigo} · ${factura.moneda} ${monto}`);
   });
   return codigo;
@@ -241,7 +319,7 @@ export async function armarOrdenDeCobroAprobada(page: Page, sello: string, fecha
     await orden.abrirNueva();
     await orden.elegirCliente(carta.cliente, carta.cliente);
     await orden.campo('currency').selectOption({ label: carta.moneda });
-    await orden.campo('cf-0').selectOption({ label: cajaDeRegresion(carta.moneda) });
+    await orden.elegir('cf-0', cajaDeRegresion(carta.moneda));
     await orden.campo('amount-0').fill(monto);
     await orden.campo('amount-0').press('Tab');
     await orden.campo('detail').fill(`Orden de cobro de regresion automatica ${sello}. No operar.`);
@@ -252,7 +330,7 @@ export async function armarOrdenDeCobroAprobada(page: Page, sello: string, fecha
     await orden.asignar(await orden.abrirAsignacion(fila), monto, `AUTO-QA ${sello.slice(-8)}`);
     await expect(orden.filaAsignada(numeroDeFile), 'La precondicion necesita la carta asignada a la orden').toBeVisible({ timeout: 60_000 });
     await orden.aprobar(fechaDeHoy, `AUTOQA${sello.slice(-8)}`);
-    await expect(page.getByText('Pago', { exact: true }), 'La precondicion necesita la orden de cobro aprobada').toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole('dialog').or(page.locator('main')).last().getByText('Pago', { exact: true }).filter({ visible: true }).first(), 'La precondicion necesita la orden de cobro aprobada').toBeVisible({ timeout: 60_000 });
     await adjuntarTexto('Orden de cobro de la precondicion', `${codigo} · ${carta.moneda} ${monto}`);
   });
   return codigo;

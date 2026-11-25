@@ -14,7 +14,7 @@ export type TarifasPorCategoria = Record<number, { sgl: number; dbl: number; tpl
 export class SerieBackofficePage {
   constructor(private readonly page: Page) {}
 
-  get ficha(): Locator { return this.page.getByRole('dialog').filter({ hasText: /Serie #\d+/ }).first(); }
+  get ficha(): Locator { return this.page.getByRole('dialog').filter({ has: this.page.getByRole('button', { name: /^Copiar #\d+/ }) }).first(); }
 
   async abrir(id: number, solapa: string) {
     await this.page.goto(`/series/series/${id}`);
@@ -26,8 +26,11 @@ export class SerieBackofficePage {
   }
 
   private async aviso(): Promise<string> {
+    // Desde noviembre el aviso de exito no sale si la ficha ya lo confirmo con el tilde de su
+    // boton; los de error siempre salen. Sin aviso en 15 s se da por bueno (lo que importa se
+    // verifica despues en el portal o en la respuesta).
     const aviso = this.page.locator('.toast .toast-text').last();
-    await expect(aviso).toBeVisible({ timeout: 60_000 });
+    if (!(await aviso.waitFor({ state: 'visible', timeout: 15_000 }).then(() => true).catch(() => false))) return '(sin aviso: la ficha lo confirmo en su boton)';
     const texto = (await aviso.innerText()).trim();
     if (await this.page.locator('.toast.bad').last().isVisible().catch(() => false)) throw new Error(`La ficha de la serie rechazo el cambio: ${texto}`);
     return texto;
@@ -57,10 +60,10 @@ export class SerieBackofficePage {
   async salida(id: number, iso: string, incluida: boolean) {
     if ((await this.esSalida(id, iso)) === incluida) return;
     const dia = await this.dia(iso);
-    await dia.click();
+    // Desde noviembre un clic suelto marca el inicio de un rango: un solo dia se cambia con Ctrl+clic.
+    await dia.click({ modifiers: ['Control'] });
     await expect(dia).toHaveClass(incluida ? /\bon\b/ : /^(?!.*\bon\b)/);
-    await this.ficha.getByRole('button', { name: /^Guardar( y generar)? salidas$/ }).click();
-    await this.aviso();
+    await this.guardarFicha(/^Guardar( y generar)? salidas$/);
     expect(await this.esSalida(id, iso), `La salida ${iso} tiene que quedar ${incluida ? 'agregada' : 'quitada'}`).toBe(incluida);
   }
 
@@ -74,8 +77,13 @@ export class SerieBackofficePage {
     await modal.locator('#sq-from').fill(fecha);
     await modal.locator('#sq-to').fill(fecha);
     await modal.locator('#sq-qty').fill(String(cantidad));
+    const respuesta = this.page.waitForResponse((r) => /\/quotas\/bulk$/.test(new URL(r.url()).pathname) && r.request().method() === 'POST', { timeout: 60_000 });
     await modal.getByRole('button', { name: 'Aplicar' }).click();
-    return this.aviso();
+    const r = await respuesta;
+    if (!r.ok()) throw new Error(`La carga masiva de cupos fue rechazada: HTTP ${r.status()} ${(await r.text()).slice(0, 300)}`);
+    const { applied } = (await r.json()) as { applied?: number };
+    await expect(modal).toBeHidden({ timeout: 30_000 });
+    return `Carga masiva aplicada: ${applied ?? '?'} cupos`;
   }
 
   /**
@@ -95,7 +103,21 @@ export class SerieBackofficePage {
         if (await campo.count()) await campo.fill(String(valor));
       }
     }
-    await modal.getByRole('button', { name: 'Guardar' }).click();
-    return this.aviso();
+    // Desde noviembre "Aplicar" suma los precios a los cambios y se graban con el Guardar del pie.
+    await modal.getByRole('button', { name: /^(Guardar|Aplicar)$/ }).click();
+    await expect(modal).toBeHidden({ timeout: 30_000 });
+    return this.guardarFicha();
+  }
+
+  /** El Guardar del pie de la ficha (o el boton viejo de la solapa, si esta) y su aviso. */
+  private async guardarFicha(botonViejo?: RegExp): Promise<string> {
+    const viejo = botonViejo ? this.ficha.getByRole('button', { name: botonViejo }) : null;
+    if (viejo && (await viejo.count())) { await viejo.click(); return this.aviso(); }
+    const pie = this.ficha.getByRole('contentinfo').last().getByRole('button', { name: 'Guardar', exact: true });
+    await expect(pie, 'Tiene que haber cambios para guardar').toBeEnabled({ timeout: 30_000 });
+    await pie.click();
+    const texto = await this.aviso();
+    await expect(pie, 'Guardado, el boton Guardar del pie queda deshabilitado').toBeDisabled({ timeout: 60_000 });
+    return texto;
   }
 }

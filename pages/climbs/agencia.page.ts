@@ -10,7 +10,43 @@ async function guardarFicha(page: Page, ficha: Locator) {
   const error = page.locator('.toast.bad .toast-text');
   await expect(boton.and(page.locator('[disabled]')).or(error).first(), 'Al guardar, el pie tiene que quedar "Al dia"').toBeVisible({ timeout: 90_000 });
   if (await error.isVisible()) throw new Error(`Guardar fue rechazado: ${(await error.allInnerTexts()).join(' | ')}`);
-  await expect(pie).toContainText('Al día', { timeout: 30_000 });
+  await expect(pie.getByRole('button', { name: /^Guardar/ }).first(), 'Guardado, el boton Guardar del pie queda deshabilitado (antes el pie decia "Al dia")').toBeDisabled({ timeout: 30_000 });
+}
+
+/**
+ * Markup por sucursal (desde noviembre, US 5107): una fila por sucursal con dos solapas
+ * ("Por defecto" o "Según mercado" / "Manual"). En Manual, los textboxes "{Sucursal} Hoteles" y
+ * "{Sucursal} Servicios"; si no, la celda muestra el numero que hereda ("0,80 de ...").
+ * La suite trabaja con la sucursal Argentina, la de la agencia y el usuario de regresion; el test
+ * de markup por sucursal usa ademas Perú (cubre Bolivia y Perú).
+ */
+const SUCURSAL = 'Argentina';
+
+async function leerMarkupDeSucursal(ficha: Locator, sucursal = SUCURSAL): Promise<{ manual: boolean; hotel: number | null; servicio: number | null }> {
+  const solapas = ficha.getByRole('tablist', { name: `Markup ${sucursal}` });
+  await expect(solapas, `Tiene que estar la fila de markup de ${sucursal}`).toBeVisible({ timeout: 60_000 });
+  const manual = (await solapas.getByRole('tab', { name: 'Manual', exact: true }).getAttribute('aria-selected')) === 'true';
+  if (manual) {
+    return {
+      manual,
+      hotel: importe(await ficha.getByRole('textbox', { name: `${sucursal} Hoteles` }).inputValue()),
+      servicio: importe(await ficha.getByRole('textbox', { name: `${sucursal} Servicios` }).inputValue()),
+    };
+  }
+  // El filtro `has` se resuelve dentro de la fila: va un locator desde la pagina, no desde la ficha.
+  const fila = ficha.getByRole('row').filter({ has: ficha.page().getByRole('tablist', { name: `Markup ${sucursal}` }) });
+  const celdas = await fila.getByRole('cell').allInnerTexts();
+  return { manual, hotel: importe(celdas[2]?.trim().split(/\s+/)[0] ?? ''), servicio: importe(celdas[3]?.trim().split(/\s+/)[0] ?? '') };
+}
+
+/** En Manual, un tipo vacio (null) sigue al mercado. */
+async function fijarMarkupManual(ficha: Locator, hotel: number | null, servicio: number | null, sucursal = SUCURSAL) {
+  const solapas = ficha.getByRole('tablist', { name: `Markup ${sucursal}` });
+  await solapas.getByRole('tab', { name: 'Manual', exact: true }).click();
+  const txt = (v: number | null) => (v === null ? '' : String(v).replace('.', ','));
+  await ficha.getByRole('textbox', { name: `${sucursal} Hoteles` }).fill(txt(hotel));
+  await ficha.getByRole('textbox', { name: `${sucursal} Servicios` }).fill(txt(servicio));
+  await ficha.getByRole('textbox', { name: `${sucursal} Servicios` }).press('Tab');
 }
 
 /** Un interruptor (Switch) se activa con un clic sobre su rotulo: la pista dibujada tapa la casilla. */
@@ -26,30 +62,51 @@ async function interruptor(casilla: Locator, si: boolean) {
 export class MercadoNuevoPage {
   constructor(private readonly page: Page) {}
 
-  get ficha(): Locator { return this.page.getByRole('dialog').filter({ hasText: /Mercado #\d+/ }).first(); }
+  get ficha(): Locator { return this.page.getByRole('dialog').filter({ hasText: /Mercado #?\d+/ }).first(); }
 
   async abrir(id: number) {
     await this.page.goto(`/finance/markets/${id}`);
-    await expect(this.ficha.getByRole('spinbutton', { name: 'Markup hoteles' }), `La ficha del mercado ${id} tiene que abrir`).toBeVisible({ timeout: 60_000 });
+    await expect(this.ficha.getByRole('tablist', { name: `Markup ${SUCURSAL}` }), `La ficha del mercado ${id} tiene que abrir`).toBeVisible({ timeout: 60_000 });
     await expect(this.ficha.getByRole('textbox', { name: 'Nombre', exact: true })).not.toHaveValue('', { timeout: 30_000 });
   }
 
+  /** El markup del mercado en la sucursal Argentina (el que rige para la agencia de regresion). */
   async markups(): Promise<{ hotel: number; servicio: number }> {
-    return {
-      hotel: Number(await this.ficha.getByRole('spinbutton', { name: 'Markup hoteles' }).inputValue()),
-      servicio: Number(await this.ficha.getByRole('spinbutton', { name: 'Markup servicios' }).inputValue()),
-    };
+    const m = await leerMarkupDeSucursal(this.ficha);
+    return { hotel: m.hotel ?? NaN, servicio: m.servicio ?? NaN };
   }
 
   async guardarMarkups(id: number, hotel: number, servicio: number) {
     await this.abrir(id);
     const actual = await this.markups();
     if (actual.hotel === hotel && actual.servicio === servicio) return;
-    await this.ficha.getByRole('spinbutton', { name: 'Markup hoteles' }).fill(String(hotel));
-    await this.ficha.getByRole('spinbutton', { name: 'Markup servicios' }).fill(String(servicio));
+    await fijarMarkupManual(this.ficha, hotel, servicio);
     await guardarFicha(this.page, this.ficha);
     await this.abrir(id);
     expect(await this.markups(), `El mercado ${id} tiene que quedar en ${hotel} / ${servicio}`).toEqual({ hotel, servicio });
+  }
+
+  /** La fila de una sucursal: si esta en Manual y el markup que rige (el propio o el que hereda). */
+  async markupDeLaSucursal(sucursal: string): Promise<{ manual: boolean; hotel: number | null; servicio: number | null }> {
+    return leerMarkupDeSucursal(this.ficha, sucursal);
+  }
+
+  /** Lleva la fila de una sucursal a Manual con esos valores, o de vuelta a "Por defecto". */
+  async guardarMarkupDeLaSucursal(id: number, sucursal: string, valor: { hotel: number | null; servicio: number | null } | 'Por defecto') {
+    await this.abrir(id);
+    const actual = await this.markupDeLaSucursal(sucursal);
+    if (valor === 'Por defecto') {
+      if (!actual.manual) return;
+      await this.ficha.getByRole('tablist', { name: `Markup ${sucursal}` }).getByRole('tab', { name: 'Por defecto', exact: true }).click();
+    } else {
+      if (actual.manual && actual.hotel === valor.hotel && actual.servicio === valor.servicio) return;
+      await fijarMarkupManual(this.ficha, valor.hotel, valor.servicio, sucursal);
+    }
+    await guardarFicha(this.page, this.ficha);
+    await this.abrir(id);
+    const quedo = await this.markupDeLaSucursal(sucursal);
+    if (valor === 'Por defecto') expect(quedo.manual, `${sucursal} tiene que quedar en "Por defecto" en el mercado ${id}`).toBe(false);
+    else expect(quedo, `${sucursal} tiene que quedar en Manual ${valor.hotel} / ${valor.servicio} en el mercado ${id}`).toEqual({ manual: true, ...valor });
   }
 }
 
@@ -62,7 +119,8 @@ export class MercadoNuevoPage {
 export class AgenciaNuevaPage {
   constructor(private readonly page: Page) {}
 
-  get ficha(): Locator { return this.page.getByRole('dialog').filter({ hasText: /N\.º \d+/ }).first(); }
+  // La cabecera ya no dice "N.º 6334" sino "#6334" con su boton de copiar.
+  get ficha(): Locator { return this.page.getByRole('dialog').filter({ has: this.page.getByRole('button', { name: /^Copiar #\d+/ }) }).first(); }
 
   async abrir(id: number, solapa = 'Datos') {
     await this.page.goto(`/clients/agencies/${id}`);
@@ -80,24 +138,28 @@ export class AgenciaNuevaPage {
 
   async guardar() { await guardarFicha(this.page, this.ficha); }
 
-  /** Los markups propios de la agencia; null = vacio (sigue al mercado). */
+  /**
+   * Los markups propios de la agencia en la sucursal Argentina (solapa Markup); null = "Según
+   * mercado" (sigue al mercado), que es lo que antes era dejar los campos vacios.
+   */
   async markups(): Promise<{ hotel: number | null; servicio: number | null }> {
-    return {
-      hotel: importe(await this.ficha.getByRole('textbox', { name: 'Markup hoteles' }).inputValue()),
-      servicio: importe(await this.ficha.getByRole('textbox', { name: 'Markup servicios' }).inputValue()),
-    };
+    if ((await this.ficha.getByRole('tab', { name: 'Markup', exact: true }).getAttribute('aria-selected')) !== 'true') await this.solapa('Markup');
+    const m = await leerMarkupDeSucursal(this.ficha);
+    return m.manual ? { hotel: m.hotel, servicio: m.servicio } : { hotel: null, servicio: null };
   }
 
   async guardarMarkups(id: number, hotel: number | null, servicio: number | null) {
-    await this.abrir(id);
+    await this.abrir(id, 'Markup');
     const actual = await this.markups();
     if (actual.hotel === hotel && actual.servicio === servicio) return;
-    const txt = (v: number | null) => (v === null ? '' : String(v).replace('.', ','));
-    await this.ficha.getByRole('textbox', { name: 'Markup hoteles' }).fill(txt(hotel));
-    await this.ficha.getByRole('textbox', { name: 'Markup servicios' }).fill(txt(servicio));
-    await this.ficha.getByRole('textbox', { name: 'Markup servicios' }).press('Tab');
+    // Solo si los dos siguen al mercado la fila pasa a "Segun mercado"; si no, Manual con el vacio.
+    if (hotel === null && servicio === null) {
+      await this.ficha.getByRole('tablist', { name: `Markup ${SUCURSAL}` }).getByRole('tab', { name: 'Según mercado', exact: true }).click();
+    } else {
+      await fijarMarkupManual(this.ficha, hotel, servicio);
+    }
     await this.guardar();
-    await this.abrir(id);
+    await this.abrir(id, 'Markup');
     expect(await this.markups(), `La agencia ${id} tiene que quedar con markup propio ${hotel} / ${servicio}`).toEqual({ hotel, servicio });
   }
 
@@ -155,6 +217,8 @@ export class AgenciaNuevaPage {
 
   /** "Usa su propia cotizacion" y la cotizacion que rige: la propia o la del pais ("Sin cotizacion propia usa ... : N"). */
   async tipoDeCambio(): Promise<{ manual: boolean; valor: number | null; texto: string }> {
+    // La cotizacion vive en la solapa Datos: si la ficha quedo en otra (Markup), se vuelve.
+    if ((await this.ficha.getByRole('tab', { name: 'Datos', exact: true }).getAttribute('aria-selected')) !== 'true') await this.solapa('Datos');
     const casilla = this.ficha.getByRole('checkbox', { name: 'Usa su propia cotización' });
     const manual = await casilla.isChecked();
     if (manual) {
@@ -168,9 +232,17 @@ export class AgenciaNuevaPage {
   async guardarTipoDeCambio(id: number, manual: boolean, valor?: number) {
     await this.abrir(id);
     const casilla = this.ficha.getByRole('checkbox', { name: 'Usa su propia cotización' });
+    const antes = await this.tipoDeCambio();
     await interruptor(casilla, manual);
     if (manual && valor !== undefined) await this.ficha.locator('#ag-exchange-general').fill(String(valor).replace('.', ','));
-    if (await this.ficha.getByRole('contentinfo').last().getByRole('button', { name: 'Guardar', exact: true }).isEnabled()) await this.guardar();
+    // Con un cambio, "Guardar" se habilita un instante despues del clic: leerlo enseguida daba
+    // deshabilitado y la ficha no se guardaba (24/11/2026). Se espera a que se habilite.
+    const cambio = antes.manual !== manual || (manual && valor !== undefined && antes.valor !== valor);
+    const boton = this.ficha.getByRole('contentinfo').last().getByRole('button', { name: 'Guardar', exact: true });
+    if (cambio) {
+      await expect(boton, 'Guardar tiene que habilitarse al cambiar la cotizacion').toBeEnabled();
+      await this.guardar();
+    }
     await this.abrir(id);
     const leido = await this.tipoDeCambio();
     expect(leido.manual, `La agencia ${id} tiene que quedar ${manual ? 'con' : 'sin'} cotizacion propia`).toBe(manual);

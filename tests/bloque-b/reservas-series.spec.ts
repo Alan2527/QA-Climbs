@@ -3,6 +3,7 @@ import { InicioPage } from '../../pages/inicio.page';
 import { SeriePage } from '../../pages/serie.page';
 import { Pasajero } from '../../pages/carrito.page';
 import { BackOfficePage } from '../../pages/backoffice.page';
+import { WebAdminSeriePage } from '../../pages/webadmin-serie.page';
 import {
   paso, adjuntarTexto, reiniciarNumeracionDePasos, fechaDeBusqueda,
   formatearFecha, esperarFinDeCarga, conResaltado, selloEnLetras,
@@ -40,6 +41,7 @@ test.describe('Reservas', () => {
    * le sacaria lugar a la operacion.
    */
   const SERIE = {
+    id: 19,
     nombre: 'AUTO-QA NO TOCAR - Serie de regresion',
     circuito: 'AUTO-QA NO TOCAR - Serie: Buenos Aires (3 dias / 2 noches)',
     categoria: 'Primera',
@@ -100,6 +102,9 @@ test.describe('Reservas', () => {
       urlDelAsistente: '',
       pasajeros: [] as Pasajero[],
     };
+
+    // Lo que tiene que cobrar el asistente, leido en el WebAdmin al elegir la salida.
+    const esperado = { dbl: 0, menor: 0, total: 0 };
 
     const contexto = {
       agencia: 'AMV. TRAVEL',
@@ -195,6 +200,27 @@ test.describe('Reservas', () => {
       reserva.fecha = elegida.fecha;
       reserva.tarifaDeLaSalida = elegida.tarifa;
 
+      // Importes exactos: la tarifa de la salida es la que esta cargada en el WebAdmin
+      // (Series > Tarifas), por habitacion y sin markup. Se lee en otra pestana para no
+      // perder el asistente.
+      const admin = await page.context().newPage();
+      const cargadas = await new WebAdminSeriePage(admin).leerTarifas(SERIE.id, elegida.clave);
+      await admin.close();
+      await adjuntarTexto('Tarifas de la salida en el WebAdmin', cargadas
+        .map((t) => `${t.categoria}: SGL ${t.sgl} | DBL ${t.dbl} | TPL ${t.tpl} | Menores ${t.mnr}`).join(SALTO));
+      const cargada = cargadas.find((t) => t.categoria === SERIE.categoria);
+      expect(cargada?.dbl ?? 0, `La salida ${elegida.clave} tiene que tener cargada la DBL de ${SERIE.categoria} en el WebAdmin`)
+        .toBeGreaterThan(0);
+      esperado.dbl = cargada!.dbl!;
+      esperado.menor = cargada!.mnr ?? 0;
+      const porPersona = (await page.locator(`.scal-cell[data-key='${elegida.clave}'] .scal-price`)
+        .first().innerText().catch(() => '')).trim();
+      await adjuntarTexto('Precio por persona de la celda', porPersona);
+      expect.soft(elegida.tarifa, 'La tarifa de la salida en el calendario tiene que ser la DBL cargada en el WebAdmin')
+        .toBe(esperado.dbl);
+      expect.soft(importe(porPersona).valor ?? Number(porPersona.replace(/[^\d]/g, '')),
+        'La celda tiene que mostrar el precio por persona de la DBL (DBL / 2)').toBe(Math.round(esperado.dbl / 2));
+
       // La fecha de regreso sale de las noches que declara el circuito, no de un
       // numero fijo en el test.
       const [dd, mm, anio] = elegida.fecha.split('/').map(Number);
@@ -218,6 +244,8 @@ test.describe('Reservas', () => {
 
       capturar('asistente (tarifa de la habitacion)',
         (await page.locator(serie.tarifaElegida).innerText()).trim());
+      expect.soft(importes['asistente (tarifa de la habitacion)'].valor,
+        '"Tarifa por habitacion" tiene que ser la DBL cargada en el WebAdmin').toBe(esperado.dbl);
 
       // Cupo de esa salida antes de reservar. Al final se vuelve a leer: tiene que
       // haber bajado una unidad por habitacion reservada.
@@ -278,6 +306,17 @@ test.describe('Reservas', () => {
           .toBe(conCargo * tarifaDeMenor);
       });
 
+      // Contra lo cargado en el WebAdmin: cada doble cobra su DBL y el menor, la tarifa de menores.
+      await conResaltado(page, page.locator('#summaryFilled'), 'Importes contra el WebAdmin', () => {
+        expect.soft(tarifaDeMenor, 'La tarifa de menor de la salida tiene que ser la de Menores cargada en el WebAdmin')
+          .toBe(esperado.menor);
+        expect.soft(totales[0], 'La habitacion de dos adultos tiene que costar la DBL cargada en el WebAdmin')
+          .toBe(esperado.dbl);
+        expect.soft(totales[1], 'La habitacion con el menor tiene que costar la DBL mas la tarifa de menores del WebAdmin')
+          .toBe(esperado.dbl + conCargo * esperado.menor);
+      });
+      esperado.total = 2 * esperado.dbl + conCargo * esperado.menor;
+
       const resumen = await serie.resumen();
       await adjuntarTexto('Resumen del paso 1',
         Object.entries(resumen).map(([k, v]) => `${k}: ${v}`).join(SALTO));
@@ -302,6 +341,8 @@ test.describe('Reservas', () => {
         expect(importes['asistente (total)'].valor,
           'El total tiene que ser la suma de los totales de cada habitacion')
           .toBe(sumaDeLasHabitaciones);
+        expect.soft(importes['asistente (total)'].valor,
+          'El total tiene que ser dos DBL mas la tarifa de menores cargadas en el WebAdmin').toBe(esperado.total);
       });
     });
 

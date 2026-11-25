@@ -5,6 +5,9 @@ import { ServiciosDelDestinoPage } from '../../../pages/climbs/servicios-del-des
 import { CircuitoNuevoPage } from '../../../pages/climbs/circuito.page';
 import { HotelNuevoPage } from '../../../pages/climbs/hotel.page';
 import { leerTabla } from '../../../pages/climbs/tabla';
+import { conBackofficeNuevo, exigirHotelesDelCircuito, exigirServiciosDelCircuito, costosDelServicio, tarifaVigente, precioEsperado } from '../../../utils/markups';
+import { ModalesMultidestinoPage } from '../../../pages/climbs/modales-multidestino.page';
+import candidatos from '../../../data/candidatos.json';
 import { paso, adjuntarTexto, conResaltado, importeANumero, selloEnLetras, formatearFecha, fechaDeBusqueda } from '../../../utils/pasos';
 
 /** Datos del usuario con el que se reserva: los pone el sistema a partir de la sesion. */
@@ -37,6 +40,25 @@ export const importe = (texto: string): Importe => {
 };
 
 /** Fecha sin ceros a la izquierda, para comparar fechas escritas de distinta forma. */
+/**
+ * Meses (0 = enero) en que no opera el traslado 1223 "AUTO-QA NO TOCAR - Aeropuerto Internacional /
+ * Hotel centrico" del paquete AUTO-QA Buenos Aires y Ushuaia: marzo, junio, septiembre y diciembre
+ * (ServiceMonth 17, verificado en la base el 24/11/2026). En esos meses el multidestino lo marca
+ * "No disponible" y no deja continuar al carrito.
+ */
+export const MESES_SIN_TRASLADO_DEL_PAQUETE = [2, 5, 8, 11];
+
+/** Primera fecha desde fechaDeBusqueda(diasExtra) con los 6 dias del paquete en meses en que opera el traslado. */
+export function fechaDelPaquete(diasExtra = 7, mesesCerrados: number[] = MESES_SIN_TRASLADO_DEL_PAQUETE): Date {
+  const d = fechaDeBusqueda(diasExtra);
+  const fin = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate() + 5);
+  // Park Hyatt (el hotel del paquete en Buenos Aires) no tiene tarifa del 28/12 al 02/01: el viaje no puede tocar esos dias.
+  const fiestas = (x: Date) => (x.getMonth() === 11 && x.getDate() >= 28) || (x.getMonth() === 0 && x.getDate() <= 2);
+  const tocaFiestas = (x: Date) => Array.from({ length: 6 }, (_, i) => new Date(x.getFullYear(), x.getMonth(), x.getDate() + i)).some(fiestas);
+  while (mesesCerrados.includes(d.getMonth()) || mesesCerrados.includes(fin(d).getMonth()) || tocaFiestas(d)) d.setDate(d.getDate() + 1);
+  return d;
+}
+
 export const sinCeros = (fecha: string) => fecha.split('/').map((p) => String(Number(p))).join('/');
 
 /** Los mismos pasajeros que arma la suite actual: nombre fijo, apellido con el sello en letras. */
@@ -121,7 +143,7 @@ export async function verificarEnElBackofficeNuevo(opciones: {
       expect(detalle, 'El detalle de la reserva tiene que mostrar el comentario cargado en el item').toContain(reserva.detalleDelItem);
     });
     await conResaltado(page, main, 'Observaciones en el detalle de la reserva', async () => {
-      expect(await portal.datoDelDetalle('Comentario(s)'), 'El detalle de la reserva tiene que mostrar las observaciones cargadas')
+      expect(await portal.datoDelDetalle(['Comentario(s)', 'Comentario']), 'El detalle de la reserva tiene que mostrar las observaciones cargadas')
         .toBe(reserva.observaciones);
     });
   });
@@ -216,9 +238,11 @@ export async function verificarEnElBackofficeNuevo(opciones: {
       });
     }
     for (const [esperado, delPortal] of Object.entries(importePorItemDelPortal)) {
-      const ese = items.find((f) => (f['Detalle'] ?? '').toUpperCase().includes(esperado.toUpperCase()));
+      // Con recargo por idioma (US 4739) el servicio puede traer un item "Adicional Idioma" aparte: se suman.
+      const deEse = items.filter((f) => (f['Detalle'] ?? '').toUpperCase().includes(esperado.toUpperCase())).map((f) => importe(f['Venta'] ?? '').valor ?? 0);
+      if (deEse.length > 1) await adjuntarTexto(`Items de ${esperado} en el detalle`, deEse.join(' + '));
       await conResaltado(page, tablaItems, `Importe del item ${esperado} en el detalle`, () => {
-        expect(importe(ese?.['Venta'] ?? '').valor, `El detalle tiene que conservar el importe de ${esperado}`).toBe(importe(delPortal).valor);
+        expect(Number(deEse.reduce((a, b) => a + b, 0).toFixed(2)), `El detalle tiene que conservar el importe de ${esperado}`).toBe(importe(delPortal).valor);
       });
     }
   });
@@ -282,7 +306,14 @@ export async function verificarEnElBackofficeNuevo(opciones: {
       expect(item?.checkin, 'El file tiene que mostrar la fecha de la reserva').toBe(reserva.fecha);
       expect(item?.texto.toUpperCase(), 'El file tiene que mostrar la modalidad reservada').toContain(modalidadEnElFile.toUpperCase());
     });
-    importes['file (Venta del item)'] = { moneda: item?.venta.moneda ?? '', valor: item?.venta.valor ?? null };
+    // Con recargo por idioma (US 4739) el file suma un item aparte del mismo servicio
+    // ("Adicional Idioma ..."): la venta del servicio es la de todos sus items.
+    const delServicio = items.filter((i) => i.texto.toUpperCase().includes(reserva.textoEnElBO.toUpperCase()));
+    await adjuntarTexto('Items del servicio en el file', `${delServicio.length} item(s): ${delServicio.map((i) => `${i.venta.moneda} ${i.venta.valor}`).join(' + ')}`);
+    importes['file (Venta del item)'] = {
+      moneda: item?.venta.moneda ?? '',
+      valor: delServicio.length > 1 ? Number(delServicio.reduce((x, i) => x + (i.venta.valor ?? 0), 0).toFixed(2)) : (item?.venta.valor ?? null),
+    };
 
     // El equivalente del "ojito" del BO viejo: ningun item oculto al pasajero (lo que se
     // oculta no sale en SIX). La ficha lo cuenta en el filtro "Ocultos al pasajero".
@@ -299,8 +330,10 @@ export async function verificarEnElBackofficeNuevo(opciones: {
       });
     }
     for (const [esperado, delPortal] of Object.entries(importePorItemDelPortal)) {
-      const ese = items.find((i) => i.texto.toUpperCase().includes(esperado.toUpperCase()));
-      expect(ese?.venta.valor, `El file tiene que conservar el importe de ${esperado}`).toBe(importe(delPortal).valor);
+      // Con recargo por idioma (US 4739) el file suma un item "Adicional Idioma" del mismo servicio: se suman.
+      const deEse = items.filter((i) => i.texto.toUpperCase().includes(esperado.toUpperCase())).map((i) => i.venta.valor ?? 0);
+      if (deEse.length > 1) await adjuntarTexto(`Items de ${esperado} en el file`, deEse.join(' + '));
+      expect(Number(deEse.reduce((a, b) => a + b, 0).toFixed(2)), `El file tiene que conservar el importe de ${esperado}`).toBe(importe(delPortal).valor);
     }
 
     // La suma de las ventas de los items tiene que dar la venta de los destinos y la de
@@ -325,8 +358,12 @@ export async function verificarEnElBackofficeNuevo(opciones: {
       if (i.moneda) expect(i.moneda, `La moneda tiene que ser la misma en ${donde} que en ${claveDeReferencia}`).toBe(referencia.moneda);
     }
     if (itemUnico) {
-      // A) El total de venta que vio la persona (con su markup).
-      for (const donde of ['carrito (total del item)', 'detalle (V. markup del item)']) {
+      // A) El total de venta que vio la persona (con su markup). Sin markup (pablo1 esta en 0,00
+      // desde noviembre) el BO no muestra "V. markup" y la Venta del detalle es ese mismo total:
+      // si hubiera un markup oculto, la Venta seria el neto y no daria.
+      const conMarkup = importes['detalle (V. markup del item)']?.valor != null;
+      await adjuntarTexto('Markup de la reserva', conMarkup ? 'con markup: V. markup visible en el detalle' : 'sin markup: el detalle no muestra V. markup');
+      for (const donde of ['carrito (total del item)', conMarkup ? 'detalle (V. markup del item)' : 'detalle (Venta del item)']) {
         expect(importes[donde]?.valor, `El importe en ${donde} tiene que ser el total que mostro el portal`).toBe(referencia.valor);
       }
       // B) El historial, la bandeja y el file llevan el neto, que es la Venta del detalle (igual que en el sistema actual).
@@ -374,6 +411,12 @@ export async function armarCircuitoYEmitir(page: Page, opciones: {
   solapa: 'OFERTAS' | 'MULTIDESTINO'; viaje: string; fecha: Date; sello: string;
   reserva: ReservaEsperada & { dobles: number; items: string[]; importePorItem: Record<string, string> };
   importes: Record<string, Importe>;
+  /**
+   * Servicio del viaje en el que se elige English antes de ir al carrito (US 4739): "al pasar del carrito al
+   * checkout y de ahi a la reserva, el idioma elegido y el recargo aplicado no tienen que perderse en ningun
+   * paso intermedio: tienen que llegar completos hasta el item de la reserva".
+   */
+  idioma?: { servicioId: number; item: string };
 }): Promise<string> {
   const { solapa, viaje, fecha, sello, reserva, importes } = opciones;
   const ct = new CircuitoNuevoPage(page);
@@ -402,6 +445,20 @@ export async function armarCircuitoYEmitir(page: Page, opciones: {
     await conResaltado(page, panel, 'Hotel del paquete en el itinerario', () => {
       expect(opcion.lineas.join(' | '), 'El itinerario tiene que armarse con el hotel del paquete').toContain('Park Hyatt');
     });
+    // US 4800: "El precio de cada servicio de la cotizacion ... tiene que calcularse con el markup de
+    // servicios" de la agencia. El CustomMarkup personal del usuario no entra en el circuito.
+    const filas = await ct.serviciosDelItinerario(fecha);
+    const servicios = await conBackofficeNuevo(page.context().browser()!, (bo) =>
+      exigirServiciosDelCircuito(bo, filas, candidatos._usuarioTest.markupsDeLaAgencia.servicio));
+    await adjuntarTexto('Importes de los servicios contra el costo', servicios.join(' | '));
+    expect.soft(servicios.filter((l) => !l.startsWith('OK')),
+      'Cada servicio del itinerario tiene que costar techo(costo / cotizacion / markup) por pasajero, con su modalidad').toEqual([]);
+    // US 4800: el precio de cada hotel "tiene que calcularse con el markup de hoteles de la agencia".
+    const hoteles = await conBackofficeNuevo(page.context().browser()!, (bo) =>
+      exigirHotelesDelCircuito(bo, opcion.lineas, fecha, reserva.cantidadPax, candidatos._usuarioTest.markupsDeLaAgencia.hotel));
+    await adjuntarTexto('Importes de los hoteles contra los cortes', hoteles.join(' | '));
+    expect.soft(hoteles.filter((l) => !l.startsWith('OK')),
+      'Cada hotel del itinerario tiene que costar techo(cortes DBL por persona de sus noches x pax / markup de hoteles de la agencia)').toEqual([]);
     importes['itinerario (total)'] = importe(opcion.total);
     // El total tiene que ser la habitacion mas los servicios, que es lo que el panel muestra.
     await conResaltado(page, panel, 'Total del itinerario', () => {
@@ -409,6 +466,49 @@ export async function armarCircuitoYEmitir(page: Page, opciones: {
         .toBe((importe(opcion.habitacion).valor ?? 0) + (importe(opcion.servicios).valor ?? 0));
     });
   });
+
+  const { idioma } = opciones;
+  if (idioma) {
+    await paso(page, `Elegir English en ${idioma.item} del itinerario: la fila suma el recargo con el markup de la agencia (US 4739)`, async () => {
+      const mk = candidatos._usuarioTest.markupsDeLaAgencia.servicio;
+      const pax = reserva.cantidadPax;
+      const tarifas = await conBackofficeNuevo(page.context().browser()!, (bo) => costosDelServicio(bo, idioma.servicioId));
+      const tarifa = tarifaVigente(tarifas, 'Regular', fecha, pax);
+      expect(tarifa, `El servicio ${idioma.servicioId} tiene que tener tarifa Regular vigente`).toBeDefined();
+      const recargo = tarifa!.recargos.find((r) => /^(English|Ingl[eé]s)$/i.test(r.idioma));
+      expect(recargo, `La tarifa Regular del servicio ${idioma.servicioId} tiene que tener recargo para English`).toBeDefined();
+      const recargoPax = recargo!.tipo === 'porcentaje' ? tarifa!.costo! * recargo!.valor / 100 : recargo!.tipo === 'porPasajero' ? recargo!.valor : recargo!.valor / pax;
+      // La fila es el total de los pasajeros: techo(costo por persona / markup de servicios de la agencia) x pax.
+      const espanolEsperado = precioEsperado(tarifa!.costo!, tarifa!.moneda, mk)! * pax;
+      const inglesEsperado = precioEsperado(tarifa!.costo! + recargoPax, tarifa!.moneda, mk)! * pax;
+      const mod = new ModalesMultidestinoPage(page);
+      const fila = page.locator('main article').filter({ hasText: new RegExp(idioma.item, 'i') }).last();
+      const precio = async () => (await mod.itemsDelDestino('Buenos Aires', 'Servicios')).filter((i) => new RegExp(idioma.item, 'i').test(i.nombre)).at(-1)?.importe ?? null;
+      const enEspanol = await precio();
+      const totalAntes = importes['itinerario (total)'].valor;
+      const combo = fila.getByRole('combobox', { name: 'Idioma', exact: true });
+      await expect(combo, `La fila de ${idioma.item} tiene que tener el combo Idioma`).toBeVisible();
+      const opcionesDelCombo = (await combo.locator('option').allInnerTexts()).map((o) => o.trim());
+      const ingles = opcionesDelCombo.find((o) => /^(English|Ingl[eé]s)$/i.test(o));
+      expect(ingles, `El combo Idioma tiene que ofrecer English. Ofrece: ${opcionesDelCombo.join(', ')}`).toBeDefined();
+      await combo.selectOption({ label: ingles! });
+      await expect.poll(precio, { message: 'La fila tiene que recalcular el precio al elegir English', timeout: 60_000 }).not.toBe(enEspanol);
+      await page.waitForLoadState('networkidle');
+      const enIngles = await precio();
+      importes['itinerario (total)'] = importe((await ct.opcionesDeCotizacion()).total);
+      await adjuntarTexto(`${idioma.item} en English`, [
+        `Tarifa del BackOffice: ${tarifa!.vigencia} | ${tarifa!.moneda} ${tarifa!.costo} | recargos ${JSON.stringify(tarifa!.recargos)}`,
+        `Fila: Espanol ${enEspanol} -> English ${enIngles}`,
+        `Esperado: Espanol techo(${tarifa!.costo} / ${mk}) x ${pax} = ${espanolEsperado}; English techo((${tarifa!.costo} + ${recargoPax}) / ${mk}) x ${pax} = ${inglesEsperado}`,
+        `Total del itinerario: ${totalAntes} -> ${importes['itinerario (total)'].valor}`,
+      ].join('\n'));
+      await conResaltado(page, fila, `${idioma.item} en English`, () => {
+        expect.soft(enEspanol, `En Espanol la fila tiene que ser techo(costo / markup de la agencia) x ${pax} = ${espanolEsperado}`).toBe(espanolEsperado);
+        expect.soft(enIngles, `En English la fila tiene que ser techo((costo + recargo) / markup de la agencia) x ${pax} = ${inglesEsperado} (US 4739)`).toBe(inglesEsperado);
+        expect.soft((importes['itinerario (total)'].valor ?? 0) - (totalAntes ?? 0), 'El total del itinerario tiene que subir lo mismo que la fila').toBe((enIngles ?? 0) - (enEspanol ?? 0));
+      });
+    });
+  }
 
   await paso(page, 'Continuar al carrito y revisar que conserve el total', async () => {
     await ct.continuarAlCarrito();

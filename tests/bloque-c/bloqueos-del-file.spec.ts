@@ -3,7 +3,8 @@ import { InicioPage } from '../../pages/inicio.page';
 import {
   paso, adjuntarTexto, esperarFinDeCarga, formatearFecha, reiniciarNumeracionDePasos, conResaltado,
 } from '../../utils/pasos';
-import { reservarServicioYGenerarFile } from './cobranzas-comun';
+import { reservarServicioYGenerarFile, importe } from './cobranzas-comun';
+import { BackOfficePage } from '../../pages/backoffice.page';
 import { armarFacturaAprobada, armarFacturaAlCliente } from './cobranzas-armado';
 
 /**
@@ -203,6 +204,12 @@ test.describe('Cobranzas — bloqueos del file', () => {
         expect(despues.estado, 'El file no puede haber quedado cancelado').toBe(antes.estado);
         expect(despues.vencimiento, 'El file tiene que conservar su vencimiento').toBe(antes.vencimiento);
       });
+      // Los intentos rechazados no pueden haber tocado los importes del item.
+      const bo = new BackOfficePage(page);
+      const montos = await bo.montosDelItemDelFile(page.locator(bo.filaServicioDelFile).first());
+      await adjuntarTexto('Importes del item despues de los intentos', `Costo: ${montos.costo} | Venta: ${montos.venta}`);
+      expect(importe(montos.costo), 'El item tiene que conservar su costo').toEqual(base.costoDelItem);
+      expect(importe(montos.venta), 'El item tiene que conservar su venta').toEqual(base.ventaDelItem);
     });
   });
 });

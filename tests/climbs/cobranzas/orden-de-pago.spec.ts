@@ -57,11 +57,11 @@ test.describe('Cobranzas', () => {
     });
 
     await paso(page, 'Verificar que la caja de regresion se ofrezca y elegirla', async () => {
-      const cajas = await orden.opciones('cf-0');
+      const cajas = await orden.opciones('cf-0', caja);
       await adjuntarTexto('Cajas ofrecidas para la moneda de la orden', cajas.join('\n'));
       expect(cajas.join(' | '), `La orden tiene que ofrecer la caja ${caja} para ${factura.moneda}. Si no aparece, revisar que siga publicada y en la sucursal.`)
         .toContain(caja);
-      await orden.campo('cf-0').selectOption({ label: caja });
+      await orden.elegir('cf-0', caja);
     });
 
     await paso(page, 'Cargar el importe y verificar el total que calcula la pantalla', async () => {
@@ -93,7 +93,7 @@ test.describe('Cobranzas', () => {
     await paso(page, 'Verificar el pendiente de asignacion contra el total de la orden', async () => {
       const pendiente = (await orden.pendienteDeAsignacion().innerText()).replace(/\s+/g, ' ');
       await adjuntarTexto('Pendiente de asignacion de la orden', pendiente);
-      expect(importeANumero(pendiente.split(':')[1] ?? ''), 'Sin nada imputado, el pendiente tiene que ser el total de la orden').toBe(total);
+      expect(importeANumero(pendiente.replace(/^\s*Pendiente de asignación:?/, '')), 'Sin nada imputado, el pendiente tiene que ser el total de la orden').toBe(total);
     });
 
     await paso(page, 'Ubicar la factura entre las pendientes y comparar la fila', async () => {
@@ -118,7 +118,7 @@ test.describe('Cobranzas', () => {
       expect(importeANumero(i.facturaPendiente), 'La factura no tiene nada pagado, asi que su pendiente tiene que ser su total').toBe(total);
 
       await orden.asignar(dialogo, totalComoTexto, datos.comentarioDeLaImputacion);
-      await expect.poll(async () => importeANumero((await orden.pendienteDeAsignacion().innerText()).split(':')[1] ?? ''),
+      await expect.poll(async () => importeANumero((await orden.pendienteDeAsignacion().innerText()).replace(/^\s*Pendiente de asignación:?/, '')),
         { message: 'Imputada la orden entera, no tiene que quedar nada pendiente de asignacion', timeout: 30_000 }).toBe(0);
       await expect(orden.filaPendiente(factura.numeroDeFactura), 'Imputado el total, la factura no tiene que seguir entre las pendientes')
         .toHaveCount(0, { timeout: 60_000 });
@@ -127,7 +127,7 @@ test.describe('Cobranzas', () => {
 
     await paso(page, 'Aprobar la orden aplicando el recibo y verificar el estado', async () => {
       await orden.aprobar(fechaDeHoy, datos.reciboDelProveedor);
-      await expect(page.getByText(datos.estadoAprobada, { exact: true }), 'Aprobada y con el recibo aplicado, la orden tiene que quedar en estado Pago')
+      await expect(page.getByRole('dialog').or(page.locator('main')).last().getByText(datos.estadoAprobada, { exact: true }).filter({ visible: true }).first(), 'Aprobada y con el recibo aplicado, la orden tiene que quedar en estado Pago')
         .toBeVisible({ timeout: 60_000 });
       await expect(orden.campo('receipt'), 'El recibo tiene que conservar su numero, en mayuscula').toHaveValue(datos.reciboDelProveedor.toUpperCase());
       expect(comoFecha(await orden.campo('receipt-date').inputValue()), 'El recibo tiene que conservar su fecha').toBe(fechaDeHoy);
@@ -139,7 +139,7 @@ test.describe('Cobranzas', () => {
 
     await paso(page, 'Verificar la orden en el listado de ordenes de pago', async () => {
       await page.goto('/finance/pay-orders');
-      await page.getByPlaceholder('Código, proveedor, referencia u observación').fill(codigo);
+      await page.getByRole('searchbox', { name: /^Código, / }).first().fill(codigo);
       const fila = page.locator('tbody tr').filter({ hasText: codigo }).first();
       await expect(fila, `La orden ${codigo} tiene que aparecer en el listado`).toBeVisible({ timeout: 60_000 });
       const texto = (await fila.innerText()).replace(/\s+/g, ' ');
@@ -147,7 +147,7 @@ test.describe('Cobranzas', () => {
       expect(texto.toUpperCase(), 'El listado tiene que mostrar el proveedor').toContain(PROVEEDOR_DE_REGRESION.razonSocial.toUpperCase());
       expect(texto, 'El listado tiene que mostrar el detalle de la orden').toContain(datos.detalle.slice(0, 40));
       expect(texto.toUpperCase(), 'Aprobada, la orden tiene que figurar como paga en el listado').toContain(datos.estadoAprobada.toUpperCase());
-      const importes = (texto.match(/\d[\d.]*,\d+/g) ?? []).map(importeANumero);
+      const importes = (texto.match(/(?:[A-Z]{3}|\$)\s*-?\d[\d.]*(?:,\d+)?/g) ?? []).map(importeANumero);
       expect(importes, 'El listado tiene que mostrar el monto de la orden').toContain(total);
     });
 

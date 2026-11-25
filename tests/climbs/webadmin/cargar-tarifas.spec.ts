@@ -88,7 +88,9 @@ test.describe('WebAdmin — carga de tarifas de habitacion', () => {
 
     await paso(page, 'Portal: el tarifario del hotel cobra el corte nuevo', async () => {
       const filas = await tarifasDelPortal(page, HOTEL);
-      const markup = (await new TarifarioNuevoPage(page).markupActivo()) ?? candidatos._formulaPrecio.markupPorDefecto;
+      // Markup 0 es "sin markup" (pablo1 esta en 0,00 desde noviembre): el portal muestra la tarifa por pax tal cual.
+      const leido = (await new TarifarioNuevoPage(page).markupActivo()) ?? candidatos._formulaPrecio.markupPorDefecto;
+      const markup = leido > 0 ? leido : 1;
       await adjuntarTexto('Tarifario del portal', `markup del usuario: ${markup}` + SALTO + SALTO +
         filas.map((f) => f.join(' | ')).join(SALTO));
       const fila = filas.find((f) => f.join(' ').includes(C.desde) && f.join(' ').includes(C.hasta));

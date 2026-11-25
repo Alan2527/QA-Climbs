@@ -29,9 +29,12 @@ export type Precios = { single?: number | null; doble?: number | null; triple?: 
  * "Guardar" del pie. Hasta entonces el Tarifario muestra la vista previa.
  */
 export class HabitacionNuevaPage {
+  /** El texto de la confirmacion "Pisar las tarifas" de la ultima operacion ("" si no aparecio). */
+  avisoDePisar = '';
+
   constructor(private readonly page: Page) {}
 
-  get ficha(): Locator { return this.page.getByRole('dialog').filter({ hasText: /Habitación #\d+/ }).first(); }
+  get ficha(): Locator { return this.page.getByRole('dialog').filter({ has: this.page.getByRole('button', { name: /^Copiar #\d+/ }) }).first(); }
   get pie(): Locator { return this.ficha.getByRole('contentinfo').last(); }
   get pendientes(): Locator { return this.ficha.locator('.rr-pending'); }
 
@@ -43,6 +46,9 @@ export class HabitacionNuevaPage {
   }
 
   async solapa(nombre: string) {
+    // Desde noviembre la solapa "Tarifario" ya no existe: su vista "Por persona" es un selector
+    // dentro de "Tarifas" (Por habitación / Por persona).
+    if (nombre === 'Tarifario' && !(await this.ficha.getByRole('tab', { name: /^Tarifario/ }).count())) nombre = 'Tarifas';
     await this.ficha.getByRole('tab', { name: new RegExp(`^${nombre}`) }).click();
     await expect(this.ficha.getByRole('tab', { name: new RegExp(`^${nombre}`) })).toHaveAttribute('aria-selected', 'true');
     await this.page.waitForLoadState('networkidle').catch(() => {});
@@ -83,7 +89,8 @@ export class HabitacionNuevaPage {
     return (await this.tabla()).map((f) => ({
       desde: f['Desde'], hasta: f['Hasta'],
       sgl: importe(f['Single']), dbl: importe(f['Doble']), tpl: importe(f['Triple']),
-      extendida: /Extendida/i.test(f['Extensión'] ?? ''),
+      // Desde noviembre la marca es "+N %" (o "Manual") en la columna Extension.
+      extendida: /Extendida|Manual|\+\s*[\d.,]+\s*%/i.test(f['Extensión'] ?? ''),
       // Sin observacion la celda trae el boton "Agregar".
       observacion: /^Agregar$/.test(f['Observación'] ?? '') ? '' : (f['Observación'] ?? ''),
     }));
@@ -110,7 +117,18 @@ export class HabitacionNuevaPage {
 
   /** "Agregar a los cambios": devuelve el aviso de error si lo rechaza, o null. */
   private async agregarALosCambios(panel: Locator): Promise<string | null> {
-    await panel.getByRole('button', { name: /^(Agregar a los cambios|Aplicar cupo)$/ }).click();
+    await panel.getByRole('button', { name: /^(Agregar a los cambios|Aplicar cupo|Cargar cupo)$/ }).click();
+    // Desde noviembre, si el rango ya tiene tarifas pide confirmar ("Pisar las tarifas"): el test
+    // pisa a proposito, asi que acepta y deja el texto del aviso para quien lo quiera leer.
+    const pisar = this.page.getByRole('button', { name: 'Pisar las tarifas', exact: true });
+    this.avisoDePisar = '';
+    if (await pisar.waitFor({ state: 'visible', timeout: 3_000 }).then(() => true).catch(() => false)) {
+      this.avisoDePisar = await pisar.evaluate((b) => {
+        const caja = b.closest('[role="alertdialog"], [role="dialog"], .dialog, .confirm') ?? b.parentElement?.parentElement ?? b;
+        return (caja as HTMLElement).innerText.replace(/\s+/g, ' ').trim();
+      });
+      await pisar.click();
+    }
     const cerrado = await panel.waitFor({ state: 'hidden', timeout: 15_000 }).then(() => true).catch(() => false);
     if (cerrado) {
       await this.page.waitForLoadState('networkidle').catch(() => {});
@@ -142,40 +160,64 @@ export class HabitacionNuevaPage {
   async origenesParaExtender(): Promise<string[]> {
     await this.solapa('Tarifas');
     const panel = await this.abrirOperacion('Extender');
-    await expect.poll(() => panel.getByRole('combobox', { name: 'Origen' }).locator('option').count(), { timeout: 30_000 }).toBeGreaterThan(2);
-    const opciones = (await panel.getByRole('combobox', { name: 'Origen' }).locator('option').allInnerTexts()).map((o) => o.trim());
-    await panel.getByRole('button', { name: 'Cancelar' }).click();
+    // Desde noviembre el origen es la tabla "Corte tarifario base": una fila (con su radio) por corte.
+    await expect.poll(() => this.cortesDeOrigen(panel).count(), { timeout: 30_000 }).toBeGreaterThan(0);
+    const opciones = (await panel.locator('#rr-source tbody tr').allInnerTexts()).map((o) => o.replace(/\s+/g, ' ').trim());
+    await panel.getByRole('button', { name: /^(Cancelar|Volver)/ }).click();
     return opciones;
   }
+
+  private cortesDeOrigen(panel: Locator): Locator { return panel.locator('#rr-source').getByRole('radio'); }
 
   /** Extender desde un corte (sus fechas) un porcentaje a un rango. */
   async extender(origen: { desde: string; hasta: string }, desde: string, hasta: string, porcentaje: string): Promise<string | null> {
     await this.solapa('Tarifas');
     const panel = await this.abrirOperacion('Extender');
     await this.rango(panel, desde, hasta);
-    const combo = panel.getByRole('combobox', { name: 'Origen' });
-    // Los cortes llegan despues de abrir el panel: antes solo estan "Elegir tramo" y "Recuperar".
-    await expect.poll(() => combo.locator('option').count(), { timeout: 30_000 }).toBeGreaterThan(2);
-    const opciones = await combo.locator('option').allInnerTexts();
-    const opcion = opciones.find((o) => o.trim().startsWith(`${origen.desde} – ${origen.hasta}`));
-    expect(opcion, `El combo Origen tiene que ofrecer el corte ${origen.desde} - ${origen.hasta}. Ofrece:\n${opciones.join('\n')}`).toBeTruthy();
-    await combo.selectOption({ label: opcion!.trim() });
+    // Los cortes llegan despues de abrir el panel.
+    await expect.poll(() => this.cortesDeOrigen(panel).count(), { timeout: 30_000 }).toBeGreaterThan(0);
+    const corte = panel.getByRole('radio', { name: `${origen.desde} – ${origen.hasta}`, exact: true });
+    const ofrecidos = (await this.cortesDeOrigen(panel).evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? ''))).join('\n');
+    expect(await corte.count(), `La tabla de cortes tiene que ofrecer ${origen.desde} - ${origen.hasta}. Ofrece:\n${ofrecidos}`).toBe(1);
+    await corte.check();
     await panel.getByRole('textbox', { name: 'Incremento %' }).fill(porcentaje);
     return this.agregarALosCambios(panel);
   }
 
   async borrarRango(desde: string, hasta: string): Promise<string | null> {
     await this.solapa('Tarifas');
-    const panel = await this.abrirOperacion('Borrar rango');
-    await this.rango(panel, desde, hasta);
-    return this.agregarALosCambios(panel);
+    if (await this.ficha.getByRole('button', { name: 'Borrar rango', exact: true }).count()) {
+      const panel = await this.abrirOperacion('Borrar rango');
+      await this.rango(panel, desde, hasta);
+      return this.agregarALosCambios(panel);
+    }
+    // Desde noviembre no hay "Borrar rango" con fechas libres: cada tramo tiene su papelera
+    // ("Borrar del X al Y"). Se borran los tramos que caen enteros dentro del rango; borrado, el
+    // tramo queda tachado y sin papelera, asi que el ciclo termina.
+    const ms = (t: string) => { const [d, m, a] = t.split('/').map(Number); return new Date(a, m - 1, d).getTime(); };
+    const papeleras = this.ficha.getByRole('button', { name: /^Borrar del \d{2}\/\d{2}\/\d{4} al \d{2}\/\d{2}\/\d{4}$/ });
+    for (let vuelta = 0; vuelta < 50; vuelta++) {
+      const nombres = await papeleras.evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? ''));
+      const nombre = nombres.find((n) => {
+        const [, de, a] = n.match(/del (\S+) al (\S+)$/) ?? [];
+        return !!de && ms(de) >= ms(desde) && ms(a) <= ms(hasta);
+      });
+      if (!nombre) break;
+      await this.ficha.getByRole('button', { name: nombre, exact: true }).click();
+      const error = this.page.locator('.toast.bad .toast-text');
+      await expect(this.ficha.getByRole('button', { name: nombre, exact: true })).toBeHidden({ timeout: 30_000 }).catch(() => {});
+      if (await error.isVisible()) return (await error.allInnerTexts()).join(' | ');
+      await this.page.waitForLoadState('networkidle').catch(() => {});
+    }
+    return null;
   }
 
   /** Solapa Freesale: "Aplicar cupo" para un rango. */
   async aplicarCupo(desde: string, hasta: string, cupo: number): Promise<string | null> {
     await this.solapa('Freesale');
-    await this.ficha.getByRole('button', { name: 'Aplicar cupo', exact: true }).first().click();
-    const panel = this.page.getByRole('dialog', { name: 'Aplicar cupo' });
+    // Desde noviembre el boton y el panel se llaman "Cargar cupo" (antes "Aplicar cupo").
+    await this.ficha.getByRole('button', { name: /^(Cargar cupo|Aplicar cupo)$/ }).first().click();
+    const panel = this.page.getByRole('dialog', { name: /^(Cargar cupo|Aplicar cupo)$/ });
     await expect(panel).toBeVisible();
     await this.rango(panel, desde, hasta);
     await panel.getByRole('textbox', { name: 'Cupo' }).fill(String(cupo));
@@ -185,11 +227,17 @@ export class HabitacionNuevaPage {
   /** El cupo de un dia en el calendario de Freesale (el titulo del dia: "dd/mm/aaaa: cupo N"); null sin tarifa. */
   async cupoDelDia(fecha: string): Promise<number | null> {
     await this.solapa('Freesale');
-    const dia = this.ficha.locator(`.cal-day[title^="${fecha}:"]`).first();
+    // Desde noviembre el dia no tiene title (el cupo sale en un tooltip al pasar el mouse): se lee
+    // del dibujo. Mes por su encabezado ("Enero de 2028"), dia por su posicion; la clase dice si
+    // tiene tarifa (rr-day--none) y el numero chico es el cupo (sin numero y con tarifa: cupo 0).
+    const [d, m, a] = fecha.split('/').map(Number);
+    const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const mes = this.ficha.locator('.cal-month').filter({ has: this.page.locator('h4', { hasText: new RegExp(`^${MESES[m - 1]}.*${a}$`, 'i') }) });
+    const dia = mes.locator('.cal-day').nth(d - 1);
     await expect(dia, `El calendario tiene que mostrar el ${fecha}`).toBeAttached({ timeout: 30_000 });
-    const titulo = (await dia.getAttribute('title')) ?? '';
-    const m = titulo.match(/cupo (\d+)/);
-    return m ? Number(m[1]) : null;
+    const { clase, cupo } = await dia.evaluate((e) => ({ clase: e.className, cupo: e.querySelector('small')?.textContent ?? '' }));
+    if (clase.includes('rr-day--none')) return null;
+    return cupo ? Number(cupo) : 0;
   }
 
   async descartarCambios() {
@@ -203,7 +251,7 @@ export class HabitacionNuevaPage {
     await expect(boton, 'Tiene que haber cambios para guardar').toBeEnabled();
     await boton.click();
     await expect(boton, 'Al guardar, el pie tiene que quedar "Al dia"').toBeDisabled({ timeout: 90_000 });
-    await expect(this.pie).toContainText('Al día', { timeout: 30_000 });
+    await expect(this.pie.getByRole('button', { name: /^Guardar/ }).first(), 'Guardado, el boton Guardar del pie queda deshabilitado (antes el pie decia "Al dia")').toBeDisabled({ timeout: 30_000 });
     await expect(this.pendientes).toBeHidden({ timeout: 30_000 });
   }
 
@@ -215,6 +263,8 @@ export class HabitacionNuevaPage {
   /** "Regenerar tarifario" de la solapa Tarifario (el "Generar Tarifario" del WebAdmin). */
   async regenerarTarifario() {
     await this.solapa('Tarifario');
+    // Desde el 28/10 (70d2a8e0) no hay boton: el tarifario del sitio se rearma al guardar las tarifas.
+    if (!(await this.ficha.getByRole('button', { name: 'Regenerar tarifario' }).count())) return;
     const respuesta = this.page.waitForResponse((r) => /\/rates$/.test(new URL(r.url()).pathname) && r.request().method() !== 'GET', { timeout: 90_000 });
     await this.ficha.getByRole('button', { name: 'Regenerar tarifario' }).click();
     expect((await respuesta).ok(), 'Regenerar el tarifario tiene que responder bien').toBe(true);
@@ -248,7 +298,8 @@ export class HabitacionNuevaPage {
   }
 
   async freesaleHabilitado(): Promise<boolean> {
-    await this.solapa('Detalle');
+    // Desde noviembre "Habilitar freesale" vive en la solapa Freesale (antes, en Detalle).
+    await this.solapa('Freesale');
     return this.ficha.getByRole('checkbox', { name: 'Habilitar freesale' }).isChecked();
   }
 
@@ -281,6 +332,8 @@ export class HabitacionNuevaPage {
     await this.solapa('Observaciones');
     const fila = this.ficha.locator('tbody tr').filter({ hasText: desde }).first();
     await fila.getByRole('button', { name: 'Borrar observación' }).click();
+    // El borrado se suma a los cambios sin guardar: se espera a que figure antes de seguir.
+    await expect(this.pendientes, 'El borrado de la observacion tiene que quedar como cambio pendiente').toBeVisible({ timeout: 30_000 });
     await this.page.waitForLoadState('networkidle').catch(() => {});
   }
 }

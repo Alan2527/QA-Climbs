@@ -61,17 +61,44 @@ export class UsuarioDeAgenciaPage {
   }
 
   /** "Guardar": devuelve el id si llevo a la ficha nueva, o el aviso del rechazo. */
+  /** El modal que abre "Guardar y enviar email" en el alta: idioma, gerente comercial y que lleva el mail. */
+  get envio(): Locator { return this.page.getByRole('dialog', { name: 'Enviar el acceso por email' }); }
+
+  /** Abre el modal del envio y devuelve su nota ("lleva el enlace..." o "lleva la clave..."), o '' si no abrio. */
+  async abrirEnvio(): Promise<string> {
+    await this.pie.getByRole('button', { name: /^Guardar( y enviar email)?$/ }).first().click();
+    if (!(await this.envio.waitFor({ state: 'visible', timeout: 15_000 }).then(() => true).catch(() => false))) return '';
+    return (await this.envio.locator('p.muted').first().innerText()).replace(/\s+/g, ' ').trim();
+  }
+
+  /** Cierra el modal del envio sin guardar. */
+  async cancelarEnvio() {
+    await this.envio.getByRole('button', { name: /^Cancelar/ }).click();
+    await expect(this.envio).toBeHidden();
+  }
+
   async guardarAlta(): Promise<{ id: number | null; aviso: string }> {
-    await this.pie.getByRole('button', { name: 'Guardar', exact: true }).click();
+    // Desde noviembre "Guardar y enviar email" abre el modal "Enviar el acceso por email" (idioma y
+    // gerente comercial) y se guarda desde ahi; en QA el correo queda en cola, no se envia.
+    if (await this.abrirEnvio()) {
+      const gerente = this.envio.locator('#au-mail-manager');
+      if ((await gerente.isEnabled()) && !(await gerente.inputValue())) {
+        const primero = await gerente.locator('option').evaluateAll((os) => (os as HTMLOptionElement[]).map((o) => o.value).find((v) => v !== '') ?? '');
+        if (primero) await gerente.selectOption(primero);
+      }
+      await this.envio.getByRole('button', { name: /^Guardar y enviar email/ }).click();
+    }
     const ficha = this.page.waitForURL(/\/clients\/agency-users\/\d+/, { timeout: 30_000 }).then(() => true).catch(() => false);
     if (await ficha) {
-      await expect(this.pie).toContainText('Al día', { timeout: 30_000 });
+      await expect(this.pie.getByRole('button', { name: /^Guardar(?! y enviar)/ }).last(), 'Guardado, el boton Guardar del pie queda deshabilitado (antes el pie decia "Al dia")').toBeDisabled({ timeout: 30_000 });
       return { id: Number(this.page.url().match(/agency-users\/(\d+)/)?.[1]), aviso: '' };
     }
     const avisos = [
       ...(await this.ficha.locator('.error').allInnerTexts()),
+      ...(await this.envio.locator('.error').allInnerTexts().catch(() => [] as string[])),
       ...(await this.page.locator('.toast.bad .toast-text').allInnerTexts()),
     ];
+    if (await this.envio.isVisible().catch(() => false)) await this.cancelarEnvio().catch(() => {});
     return { id: null, aviso: avisos.join(' | ').replace(/\s+/g, ' ').trim() };
   }
 

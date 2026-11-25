@@ -1,8 +1,11 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { WebAdminMarkupsPage } from '../../pages/webadmin-markups.page';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos } from '../../utils/pasos';
-import { abrirSesionDeMarkups, tarifasDe, porTarifa, compararPrecios, ItemDelTarifario } from '../../utils/markups';
+import { abrirSesionDeMarkups, tarifasDe, porTarifa, compararPrecios, ItemDelTarifario, leerCostos, exigirImportes, CostosDelItem } from '../../utils/markups';
 import candidatos from '../../data/candidatos.json';
+import { conBackofficeNuevo, costosDelServicio } from '../../utils/markups';
+import { TarifaDeServicio } from '../../pages/climbs/servicio.page';
+import { recargoEnFichaYCarritoViejo, ServicioConRecargo } from '../../utils/recargo-por-idioma';
 
 const T = candidatos.tarifario;
 const M = candidatos.markups;
@@ -11,6 +14,16 @@ const SALTO = String.fromCharCode(10);
 // tiene que mover el precio de la excursion.
 const EN_PESOS = T.excursiones as ItemDelTarifario;
 const EN_DOLARES = T.hoteles as ItemDelTarifario;
+/** La tabla del tarifario del hotel 5003 es la de su primera habitacion, King Deluxe. */
+const HABITACION_DEL_HOTEL = 9193;
+/**
+ * Recargo por idioma con el tipo de cambio: el servicio AUTO-QA 7967 (copia de Tigre y Delta) tiene la
+ * tarifa Regular en pesos (ARS 47.300) y English ARS 15.000 fijos por pasajero. US 4739: "el valor final
+ * tiene que calcularse aplicando el markup de la agencia sobre costo + recargo en conjunto, nunca sobre el
+ * costo solo". En la ficha y en el carrito, por persona: techo((costo + recargo) / cotizacion / markup), con
+ * la cotizacion vigente (la del pais y despues la manual): el recargo en pesos se convierte igual que el costo.
+ */
+const RP = candidatos.recargoFijoEnPesos;
 
 /**
  * WebAdmin — tipo de cambio manual por agencia.
@@ -24,6 +37,10 @@ const EN_DOLARES = T.hoteles as ItemDelTarifario;
  * 1.000): se le carga una cotizacion manual de 2.000 y la excursion en pesos tiene
  * que costar la mitad en dolares; el hotel en dolares no cambia. Al desactivarla
  * tiene que volver a la del pais.
+ *
+ * Importes: en cada lectura, cada precio tiene que ser exactamente techo(costo / cotizacion /
+ * markup del mercado), con el costo leido en el Backoffice nuevo (servicio 5 en pesos, habitacion
+ * 9193 en dolares) y la cotizacion que tiene que estar vigente. Ademas se exige la proporcion.
  *
  * Desactivarla no borra la fila de la agencia: la marca como borrada. Si el portal no
  * respetara esa marca, la excursion seguiria a 2.000: es lo que mira el ultimo paso.
@@ -53,7 +70,21 @@ test.describe('WebAdmin — tipo de cambio manual por agencia', () => {
     const sesion = await abrirSesionDeMarkups(browser, baseURL);
     contexto = sesion.contexto;
     portal = sesion.pagina;
+    costosPesos = await leerCostos(browser, { servicio: T.excursiones.id });
+    costosDolares = await leerCostos(browser, { habitacion: HABITACION_DEL_HOTEL });
   });
+
+  let tarifasRecargo: TarifaDeServicio[] | undefined;
+  /** Ficha y carrito del servicio con recargo fijo en pesos, en English, con la cotizacion dada. */
+  async function recargoEnPesos(cotizacion: number, titulo: string) {
+    tarifasRecargo ??= await conBackofficeNuevo(portal.context().browser()!, (bo) => costosDelServicio(bo, RP.id));
+    const s: ServicioConRecargo = {
+      pais: RP.ciudad.pais, ciudad: RP.ciudad.nombre, termino: RP.terminoBusqueda, nombre: RP.nombre, modalidad: 'Regular',
+      fecha: new Date(RP.fecha + 'T00:00:00'), tipo: RP.tipo, tipoValor: String(RP.serviceTypeId), tarifas: tarifasRecargo,
+      cotizaciones: { USD: 1, ARS: cotizacion },
+    };
+    await recargoEnFichaYCarritoViejo(portal, s, M.mercado.serviceMarkup * M.usuario.customMarkup, titulo);
+  }
 
   test.afterAll(async () => {
     await contexto?.close();
@@ -63,11 +94,21 @@ test.describe('WebAdmin — tipo de cambio manual por agencia', () => {
     reiniciarNumeracionDePasos();
   });
 
-  async function leer(item: ItemDelTarifario, titulo: string): Promise<Map<string, number>> {
+  let costosPesos: CostosDelItem;
+  let costosDolares: CostosDelItem;
+
+  /**
+   * Lee el tarifario y exige el importe absoluto: techo(costo / cotizacion / markup del mercado),
+   * con la cotizacion de pesos que tiene que estar vigente. El hotel es en dolares: no la usa.
+   */
+  async function leer(item: ItemDelTarifario, titulo: string, cotizacionPesos = DEL_PAIS): Promise<Map<string, number>> {
     const filas = await tarifasDe(portal, item);
     const precios = porTarifa(filas);
     await adjuntarTexto(titulo, filas.map((f) => f.join(' | ')).join(SALTO));
     expect(precios.size, `${M.usuario.userName} tiene que ver tarifas con importe`).toBeGreaterThan(0);
+    const enPesos = item === EN_PESOS;
+    await exigirImportes(filas, enPesos ? costosPesos : costosDolares,
+      (enPesos ? M.mercado.serviceMarkup : M.mercado.hotelMarkup) * M.usuario.customMarkup, titulo, { USD: 1, ARS: cotizacionPesos });
     return precios;
   }
 
@@ -95,17 +136,25 @@ test.describe('WebAdmin — tipo de cambio manual por agencia', () => {
       dolaresAntes = await leer(EN_DOLARES, 'Hotel antes');
     });
 
+    await paso(portal, `Portal: el servicio en pesos en English cobra techo((costo + recargo) / ${DEL_PAIS} / markup) en la ficha y en el carrito`, async () => {
+      await recargoEnPesos(DEL_PAIS, `Cotizacion del pais ${DEL_PAIS}`);
+    });
+
     try {
       await paso(page, `WebAdmin: cargar a la agencia ${M.agencia.id} una cotizacion manual de ${MANUAL}`, async () => {
         await admin.guardarTipoDeCambio(M.agencia.id, true, MANUAL);
       });
 
       await paso(portal, `Portal: la excursion en pesos se convierte a ${MANUAL}`, async () => {
-        await exigir(pesosAntes, await leer(EN_PESOS, 'Excursion con cotizacion manual'), DEL_PAIS, MANUAL, 'excursion');
+        await exigir(pesosAntes, await leer(EN_PESOS, 'Excursion con cotizacion manual', MANUAL), DEL_PAIS, MANUAL, 'excursion');
+      });
+
+      await paso(portal, `Portal: con la cotizacion manual ${MANUAL}, el servicio en English cobra techo((costo + recargo) / ${MANUAL} / markup)`, async () => {
+        await recargoEnPesos(MANUAL, `Cotizacion manual ${MANUAL}`);
       });
 
       await paso(portal, 'Portal: el hotel en dolares no cambia', async () => {
-        await exigir(dolaresAntes, await leer(EN_DOLARES, 'Hotel con cotizacion manual'), 1, 1, 'hotel');
+        await exigir(dolaresAntes, await leer(EN_DOLARES, 'Hotel con cotizacion manual', MANUAL), 1, 1, 'hotel');
       });
 
       await paso(page, 'WebAdmin: desactivar la cotizacion manual', async () => {

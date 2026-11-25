@@ -39,7 +39,9 @@ test.describe('WebAdmin — extension masiva de tarifas', () => {
     const error = await hab.borrarRango(TRAMO.desde, TRAMO.hasta);
     expect(error, 'Borrar el rango tiene que sumarse a los cambios').toBeNull();
     const pendientes = await hab.textoDePendientes();
-    // Si el tramo ya estaba vacio no hay diferencias para guardar.
+    // Si el tramo ya estaba vacio no hay diferencias para guardar (desde noviembre, ni siquiera
+    // queda un cambio pendiente: no hay tramo con papelera que borrar).
+    if (!pendientes) return '(no habia tramo que borrar)';
     if (/Sin diferencias en los días/i.test(pendientes)) await hab.descartarCambios();
     else await hab.guardar();
     return pendientes;
@@ -73,14 +75,13 @@ test.describe('WebAdmin — extension masiva de tarifas', () => {
         await hoteles.elegirParaExtender(E.hotelNombre);
         const elegidos = await hoteles.abrirHoja();
         expect(elegidos, 'Tiene que haber un solo hotel elegido').toBe('1 hotel elegido');
-        expect(await hoteles.textoDeLaHoja(), 'La hoja tiene que extender un solo hotel').toContain('de 1 hotel');
       });
 
       await paso(page, `Extender el ultimo corte un ${PORCENTAJE}% hasta el ${TRAMO.hasta}`, async () => {
         await hoteles.completarHoja({ hasta: TRAMO.hasta, porcentaje: PORCENTAJE, modo: 'Extender último tramo tarifario' });
         const calculo = await hoteles.calcular();
         await adjuntarTexto('Calculo', calculo);
-        expect(calculo, 'El calculo tiene que crear tarifas en una sola habitacion').toMatch(/Se crearán [\d.]+ tarifas en 1 habitación/i);
+        expect(calculo, 'El calculo tiene que crear tarifas en una sola habitacion').toMatch(/Se (crearán|van a crear) [\d.]+ tarifas( nuevas)? en 1 habitación de 1 hotel/i);
         const { confirmacion, resultado } = await hoteles.extender();
         await adjuntarTexto('Confirmacion', confirmacion);
         await adjuntarTexto('Resultado', resultado);

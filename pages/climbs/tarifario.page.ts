@@ -58,12 +58,31 @@ export class TarifarioNuevoPage {
     return { pais: await this.filtro('País').inputValue(), destino: await this.filtro('Destino').inputValue() };
   }
 
-  /** Las solapas, en orden: Paquetes, Excursiones, Hoteles, Traslados, Cena show, Cruceros, Ofertas. */
-  static readonly SOLAPAS = ['Paquetes', 'Excursiones', 'Hoteles', 'Traslados', 'Cena show', 'Cruceros', 'Ofertas'];
+  /**
+   * Las solapas, en orden. Desde noviembre (T-100) va "Programas" despues de Paquetes y las
+   * solapas dependen de los tipos con servicios visibles en el destino.
+   */
+  static readonly SOLAPAS = ['Paquetes', 'Programas', 'Excursiones', 'Hoteles', 'Traslados', 'Cena show', 'Cruceros', 'Ofertas'];
+
+  /** El nombre de cada solapa en ES, EN y PT. */
+  static readonly TRADUCCIONES: Record<string, string[]> = {
+    Paquetes: ['Paquetes', 'Packages', 'Pacotes'],
+    Programas: ['Programas', 'Programs'],
+    Excursiones: ['Excursiones', 'Tours', 'Excursões'],
+    Hoteles: ['Hoteles', 'Hotels', 'Hoteis'],
+    Traslados: ['Traslados', 'Transfers', 'Traslado'],
+    'Cena show': ['Cena show', 'Dinner show', 'Jantar show'],
+    Cruceros: ['Cruceros', 'Cruises', 'Cruzeiros'],
+    Ofertas: ['Ofertas', 'Recommended', 'Oferta'],
+  };
 
   /** La solapa por su nombre en espanol; en otro idioma se ubica por su posicion. */
   solapa(nombre: string): Locator {
-    return this.page.locator('main').getByRole('tablist').first().getByRole('tab').nth(TarifarioNuevoPage.SOLAPAS.indexOf(nombre));
+    // Por el nombre en cualquiera de los tres idiomas (texts.ts del sitio): las solapas que se
+    // muestran dependen de los tipos con servicios visibles en el destino, la posicion no sirve.
+    const nombres = TarifarioNuevoPage.TRADUCCIONES[nombre] ?? [nombre];
+    return this.page.locator('main').getByRole('tablist').first().getByRole('tab')
+      .filter({ hasText: new RegExp(`^(${nombres.join('|')})$`) }).first();
   }
 
   async abrirSolapa(nombre: string) {
@@ -116,7 +135,11 @@ export class TarifarioNuevoPage {
   }
 
   async descripcionDeLaCard(card: Locator): Promise<string> {
-    return limpio(await card.locator('.trf-card__desc').first().innerText().catch(() => ''));
+    // En hoteles, antes del texto va el rotulo "Ubicacion: <barrio>"; la descripcion es el ultimo span.
+    const desc = card.locator('.trf-card__desc').first();
+    const texto = desc.locator(':scope > span').last();
+    if (await texto.count()) return limpio(await texto.innerText().catch(() => ''));
+    return limpio(await desc.innerText().catch(() => ''));
   }
 
   /** Que componentes tiene la card. */
@@ -128,7 +151,7 @@ export class TarifarioNuevoPage {
       botonTarifario: await hay(card.getByRole('button', { name: /^(Ver Tarifario|Ver precios)$/ })),
       cotizarYReservar: await hay(card.getByRole('link', { name: 'Cotizar y reservar' })),
       proveedores: await hay(card.getByRole('button', { name: 'Ver Proveedores' })),
-      descargaWord: await hay(card.getByRole('link', { name: 'Descargar en formato Word' })),
+      descargaWord: await hay(this.botonWord(card)),
       tagRecomendado: await hay(card.locator('.trf-badge').filter({ hasText: /Recomendado/i })),
       observaciones: await hay(card.locator('.trf-obs__item')),
       iconosTooltips: await hay(card.locator('.trf-op [role="tooltip"]')),
@@ -245,7 +268,9 @@ export class TarifarioNuevoPage {
   }
 
   async abrirSolapaDelDetalle(nombre: string) {
-    await this.dialogo.getByRole('tablist').first().getByRole('tab', { name: nombre, exact: true }).click();
+    // Sin distinguir mayusculas: desde el pase del 23/11 la solapa dice "Ficha Técnica" (antes "Ficha técnica").
+    const exacto = new RegExp(`^${nombre.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}$`, 'i');
+    await this.dialogo.getByRole('tablist').first().getByRole('tab', { name: exacto }).click();
     await this.page.waitForTimeout(400);
   }
 
@@ -264,16 +289,16 @@ export class TarifarioNuevoPage {
 
   /** Incluye / No incluye: el texto de cada item (nombre y, si tiene, su descripcion). */
   async amenitiesDelDetalle(): Promise<{ incluye: string[]; noIncluye: string[] }> {
-    const lista = async (titulo: string) => {
-      const h = this.dialogo.getByRole('heading', { level: 4, name: titulo, exact: true });
-      return (await h.locator('xpath=following-sibling::*[1]').locator('li').allInnerTexts()).map(limpio);
-    };
-    return { incluye: await lista('Incluye'), noIncluye: await lista('No incluye') };
+    // Cada lista es un bloque .svc-sheet__amenity-list--in / --out con su titulo en un div (antes, un h4).
+    const lista = async (tipo: 'in' | 'out') =>
+      (await this.dialogo.locator(`.svc-sheet__amenity-list--${tipo} li`).allInnerTexts()).map(limpio);
+    return { incluye: await lista('in'), noIncluye: await lista('out') };
   }
 
   /** Ficha tecnica: observaciones (con su marca de destacada) y los datos (termino / definicion). */
   async fichaTecnica(): Promise<{ observaciones: { texto: string; prioritaria: boolean }[]; campos: { etiqueta: string; valor: string }[] }> {
-    const observaciones = await this.dialogo.locator('.svc-sheet__notes li').evaluateAll((lis) => lis.map((li) => ({
+    // Cada observacion es un .svc-sheet__note (antes, un li de la lista).
+    const observaciones = await this.dialogo.locator('.svc-sheet__notes li, .svc-sheet__notes .svc-sheet__note').evaluateAll((lis) => lis.map((li) => ({
       texto: (li.textContent ?? '').replace(/\s+/g, ' ').trim(),
       prioritaria: li.classList.contains('svc-sheet__note--priority'),
     })));
@@ -284,13 +309,48 @@ export class TarifarioNuevoPage {
     return { observaciones, campos };
   }
 
+  /**
+   * Las modalidades del calendario de Salidas. Desde la US 5040 (como el portal viejo) son
+   * botones ("Regular", "Privado") arriba a la derecha del calendario, no una lista de solapas.
+   */
+  async modalidadesDelCalendario(): Promise<string[]> {
+    return (await this.dialogo.locator('.svc-sheet__modality-tab').allInnerTexts().catch(() => [] as string[])).map(limpio);
+  }
+
+  /**
+   * Los dias de los tres meses que muestra el calendario. Desde la US 5040 cada dia es un
+   * `.svc-sheet__day` con solo su numero (sin fecha ni horario en el title): la fecha sale del
+   * mes ("Noviembre 2026") y el numero; opera si tiene `is-on`.
+   */
+  async diasDelCalendario(): Promise<{ fecha: string; mes: number; opera: boolean; cerrado: boolean }[]> {
+    return this.dialogo.locator('.svc-sheet__months > div').evaluateAll((bloques) => {
+      const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+      const out: { fecha: string; mes: number; opera: boolean; cerrado: boolean }[] = [];
+      for (const b of bloques) {
+        const [nombre, anio] = (b.querySelector('.svc-sheet__month')?.textContent ?? '').trim().toLowerCase().split(/\s+/);
+        const mes = MESES.indexOf(nombre) + 1;
+        if (!mes) continue;
+        for (const d of Array.from(b.querySelectorAll('.svc-sheet__day:not(.is-empty)'))) {
+          const dia = Number(d.textContent?.trim());
+          if (!dia) continue;
+          out.push({
+            fecha: `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${anio}`,
+            mes,
+            opera: d.classList.contains('is-on'),
+            cerrado: /closed|cierre|cerrad/i.test(d.className),
+          });
+        }
+      }
+      return out;
+    });
+  }
+
   /** Salidas: las modalidades y los meses (1-12) con algun dia que opera, recorriendo un anio. */
   async salidas(): Promise<{ modalidades: string[]; meses: number[] }> {
-    const modalidades = (await this.dialogo.getByRole('tablist', { name: 'Salidas' }).getByRole('tab').allInnerTexts().catch(() => [] as string[])).map(limpio);
+    const modalidades = await this.modalidadesDelCalendario();
     const meses = new Set<number>();
     for (let i = 0; i < 4; i++) {
-      const titulos = await this.dialogo.locator('.cal-day.on[title]').evaluateAll((ds) => ds.map((d) => d.getAttribute('title') ?? ''));
-      for (const t of titulos) { const m = /^\d{2}\/(\d{2})\//.exec(t); if (m) meses.add(Number(m[1])); }
+      for (const d of await this.diasDelCalendario()) if (d.opera) meses.add(d.mes);
       const sig = this.dialogo.getByRole('button', { name: 'Meses siguientes' });
       if (await sig.isDisabled()) break;
       await sig.click();
@@ -301,23 +361,32 @@ export class TarifarioNuevoPage {
 
   async abrirProveedores(card: Locator): Promise<string[][]> {
     await card.getByRole('button', { name: 'Ver Proveedores' }).click();
-    const d = this.page.getByRole('dialog', { name: 'Proveedores Disponibles' });
+    // Desde el pase del 23/11 el modal se titula "Ver proveedores" (antes "Proveedores Disponibles").
+    const d = this.page.getByRole('dialog', { name: /^(Proveedores Disponibles|Ver proveedores)$/ });
     await expect(d.locator('tbody tr').first()).toBeVisible({ timeout: 30_000 });
     return d.locator('tbody tr').evaluateAll((trs) => trs.map((tr) => Array.from(tr.querySelectorAll('td')).map((td) => (td.textContent ?? '').trim())));
   }
 
   /** Baja el Word de la card. */
   async descargarWord(card: Locator): Promise<Download> {
-    const [descarga] = await Promise.all([
-      this.page.waitForEvent('download', { timeout: 120_000 }),
-      card.getByRole('link', { name: 'Descargar en formato Word' }).click(),
-    ]);
-    return descarga;
+    const espera = this.page.waitForEvent('download', { timeout: 120_000 });
+    await this.botonWord(card).click();
+    // Con impersonacion, la app pide elegir la marca en el modal "Exportar a Word" antes de bajarlo.
+    const marca = this.page.getByRole('dialog', { name: 'Exportar a Word' });
+    if (await marca.waitFor({ state: 'visible', timeout: 3_000 }).then(() => true, () => false)) await marca.getByRole('button', { name: 'Descargar' }).click();
+    return espera;
+  }
+
+  /** El Word de la card: era un link y desde el pase del 23/11 es un boton con icono (mismo nombre accesible). */
+  private botonWord(card: Locator): Locator {
+    const nombre = 'Descargar en formato Word';
+    return card.getByRole('button', { name: nombre }).or(card.getByRole('link', { name: nombre })).first();
   }
 
   /** El markup del usuario, como lo muestra el encabezado ("M 0,50"). */
   async markupActivo(): Promise<number | null> {
-    const texto = await this.page.getByRole('banner').innerText();
+    // Con el explorador abierto el modal tiene su propio banner: se lee el primero, el del sitio.
+    const texto = await this.page.getByRole('banner').first().innerText();
     const m = texto.match(/\bM\s*([0-9]+[.,][0-9]+)/);
     return m ? Number(m[1].replace(',', '.')) : null;
   }

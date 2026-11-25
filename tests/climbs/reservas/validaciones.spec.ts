@@ -27,9 +27,9 @@ test.describe('Reservas — validaciones', () => {
     const AVISO_DE_CAMPOS_EN_ROJO = /Revis[aeá] los datos de los pasajeros: hay campos incompletos o con errores, marcados en rojo/;
     const AVISO_DE_CANTIDAD = /La cantidad de pasajeros es menor a los pasajeros cargados/;
     const AVISO_DE_TERMINOS = /aceptar los t[eé]rminos y condiciones/i;
-    const reservar = page.getByRole('button', { name: 'Reservar', exact: true });
-    const cantidad = page.getByRole('spinbutton', { name: /^Cantidad de pasajeros/ });
-    const grupos = page.getByRole('group').filter({ has: page.getByRole('textbox', { name: 'Pasaporte', exact: true }) });
+    const reservar = page.getByRole('button', { name: /^(Reservar|Confirmar reserva)$/ });
+    const cantidad = page.getByRole('spinbutton', { name: /^Cantidad de (pasajeros|PAX)/ });
+    const grupos = page.getByRole('group').filter({ has: page.getByRole('textbox', { name: /^Pasaporte/  }) });
     let cantidadPax = 0;
 
     /** El aviso del checkout (rol alert) que trae ese texto; se lee en el momento. */
@@ -103,7 +103,7 @@ test.describe('Reservas — validaciones', () => {
     await paso(page, 'Verificar que sin aceptar los terminos no se pueda confirmar', async () => {
       // Con todo lo demas valido, el unico motivo del rechazo son los terminos.
       await cantidad.fill(String(cantidadPax));
-      const terminos = page.getByRole('checkbox', { name: 'Acepto los términos y condiciones' });
+      const terminos = page.getByRole('checkbox', { name: /^(Acepto los términos y condiciones|Términos y condiciones)$/ });
       await terminos.uncheck();
       if (await reservar.isDisabled()) {
         await adjuntarTexto('Reservar sin terminos', 'Deshabilitado, como en el portal actual');

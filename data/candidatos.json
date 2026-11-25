@@ -10,7 +10,9 @@
     "countryId": 10,
     "currencyId": 1,
     "languageId": 1,
-    "hasOpportunity": true
+    "hasOpportunity": true,
+    "markupsDeLaAgencia": { "hotel": 1, "servicio": 1 },
+    "_markupsDeLaAgencia": "Markups de hoteles y de servicios de la agencia 1 (sin markup). Los usan los circuitos: la US 4800 pide 'El precio de cada servicio de la cotizacion ... tiene que calcularse con el markup de servicios' (y el de hoteles para los hoteles), que es el de la agencia, no el CustomMarkup personal del usuario (0,50 en _formulaPrecio). Medido el 2026-11-25 en la Oferta 5060: Tigre 418, Angelitos 138, traslado 2 = techo(costo / cotizacion) x 2 pax en los dos sistemas."
   },
   "_prefijo": "AUTO-QA NO TOCAR - ",
   "tarifario": {
@@ -850,6 +852,8 @@
         }
       ],
       "salidas": 41,
+      "markupHotelesDeLaSucursal": 0.95,
+      "_markupHotelesDeLaSucursal": "US 5107: el crucero pertenece 'a la de su ciudad de salida'. Punta Arenas (pais 43) -> sucursal 5 Chile, por defecto HotelMarkup 0,95; la agencia 1 no tiene manual ni su mercado 5 (query de Alan, 2026-11-25). Divisor del tarifario = 0,95 x CustomMarkup 0,50.",
       "_fuenteSalidas": "CruiseDeparture del crucero 14, recargada el 2026-09-28: una salida por cada DateTo futuro de sus tarifas. El deploy de la US 4517 la habia dejado vacia (antes tenia 61).",
       "tabKey": "cruise",
       "paramDeepLink": null,
@@ -1152,5 +1156,15 @@
     "fileCode": "AMV-AR-30161",
     "referencia": "AUTO-QA NO TOCAR - SIX",
     "pasajeros": ["PasajeroSix AutoQa", "AcompananteSix AutoQa"]
+  },
+  "recargoFijoEnPesos": {
+    "_nota": "Creado el 25/11/2026 copiando el servicio 5 (Tigre y Delta) en el BackOffice nuevo, para validar el recargo por idioma con el tipo de cambio. Tarifa Regular ARS 47.300 del 01/07/2026 al 30/06/2029 (el BO nuevo no deja rangos de mas de 3 anios) y English ARS 15.000 por pasajero. Un recargo fijo en pesos deja ver si se convierte con la cotizacion y si lleva el markup.",
+    "id": 7967,
+    "nombre": "AUTO-QA NO TOCAR - Recargo fijo ARS",
+    "terminoBusqueda": "Recargo fijo ARS",
+    "serviceTypeId": 1,
+    "tipo": "Excursión",
+    "ciudad": {"id": 5000, "nombre": "Buenos Aires", "pais": "Argentina"},
+    "fecha": "2027-02-10"
   }
 }
