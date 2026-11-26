@@ -1,5 +1,6 @@
-import { Browser, BrowserContext, Page, expect } from '@playwright/test';
+import { Browser, BrowserContext, Page } from '@playwright/test';
 import { PortalNuevoPage } from '../../../pages/climbs/portal.page';
+import { credencialesDeMarkups } from '../../../utils/markups';
 
 /**
  * Una segunda sesion en el portal nuevo con la agencia de prueba de markups
@@ -8,9 +9,7 @@ import { PortalNuevoPage } from '../../../pages/climbs/portal.page';
  * credenciales salen del entorno (AMV_MARKUP_USER / AMV_MARKUP_PASS) y no se imprimen.
  */
 export async function abrirSesionDeOtraAgencia(browser: Browser, baseURL?: string): Promise<{ contexto: BrowserContext; pagina: Page }> {
-  const usuario = process.env.AMV_MARKUP_USER;
-  const clave = process.env.AMV_MARKUP_PASS;
-  expect(usuario && clave, 'Faltan AMV_MARKUP_USER y AMV_MARKUP_PASS: sin la agencia ajena no hay contra quien comparar').toBeTruthy();
+  const { usuario, password: clave } = credencialesDeMarkups();
   // Contexto limpio: sin esto hereda la sesion del proyecto (la cookie del backoffice de pablo
   // quedaba viva al lado de la del portal de la agencia).
   const contexto = await browser.newContext({ baseURL, locale: 'es-AR', viewport: { width: 1920, height: 1080 }, storageState: { cookies: [], origins: [] } });

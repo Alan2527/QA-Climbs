@@ -1166,5 +1166,33 @@
     "tipo": "Excursión",
     "ciudad": {"id": 5000, "nombre": "Buenos Aires", "pais": "Argentina"},
     "fecha": "2027-02-10"
+  },
+  "juegoBoNuevo": {
+    "_nota": "Juego B de datos AUTO-QA: lo usan los tests del WebAdmin de la app nueva (tests/climbs/webadmin) cuando corren con AMV_JUEGO_DATOS=B, para no pisarse con los del WebAdmin viejo y poder correr a la vez. Creado el 2026-11-26 copiando el juego de siempre: mercado 40 (desde el BackOffice nuevo, igual al 37), agencia 6338 (copia de la 6334 con su detalle y su cotizacion), usuario web 15882 (copia de 15813, credenciales AMV_MARKUP_USER_B / AMV_MARKUP_PASS_B), hotel 15431 y habitacion 18388 (copia de 15422 / 18371 con sus 864 tarifas y 33 cortes) y servicio 7968 (copia del 7954 con sus 6 tarifas). La serie no tiene copia: los dos tests de series corren en la misma maquina, uno detras del otro. Lo que no se nombra aca se toma del juego de siempre.",
+    "markups": {
+      "usuario": {
+        "webUserId": 15882,
+        "userName": "autoqa.markups.b"
+      },
+      "agencia": {
+        "id": 6338,
+        "nombre": "AUTO-QA NO TOCAR - Markups B"
+      },
+      "mercado": {
+        "id": 40,
+        "nombre": "AUTO-QA NO TOCAR - Markups B"
+      }
+    },
+    "extensionTarifas": {
+      "hotelId": 15431,
+      "roomId": 18388,
+      "hotelNombre": "AUTO-QA NO TOCAR - BO nuevo Extension de tarifas",
+      "terminoBusqueda": "BO nuevo Extension"
+    },
+    "tarifasServicio": {
+      "servicioId": 7968,
+      "nombre": "AUTO-QA NO TOCAR - BO nuevo Tarifas de servicio",
+      "terminoBusqueda": "BO nuevo Tarifas"
+    }
   }
 }

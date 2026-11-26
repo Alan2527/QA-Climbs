@@ -5,17 +5,9 @@ inputs:
   carril:
     description: 'Nombre de la maquina (da nombre al blob y al artefacto de resultados)'
     required: true
-  proyectos:
-    description: 'Proyectos de Playwright separados por "|". Sus logins y precondiciones corren solos (dependencies)'
+  tandas:
+    description: 'Texto JSON con las tandas de la maquina, que corren en fila: [{ proyectos ("|" entre proyectos), grep, sin, juego }]. Sus logins y precondiciones corren solos (dependencies)'
     required: true
-  grep:
-    description: 'Opcional: expresion regular sobre el titulo de los tests'
-    required: false
-    default: ''
-  sin:
-    description: 'Opcional: expresion regular de los tests que se excluyen (--grep-invert)'
-    required: false
-    default: ''
 
 runs:
   using: composite
@@ -57,26 +49,37 @@ runs:
         sudo rm -f /etc/apt/sources.list.d/google-chrome.list
         npx playwright install --with-deps chromium || npx playwright install chromium
 
-    # Los carriles de la corrida "todas" agrupan bloques que no se pisan los datos (ver
-    # el workflow). PW_CARRIL activa el reporte blob con el nombre del carril.
-    # Las maquinas las arma tools/plan-corrida.mjs (ver el workflow). PW_CARRIL activa el
-    # reporte blob con el nombre de la maquina. El filtro va entre comillas: hasta el 25/11 se
-    # pasaba suelto y un texto con espacios no encontraba ningun test.
+    # Las maquinas las arma tools/plan-corrida.mjs (ver el workflow). Cada maquina corre sus
+    # tandas en fila, cada una con su propio comando de Playwright y su blob
+    # (<maquina>-<n>.zip). PWTEST_BLOB_DO_NOT_REMOVE evita que cada tanda borre los blobs de
+    # las anteriores. Una tanda con juego B corre con AMV_JUEGO_DATOS=B (datos AUTO-QA propios,
+    # ver tests/climbs/webadmin/datos.ts). Si una tanda falla, las siguientes corren igual y
+    # la maquina termina en rojo. Los filtros van entre comillas: hasta el 25/11 se pasaban
+    # sueltos y un texto con espacios no encontraba ningun test.
     - name: Ejecutar tests
       shell: bash
       env:
-        PROYECTOS: ${{ inputs.proyectos }}
-        GREP: ${{ inputs.grep }}
-        SIN: ${{ inputs.sin }}
-        PW_CARRIL: ${{ inputs.carril }}
+        TANDAS: ${{ inputs.tandas }}
+        CARRIL: ${{ inputs.carril }}
+        PWTEST_BLOB_DO_NOT_REMOVE: '1'
       run: |
-        IFS='|' read -ra LISTA <<< "$PROYECTOS"
-        ARGS=()
-        for p in "${LISTA[@]}"; do ARGS+=("--project=$p"); done
-        if [ -n "$GREP" ]; then ARGS+=("--grep" "$GREP"); fi
-        if [ -n "$SIN" ]; then ARGS+=("--grep-invert" "$SIN"); fi
-        echo "Maquina $PW_CARRIL: ${LISTA[*]} ${GREP:+(filtro: $GREP)} ${SIN:+(sin: $SIN)}"
-        npx playwright test "${ARGS[@]}"
+        FALLO=0
+        N=0
+        while IFS= read -r T; do
+          N=$((N + 1))
+          IFS='|' read -ra LISTA <<< "$(jq -r '.proyectos' <<< "$T")"
+          GREP=$(jq -r '.grep // ""' <<< "$T")
+          SIN=$(jq -r '.sin // ""' <<< "$T")
+          JUEGO=$(jq -r '.juego // ""' <<< "$T")
+          ARGS=()
+          for p in "${LISTA[@]}"; do ARGS+=("--project=$p"); done
+          if [ -n "$GREP" ]; then ARGS+=("--grep" "$GREP"); fi
+          if [ -n "$SIN" ]; then ARGS+=("--grep-invert" "$SIN"); fi
+          echo "::group::Maquina $CARRIL, tanda $N: ${LISTA[*]} ${GREP:+(solo: $GREP)} ${SIN:+(sin: $SIN)} ${JUEGO:+(juego $JUEGO)}"
+          AMV_JUEGO_DATOS="$JUEGO" PW_CARRIL="$CARRIL-$N" npx playwright test "${ARGS[@]}" < /dev/null || FALLO=1
+          echo "::endgroup::"
+        done < <(jq -c '.[]' <<< "$TANDAS")
+        exit $FALLO
 
     - name: Subir los resultados del carril
       if: always()

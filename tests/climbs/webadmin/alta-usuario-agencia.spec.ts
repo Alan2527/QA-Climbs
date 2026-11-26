@@ -2,7 +2,7 @@ import { test, expect, BrowserContext, Page } from '@playwright/test';
 import { randomBytes } from 'node:crypto';
 import { UsuarioDeAgenciaPage, intentarIngresoAlPortalNuevo } from '../../../pages/climbs/usuario-agencia.page';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos } from '../../../utils/pasos';
-import candidatos from '../../../data/candidatos.json';
+import candidatos from './datos';
 
 const M = candidatos.markups;
 const SALTO = String.fromCharCode(10);

@@ -152,6 +152,9 @@ env:
   BO_PASS: ${{ secrets.BO_PASS }}
   AMV_MARKUP_USER: ${{ secrets.AMV_MARKUP_USER }}
   AMV_MARKUP_PASS: ${{ secrets.AMV_MARKUP_PASS }}
+  # El usuario de markups del juego B (lo usa el WebAdmin de la app nueva con AMV_JUEGO_DATOS=B).
+  AMV_MARKUP_USER_B: ${{ secrets.AMV_MARKUP_USER_B }}
+  AMV_MARKUP_PASS_B: ${{ secrets.AMV_MARKUP_PASS_B }}
   AMV_SIX_AUTOLOGIN_URL: ${{ secrets.AMV_SIX_AUTOLOGIN_URL }}
   AMV_MOV_SUCURSAL_DESTINO: ${{ secrets.AMV_MOV_SUCURSAL_DESTINO }}
   AMV_MOV_CAJA_DESTINO: ${{ secrets.AMV_MOV_CAJA_DESTINO }}
@@ -178,6 +181,8 @@ jobs:
           FILTRO: ${{ github.event.inputs.filtro }}
         run: node tools/plan-corrida.mjs
 
+  # Desde el 26/11/2026 la corrida completa va en una sola fase de cinco maquinas (ver
+  # tools/plan-corrida.mjs); fase2 y fase3 quedan para combinaciones que las necesiten.
   # Hasta el 25/11/2026 la app nueva iba entera en una sola maquina despues de la vieja
   # (unos 70 min) y la corrida completa tardaba cerca de 1 h 50.
   fase1:
@@ -194,9 +199,7 @@ jobs:
       - uses: ./.github/actions/correr
         with:
           carril: ${{ matrix.carril }}
-          proyectos: ${{ matrix.proyectos }}
-          grep: ${{ matrix.grep }}
-          sin: ${{ matrix.sin }}
+          tandas: ${{ matrix.tandas }}
 
   fase2:
     needs: [planificar, fase1]
@@ -213,9 +216,7 @@ jobs:
       - uses: ./.github/actions/correr
         with:
           carril: ${{ matrix.carril }}
-          proyectos: ${{ matrix.proyectos }}
-          grep: ${{ matrix.grep }}
-          sin: ${{ matrix.sin }}
+          tandas: ${{ matrix.tandas }}
 
   fase3:
     needs: [planificar, fase2]
@@ -231,9 +232,7 @@ jobs:
       - uses: ./.github/actions/correr
         with:
           carril: ${{ matrix.carril }}
-          proyectos: ${{ matrix.proyectos }}
-          grep: ${{ matrix.grep }}
-          sin: ${{ matrix.sin }}
+          tandas: ${{ matrix.tandas }}
 
   # Junta los resultados de todas las maquinas y publica una sola vez.
   publicar:

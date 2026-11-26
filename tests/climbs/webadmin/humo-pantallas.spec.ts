@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos } from '../../../utils/pasos';
-import candidatos from '../../../data/candidatos.json';
+import candidatos from './datos';
 
 /**
  * WEBADMIN — app nueva (ClimbsApp). Humo de pantallas.

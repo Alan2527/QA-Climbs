@@ -4,7 +4,7 @@ import { paso, adjuntarTexto, reiniciarNumeracionDePasos } from '../../../utils/
 import { porTarifa, compararPrecios, leerCostos, exigirImportes, CostosDelItem } from '../../../utils/markups';
 import { abrirSesionDeOtraAgencia } from '../comun/otra-agencia';
 import { leerTarifasDelPortal, tarifasDelPortal, ItemDelPortal } from '../comun/tarifario-del-portal';
-import candidatos from '../../../data/candidatos.json';
+import candidatos from './datos';
 
 const M = candidatos.markups;
 const E = candidatos.extensionTarifas;

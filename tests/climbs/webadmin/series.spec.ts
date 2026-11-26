@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 import { SerieBackofficePage, TarifasPorCategoria } from '../../../pages/climbs/serie-bo.page';
 import { SerieNuevaPage } from '../../../pages/climbs/serie.page';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos } from '../../../utils/pasos';
-import candidatos from '../../../data/candidatos.json';
+import candidatos from './datos';
 
 const S = candidatos.serieWebAdmin;
 

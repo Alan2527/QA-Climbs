@@ -3,7 +3,7 @@ import { ServicioNuevoPage, TarifaDeServicio } from '../../../pages/climbs/servi
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos } from '../../../utils/pasos';
 import { porTarifa, compararPrecios } from '../../../utils/markups';
 import { tarifasDelPortal, ItemDelPortal } from '../comun/tarifario-del-portal';
-import candidatos from '../../../data/candidatos.json';
+import candidatos from './datos';
 
 const S = candidatos.tarifasServicio;
 const X = S.extension;

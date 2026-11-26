@@ -4,7 +4,7 @@ import { paso, adjuntarTexto, reiniciarNumeracionDePasos } from '../../../utils/
 import { porTarifa, compararPrecios, leerCostos, exigirImportes, CostosDelItem } from '../../../utils/markups';
 import { abrirSesionDeOtraAgencia } from '../comun/otra-agencia';
 import { tarifasDelPortal, ItemDelPortal } from '../comun/tarifario-del-portal';
-import candidatos from '../../../data/candidatos.json';
+import candidatos from './datos';
 import { conBackofficeNuevo, costosDelServicio } from '../../../utils/markups';
 import { TarifaDeServicio } from '../../../pages/climbs/servicio.page';
 import { recargoEnFichaYCarritoNuevo, ServicioConRecargo } from '../../../utils/recargo-por-idioma';

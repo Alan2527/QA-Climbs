@@ -4,7 +4,7 @@ import { MercadoNuevoPage, AgenciaNuevaPage } from '../../../pages/climbs/agenci
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado, fechaDeBusqueda, formatearFecha } from '../../../utils/pasos';
 import { abrirSesionDeOtraAgencia } from '../comun/otra-agencia';
 import { cancelarReservaEnElPortal } from '../comun/cancelar-reserva';
-import candidatos from '../../../data/candidatos.json';
+import candidatos from './datos';
 
 const M = candidatos.markups;
 const P = candidatos.tarifario.paquetes;

@@ -5,7 +5,7 @@ import { paso, adjuntarTexto, reiniciarNumeracionDePasos, numeroDelPortal } from
 import { porTarifa, compararPrecios } from '../../../utils/markups';
 import { abrirSesionDeOtraAgencia } from '../comun/otra-agencia';
 import { tarifasDelPortal, ItemDelPortal } from '../comun/tarifario-del-portal';
-import candidatos from '../../../data/candidatos.json';
+import candidatos from './datos';
 import { PortalNuevoPage } from '../../../pages/climbs/portal.page';
 import { conResaltado } from '../../../utils/pasos';
 import { precioConIdioma, tarifaVigente, mismoIdioma } from '../../../utils/markups';

@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 import { HabitacionNuevaPage } from '../../../pages/climbs/habitacion.page';
 import { HotelNuevoPage } from '../../../pages/climbs/hotel.page';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos, fechaDeBusqueda, formatearFecha } from '../../../utils/pasos';
-import candidatos from '../../../data/candidatos.json';
+import candidatos from './datos';
 
 const E = candidatos.extensionTarifas;
 

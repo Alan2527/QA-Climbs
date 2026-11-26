@@ -18,11 +18,21 @@ export type ItemDelTarifario = { tab: string; container: string; nombre: string;
  * Abre un contexto propio, sin la sesion de pablo1, y entra con el usuario de
  * markups. Los dos usuarios tienen que estar logueados a la vez.
  */
+/**
+ * Las credenciales del usuario de markups. Con AMV_JUEGO_DATOS=B (juego B de datos, ver
+ * tests/climbs/webadmin/datos.ts) son las de su copia: AMV_MARKUP_USER_B / AMV_MARKUP_PASS_B.
+ */
+export function credencialesDeMarkups(): { usuario: string; password: string } {
+  const b = process.env.AMV_JUEGO_DATOS === 'B' ? '_B' : '';
+  const usuario = process.env[`AMV_MARKUP_USER${b}`];
+  const password = process.env[`AMV_MARKUP_PASS${b}`];
+  expect(usuario, `Falta AMV_MARKUP_USER${b} en el entorno`).toBeTruthy();
+  expect(password, `Falta AMV_MARKUP_PASS${b} en el entorno`).toBeTruthy();
+  return { usuario: usuario!, password: password! };
+}
+
 export async function abrirSesionDeMarkups(browser: Browser, baseURL?: string): Promise<{ contexto: BrowserContext; pagina: Page }> {
-  const usuario = process.env.AMV_MARKUP_USER;
-  const password = process.env.AMV_MARKUP_PASS;
-  expect(usuario, 'Falta AMV_MARKUP_USER en el entorno').toBeTruthy();
-  expect(password, 'Falta AMV_MARKUP_PASS en el entorno').toBeTruthy();
+  const { usuario, password } = credencialesDeMarkups();
 
   const contexto = await browser.newContext({
     baseURL,
