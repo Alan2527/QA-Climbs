@@ -116,7 +116,8 @@ export class HabitacionNuevaPage {
   }
 
   /** "Agregar a los cambios": devuelve el aviso de error si lo rechaza, o null. */
-  private async agregarALosCambios(panel: Locator): Promise<string | null> {
+  private async agregarALosCambios(panel: Locator, fechas?: { desde: string; hasta: string }): Promise<string | null> {
+    const pendientesAntes = await this.textoDePendientes();
     await panel.getByRole('button', { name: /^(Agregar a los cambios|Aplicar cupo|Cargar cupo)$/ }).click();
     // Desde noviembre, si el rango ya tiene tarifas pide confirmar ("Pisar las tarifas"): el test
     // pisa a proposito, asi que acepta y deja el texto del aviso para quien lo quiera leer.
@@ -129,8 +130,24 @@ export class HabitacionNuevaPage {
       });
       await pisar.click();
     }
-    const cerrado = await panel.waitFor({ state: 'hidden', timeout: 15_000 }).then(() => true).catch(() => false);
-    if (cerrado) {
+    // T-246 (26/11/2026): "el botón de agregar con el mouse se comporta igual que Enter: guarda la
+    // tarifa y el modal queda abierto". Sale bien si el panel se cierra (cupo, extender) o si queda
+    // abierto sin error y el aviso de "Cambios sin guardar" cambio; en ese caso se cierra con Volver.
+    const resultado = await Promise.race([
+      panel.waitFor({ state: 'hidden', timeout: 15_000 }).then(() => 'cerrado' as const),
+      expect.poll(() => this.textoDePendientes(), { timeout: 15_000 }).not.toBe(pendientesAntes).then(() => 'sumado' as const),
+    ]).catch(() => 'nada' as const);
+    const sinError = !(await panel.locator('.error').count()) && !(await this.page.locator('.toast.bad .toast-text').count());
+    if (resultado === 'cerrado' || (resultado === 'sumado' && sinError)) {
+      if (await panel.isVisible().catch(() => false)) {
+        // T-246, "Como se prueba": "el modal sigue abierto con las mismas fechas e idiomas. Igual en habitacion 14853".
+        if (fechas) {
+          expect.soft(await panel.getByRole('textbox', { name: 'Desde' }).inputValue(), 'T-246: tras Agregar, el modal tiene que seguir con la misma fecha Desde').toBe(fechas.desde);
+          expect.soft(await panel.getByRole('textbox', { name: 'Hasta' }).inputValue(), 'T-246: tras Agregar, el modal tiene que seguir con la misma fecha Hasta').toBe(fechas.hasta);
+        }
+        await panel.getByRole('button', { name: 'Volver' }).click();
+        await expect(panel, 'Volver tiene que cerrar el panel').toBeHidden();
+      }
       await this.page.waitForLoadState('networkidle').catch(() => {});
       return null;
     }
@@ -153,7 +170,7 @@ export class HabitacionNuevaPage {
       const campo = panel.locator(`#${id}`);
       await campo.fill(v ? String(v).replace('.', ',') : '');
     }
-    return this.agregarALosCambios(panel);
+    return this.agregarALosCambios(panel, { desde, hasta });
   }
 
   /** Las opciones del combo Origen de "Extender" (cortes con sus importes por pax). */

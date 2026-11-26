@@ -24,7 +24,11 @@ export function leerRecargos(texto: string): RecargoPorIdioma[] {
 export class ServicioNuevoPage {
   constructor(private readonly page: Page) {}
 
-  get ficha(): Locator { return this.page.getByRole('dialog').filter({ has: this.page.getByRole('tab', { name: 'Tarifas' }) }).first(); }
+  // La ficha se abria como ventana (dialog); desde el 26/11 es una pagina. Vale cualquiera de las dos.
+  get ficha(): Locator {
+    const ventana = this.page.getByRole('dialog').filter({ has: this.page.getByRole('tab', { name: 'Tarifas' }) });
+    return ventana.or(this.page.locator('body').filter({ hasNot: ventana })).first();
+  }
   get pie(): Locator { return this.ficha.getByRole('contentinfo').last(); }
   get grilla(): Locator { return this.ficha.getByRole('table').first(); }
 

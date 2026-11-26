@@ -1,4 +1,4 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Page, Locator, Request, expect } from '@playwright/test';
 
 /**
  * Agenda de pendientes y cuentas corrientes (cliente y proveedor) del Backoffice nuevo.
@@ -65,14 +65,41 @@ export class CuentaCorrienteNuevaPage {
 
   /** Abre la agenda para todos los responsables, hasta la fecha IN dada, y busca el file. */
   async agendaDelFile(numeroDeFile: string, fileCode: string, hasta: string): Promise<FilaDeLaAgenda[]> {
-    await this.page.goto('/finance/customer-agenda');
-    await expect(this.page.getByRole('heading', { name: /^(Agenda de pendientes|Pendientes) de clientes$/, level: 1 })).toBeVisible();
-    await elegirFiltro(this.page, 'ag-responsible', /todos/i);
-    const campoHasta = this.page.locator('#ag-to');
-    await campoHasta.fill(hasta);
-    await campoHasta.press('Tab');
-    await this.page.locator('#ag-customer').fill(numeroDeFile);
-    await this.page.locator('#ag-customer').press('Enter');
+    // El backend no corre dos consultas de la agenda a la vez para el mismo usuario (CustomerAgendaService,
+    // Running.TryAdd): una busqueda que sale mientras sigue la carga inicial vuelve "ocupado" y la grilla queda
+    // con lo anterior. Como una persona, se espera a que la grilla termine de cargar antes de cada paso.
+    let enCurso = 0;
+    const esAgenda = (r: Request) => ['fetch', 'xhr'].includes(r.resourceType()) && /customer-agenda/i.test(r.url());
+    const sube = (r: Request) => { if (esAgenda(r)) enCurso++; };
+    const baja = (r: Request) => { if (esAgenda(r)) enCurso = Math.max(0, enCurso - 1); };
+    this.page.on('request', sube);
+    this.page.on('requestfinished', baja);
+    this.page.on('requestfailed', baja);
+    const esperarAgenda = async () => {
+      await this.page.waitForTimeout(500);
+      await expect.poll(() => enCurso, { message: 'La agenda tiene que terminar de cargar', timeout: 120_000 }).toBe(0);
+    };
+    try {
+      await this.page.goto('/finance/customer-agenda');
+      await expect(this.page.getByRole('heading', { name: /^(Agenda de pendientes|Pendientes) de clientes$/, level: 1 })).toBeVisible();
+      await esperarAgenda();
+      await elegirFiltro(this.page, 'ag-responsible', /todos/i);
+      await esperarAgenda();
+      const campoHasta = this.page.locator('#ag-to');
+      await campoHasta.fill(hasta);
+      await campoHasta.press('Tab');
+      await esperarAgenda();
+      await this.page.locator('#ag-customer').fill(numeroDeFile);
+      const busqueda = this.page.waitForResponse((r) => esAgenda(r.request()) && r.url().includes(numeroDeFile), { timeout: 120_000 });
+      await this.page.locator('#ag-customer').press('Enter');
+      const respuesta = await busqueda;
+      expect(respuesta.ok(), `La busqueda del file ${numeroDeFile} en la agenda tiene que responder bien (respondio ${respuesta.status()})`).toBe(true);
+      await esperarAgenda();
+    } finally {
+      this.page.off('request', sube);
+      this.page.off('requestfinished', baja);
+      this.page.off('requestfailed', baja);
+    }
     await this.esperarCarga();
     const filas = this.page.locator('tbody tr').filter({ hasText: fileCode });
     const out: FilaDeLaAgenda[] = [];

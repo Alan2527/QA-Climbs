@@ -84,8 +84,10 @@ test.describe('Orden de pago de detracción (Perú)', () => {
       await esperarFinDeCarga(page);
       await page.locator('#ddPeDetractionRate').selectOption({ label: TASA });
       await esperarFinDeCarga(page);
+      // HU 5118 (25/11/2026): la detraccion de Peru ya no tiene "Constancia" y la cuenta bancaria es
+      // opcional. Se carga la cuenta igual, como antes.
       await tipear(page, '#txtPeBankAccount', '00-000-000001');
-      await tipear(page, '#txtPeCertificate', `AUTOQA-${correlativo}`);
+      await expect(page.locator('#txtPeCertificate'), 'HU 5118: con Detraccion no tiene que aparecer el campo Constancia').toBeHidden();
       await page.locator(factura.campoComentario).fill(`Factura de regresion automatica ${sello}. No operar.`);
       const leido = {
         total: await page.locator('#txtPeTotalAmount').inputValue(),

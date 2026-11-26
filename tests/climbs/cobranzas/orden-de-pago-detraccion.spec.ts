@@ -63,8 +63,10 @@ test.describe('Orden de pago de detracción (Perú)', () => {
       await factura.campo('pe-nontaxable').press('Tab');
       await factura.campo('pe-withholding').selectOption({ label: 'Detracción' });
       await factura.campo('pe-detraction-rate').selectOption({ label: TASA });
+      // T-231 (25/11/2026): la detraccion de Peru ya no tiene "Constancia" ("quitar el campo
+      // Constancia") y la cuenta bancaria es opcional. Se carga la cuenta igual, como antes.
       await factura.campo('pe-bank').fill('00-000-000001');
-      await factura.campo('pe-certificate').fill(`AUTOQA-${correlativo}`);
+      await expect(factura.campo('pe-certificate'), 'T-231: con Detraccion no tiene que aparecer el campo Constancia').toBeHidden();
       await factura.campo('comment').fill(`Factura de regresion automatica ${sello}. No operar.`);
       const leido = {
         total: await factura.campo('country-total').inputValue(),
