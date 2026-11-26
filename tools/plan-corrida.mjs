@@ -7,16 +7,20 @@
  * Salida ($GITHUB_OUTPUT): fase1, fase2, fase3 (listas de maquinas: { carril, proyectos, grep }),
  * suite y filtro (lo que muestra el tablero).
  *
- * Que corre junto y que no (las dos apps usan la misma base de QA y la misma cuenta, pablo1):
- *   - Reservas y Cobranzas, de las dos apps, usan el mismo carrito: nunca dos a la vez.
- *   - Los dos WebAdmin cambian los mismos datos AUTO-QA (candidatos.json), que leen
- *     Tarifario, Reservas y SIX: cada WebAdmin corre solo con una Cobranzas.
- *   - Tarifario, Seguridad y SIX solo leen.
- *   - Varias maquinas de la app nueva a la vez no se pisan la sesion (verificado 25/11/2026).
+ * Que corre junto y que no (las dos apps usan la misma base de QA):
+ *   - Cada sistema reserva con su usuario y su carrito: el viejo con autoqa.viejo (AMV_USER,
+ *     creado el 26/11/2026) y la app nueva con pablo1 (el usuario web atado a BO_USER). Dentro
+ *     de un sistema, Cobranzas y Reservas comparten carrito: van en serie en la misma maquina.
+ *   - Los dos WebAdmin cambian los mismos datos AUTO-QA (candidatos.json: agencia 6334,
+ *     mercado 37, hotel 15422, servicio 7954, serie 20): nunca a la vez.
+ *   - Fuera del WebAdmin, solo dos tests leen precios de esos datos ("Markups por tipo de
+ *     producto" y "Carrito con hotel y servicio"): se sacan de su maquina y van al final.
+ *   - Tarifario, Seguridad y SIX solo leen. La Seguridad del viejo toma una reserva reciente
+ *     del historial de autoqa.viejo: corre despues de su carrito.
  * Corrida completa con los dos sistemas:
- *   Fase 1: WebAdmin || Cobranzas (viejo).   Fase 2: WebAdmin || Cobranzas (nuevo).
- *   Fase 3: Reservas viejo y nuevo en serie || lectura vieja || lectura nueva.
- *
+ *   Fase 1: WebAdmin nuevo || carrito viejo || carrito nuevo || lectura nueva.
+ *   Fase 2: WebAdmin viejo || lectura vieja.
+ *   Fase 3: los tests de markups de los dos sistemas.
  * Se prueba local con:  SISTEMA=Ambos AREA=Todas node tools/plan-corrida.mjs
  */
 import { readFileSync, appendFileSync } from 'node:fs';
@@ -63,24 +67,32 @@ if (filtro) {
   filtroDelTablero = filtro;
 }
 
-const maquina = (carril, pares) => ({ carril, proyectos: pares.map(([s, a]) => PROYECTOS[s][a]).join('|'), grep });
-const lectura = (s) => maquina(`lectura-${s}`, SOLO_LEEN.map((a) => [s, a]));
+// Los unicos tests fuera del WebAdmin que leen precios de los datos que el WebAdmin cambia.
+const LEEN_MARKUPS = '(Markups por tipo de producto|Carrito con hotel y servicio)';
+const maquina = (carril, pares, sin = '') => ({ carril, proyectos: pares.map(([s, a]) => PROYECTOS[s][a]).join('|'), grep, sin });
+const lectura = (s) => maquina(`lectura-${s}`, SOLO_LEEN.map((a) => [s, a]), LEEN_MARKUPS);
+const carrito = (s) => maquina(`carrito-${s}`, [[s, 'cobranzas'], [s, 'reservas']], LEEN_MARKUPS);
+const markups = (ss) => ({ ...maquina(`markups-${ss.length === 2 ? 'ambos' : ss[0]}`, ss.flatMap((s) => [[s, 'tarifario'], [s, 'reservas']])), grep: LEEN_MARKUPS });
 let fase1 = [];
 let fase2 = [];
 let fase3 = [];
 
-if (area === 'todas') {
+if (area === 'todas' && !grep) {
   if (sistemas.length === 2) {
-    fase1 = [maquina('webadmin-viejo', [['viejo', 'webadmin']]), maquina('cobranzas-viejo', [['viejo', 'cobranzas']])];
-    fase2 = [maquina('webadmin-nuevo', [['nuevo', 'webadmin']]), maquina('cobranzas-nuevo', [['nuevo', 'cobranzas']])];
-    fase3 = [maquina('reservas-ambos', [['viejo', 'reservas'], ['nuevo', 'reservas']]), lectura('viejo'), lectura('nuevo')];
+    fase1 = [maquina('webadmin-nuevo', [['nuevo', 'webadmin']]), carrito('viejo'), carrito('nuevo'), lectura('nuevo')];
+    fase2 = [maquina('webadmin-viejo', [['viejo', 'webadmin']]), lectura('viejo')];
+    fase3 = [markups(sistemas)];
   } else {
     const [s] = sistemas;
-    fase1 = [maquina(`webadmin-${s}`, [[s, 'webadmin']]), maquina(`cobranzas-${s}`, [[s, 'cobranzas']])];
-    fase2 = [maquina(`reservas-${s}`, [[s, 'reservas']]), lectura(s)];
+    fase1 = [maquina(`webadmin-${s}`, [[s, 'webadmin']]), carrito(s)];
+    fase2 = [lectura(s), markups([s])];
   }
-} else if (SOLO_LEEN.includes(area)) {
-  // Solo leen: con los dos sistemas, una maquina para cada uno.
+} else if (area === 'todas') {
+  // Una prueba elegida o un filtro libre sin area: todo en serie, en una maquina.
+  fase1 = [maquina(`todas-${sistemas.length === 2 ? 'ambos' : sistemas[0]}`, sistemas.flatMap((s) => Object.keys(AREAS).map((a) => [s, a])))];
+} else if (SOLO_LEEN.includes(area) || area === 'cobranzas') {
+  // Solo leen, o Cobranzas (cada sistema con su carrito): con los dos sistemas, una maquina para
+  // cada uno. Reservas no: los dos "Carrito con hotel y servicio" usan el carrito de autoqa.markups.
   fase1 = sistemas.map((s) => maquina(`${area}-${s}`, [[s, area]]));
 } else {
   // Reservas y Cobranzas comparten el carrito y los WebAdmin los datos: en serie, en una maquina.
@@ -97,5 +109,5 @@ for (const [k, v] of Object.entries(salida)) {
 }
 console.log(`Sistema: ${sistemas.join(' y ')} · Area: ${area === 'todas' ? 'todas' : AREAS[area]}${filtroDelTablero ? ` · Prueba: ${filtroDelTablero}` : ''}`);
 for (const [n, f] of [['Fase 1', fase1], ['Fase 2', fase2], ['Fase 3', fase3]]) {
-  if (f.length) console.log(`${n}: ${f.map((m) => `${m.carril} [${m.proyectos.split('|').join(', ')}]`).join('  ||  ')}`);
+  if (f.length) console.log(`${n}: ${f.map((m) => `${m.carril} [${m.proyectos.split('|').join(', ')}]${m.sin ? ' (sin markups)' : ''}${m.grep && m.grep === LEEN_MARKUPS ? ' (solo markups)' : ''}`).join('  ||  ')}`);
 }

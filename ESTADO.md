@@ -812,6 +812,14 @@ libre avanzado que busca en el titulo. Ambos + Todas es la corrida completa en t
 arma `node tools/actualizar-desplegable.mjs`: correrlo al agregar o renombrar un test. El
 push a main sigue corriendo solo el Tarifario del sistema viejo, como antes.
 
+Desde el 26/11/2026 **cada sistema reserva con su propio usuario**, y por eso Cobranzas y Reservas
+de los dos sistemas corren a la vez: el viejo con `autoqa.viejo` (WebUser 15876, copia de pablo1:
+agencia 1, CustomMarkup 0,50, ciudad 5144, misma clave; `AMV_USER` en el .env y en los secrets) y
+la app nueva con pablo1, que es el usuario web atado a `BO_USER`. Los WebAdmin siguen sin poder ir
+juntos (comparten agencia 6334, mercado 37 y sus items), y los dos tests que leen esos precios
+fuera del WebAdmin ("Markups por tipo de producto" y "Carrito con hotel y servicio") van en una
+fase propia al final.
+
 En Allure quedan separados sin configurar nada: el arbol es proyecto > archivo >
 describe, asi que el Bloque B aparece como
 `Climbs - Suite de pruebas automatizadas > bloque-b/reservas.spec.ts` y el C como

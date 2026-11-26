@@ -12,6 +12,10 @@ inputs:
     description: 'Opcional: expresion regular sobre el titulo de los tests'
     required: false
     default: ''
+  sin:
+    description: 'Opcional: expresion regular de los tests que se excluyen (--grep-invert)'
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -63,13 +67,15 @@ runs:
       env:
         PROYECTOS: ${{ inputs.proyectos }}
         GREP: ${{ inputs.grep }}
+        SIN: ${{ inputs.sin }}
         PW_CARRIL: ${{ inputs.carril }}
       run: |
         IFS='|' read -ra LISTA <<< "$PROYECTOS"
         ARGS=()
         for p in "${LISTA[@]}"; do ARGS+=("--project=$p"); done
         if [ -n "$GREP" ]; then ARGS+=("--grep" "$GREP"); fi
-        echo "Maquina $PW_CARRIL: ${LISTA[*]} ${GREP:+(filtro: $GREP)}"
+        if [ -n "$SIN" ]; then ARGS+=("--grep-invert" "$SIN"); fi
+        echo "Maquina $PW_CARRIL: ${LISTA[*]} ${GREP:+(filtro: $GREP)} ${SIN:+(sin: $SIN)}"
         npx playwright test "${ARGS[@]}"
 
     - name: Subir los resultados del carril
