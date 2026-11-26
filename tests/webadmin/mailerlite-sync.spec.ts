@@ -55,6 +55,10 @@ const GRUPO_ESPERADO = process.env.MAILERLITE_GROUP_ID ?? '';
  * MailerLite, incluido el email viejo que queda del paso de cambio de direccion.
  */
 test.describe('WebAdmin — sincronizacion con MailerLite', () => {
+  // Pedido de Alan el 26/11/2026: fuera de la corrida mientras no haya clave de MailerLite en el
+  // pipeline (la tiene el PM). Al cargar el secret MAILERLITE_API_KEY vuelven a correr solos.
+  test.skip(!process.env.MAILERLITE_API_KEY, 'Sin MAILERLITE_API_KEY: los tests de MailerLite quedan fuera hasta tener la clave');
+
   test.beforeEach(() => {
     reiniciarNumeracionDePasos();
   });

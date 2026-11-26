@@ -10,6 +10,7 @@ import {
 import { SALTO, importeDelPortal } from './reservas-comun';
 import { conBackofficeNuevo, costosDelServicio, precioConIdioma, tarifaVigente, mismoIdioma } from '../../utils/markups';
 import candidatos from '../../data/candidatos.json';
+import { fechaDelPaquete } from '../climbs/reservas/reservas-comun';
 
 /**
  * Bloque B - multiidioma de las pantallas de reserva: carrito y checkout.
@@ -272,7 +273,9 @@ test.describe('Reservas — multiidioma', () => {
 
     const inicio = new InicioPage(page);
     const ct = new CustomToursPage(page);
-    const fecha = fechaDeBusqueda();
+    // El traslado 1223 del paquete no opera en marzo, junio, septiembre ni diciembre: con la
+    // fecha comun el viaje podia caer en esos meses y "Continuar" quedaba deshabilitado.
+    const fecha = fechaDelPaquete();
 
     const PAQUETE = {
       id: '5059',

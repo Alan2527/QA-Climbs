@@ -11,6 +11,7 @@ import {
 } from '../../utils/pasos';
 import { armarCircuitoYEmitir, importeDelPortal } from './reservas-comun';
 import candidatos from '../../data/candidatos.json';
+import { fechaDelPaquete } from '../climbs/reservas/reservas-comun';
 import { conBackofficeNuevo, costosDelServicio } from '../../utils/markups';
 import { recargoEnFichaYCarritoViejo } from '../../utils/recargo-por-idioma';
 
@@ -421,8 +422,9 @@ test.describe('Reservas — anulacion', () => {
     const carrito = new CarritoCustomToursPage(page);
 
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
-    // A 7 dias alcanza: el riel de circuitos pone el limite en InDate - 48hs.
-    const fecha = fechaDeBusqueda();
+    // A 7 dias alcanza: el riel de circuitos pone el limite en InDate - 48hs. Desde ahi, el primer
+    // dia en que opera el traslado 1223 del paquete (cerrado en marzo, junio, septiembre y diciembre).
+    const fecha = fechaDelPaquete();
     const referencia = `AUTO-QA ${sello}`;
 
     const reserva = {

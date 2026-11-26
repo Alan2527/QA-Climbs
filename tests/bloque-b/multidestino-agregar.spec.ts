@@ -181,7 +181,17 @@ test.describe('Multidestino: agregar servicio y hotel', () => {
 
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
     const referencia = `AUTO-QA AGREGAR ${sello}`;
-    const fechaDelViaje = proximoLunes(fechaDeBusqueda());
+    // Igual que en la app nueva (verificado en la base el 24/11 y el 26/11/2026): el traslado 1223 del
+    // paquete esta cerrado en marzo, junio, septiembre y diciembre (ServiceMonth) y el 7964 opera de
+    // agosto a mayo. En esos meses el traslado sale "No opera este dia" y no se puede continuar al
+    // carrito: se busca el primer lunes (y su martes) fuera de ellos.
+    const MESES_CERRADOS = [2, 5, 6, 8, 11];
+    const cerrado = (d: Date) => MESES_CERRADOS.includes(d.getMonth());
+    const martesDe = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+    let fechaDelViaje = proximoLunes(fechaDeBusqueda());
+    while (cerrado(fechaDelViaje) || cerrado(martesDe(fechaDelViaje))) {
+      fechaDelViaje = proximoLunes(new Date(fechaDelViaje.getFullYear(), fechaDelViaje.getMonth(), fechaDelViaje.getDate() + 1));
+    }
 
     // Lo que se arrastra de un paso al otro.
     let tarifarioDeServicios: Record<string, TarjetaDeServicio> = {};

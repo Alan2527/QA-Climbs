@@ -131,8 +131,14 @@ export class NoAsignadosPage {
     }
   }
 
-  fila(tabla: string, texto: string): Locator {
-    return this.page.locator(`${tabla} tbody tr`).filter({ hasText: texto }).first();
+  /**
+   * `sinTexto`: descarta las filas que lo contengan. Desde el recargo por idioma (US 4739) el file
+   * del servicio trae ademas la fila "Adicional Idioma ...", con el mismo numero de file: sin esto
+   * la primera fila podia ser la del adicional y no la del servicio.
+   */
+  fila(tabla: string, texto: string, sinTexto?: RegExp): Locator {
+    const filas = this.page.locator(`${tabla} tbody tr`).filter({ hasText: texto });
+    return (sinTexto ? filas.filter({ hasNotText: sinTexto }) : filas).first();
   }
 
   /** Si la bandeja lista algo que contenga ese texto. */
@@ -142,8 +148,8 @@ export class NoAsignadosPage {
   }
 
   /** Texto de la fila, para dejarlo en el reporte. */
-  async textoDeLaFila(tabla: string, texto: string): Promise<string> {
-    const f = this.fila(tabla, texto);
+  async textoDeLaFila(tabla: string, texto: string, sinTexto?: RegExp): Promise<string> {
+    const f = this.fila(tabla, texto, sinTexto);
     if (!(await f.count())) return '';
     return (await f.innerText()).replace(/\s+/g, ' ').trim();
   }

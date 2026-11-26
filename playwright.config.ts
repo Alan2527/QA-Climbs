@@ -225,7 +225,8 @@ export default defineConfig({
         ...devices['Desktop Chrome'], baseURL: URL_APP_NUEVA, locale: 'es-AR', viewport: { width: 1920, height: 1080 },
         storageState: SESION_APP_NUEVA, actionTimeout: 60_000,
       },
-      dependencies: ['App nueva - Login'],
+      // 'Login' tambien: el test de series lee las tarifas en el WebAdmin viejo con playwright/.auth/front.json.
+      dependencies: ['App nueva - Login', 'Login'],
     },
     {
       // El WebAdmin no existe en la app nueva: sus pantallas viven en el Backoffice.

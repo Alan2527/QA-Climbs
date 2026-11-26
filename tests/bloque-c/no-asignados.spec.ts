@@ -74,7 +74,8 @@ test.describe('Cobranzas — bandejas de no asignados', () => {
     await paso(page, 'El item del file recien generado figura en la bandeja de items no asignados', async () => {
       await bandejas.abrirItems(pre.fechaDelServicio);
       const figura = await bandejas.figura(bandejas.tablaDeItems, numeroDeFile);
-      const filaDelItem = await bandejas.textoDeLaFila(bandejas.tablaDeItems, numeroDeFile);
+      // La fila del servicio, no la del "Adicional Idioma" del mismo file (recargo por idioma, US 4739).
+      const filaDelItem = await bandejas.textoDeLaFila(bandejas.tablaDeItems, numeroDeFile, /Adicional Idioma/i);
       await adjuntarTexto('Fila del item en la bandeja', filaDelItem);
       expect(importeDeLaFila(filaDelItem), 'La bandeja tiene que mostrar el item por su costo').toEqual({ moneda: pre.costoDelItem.moneda, valor: total });
       await conResaltado(page, page.locator(bandejas.tablaDeItems), 'Item pendiente', () => {
