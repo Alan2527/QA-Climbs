@@ -1,4 +1,4 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Page, Locator, Request, expect } from '@playwright/test';
 import { leerTabla, FilaDeTabla } from './tabla';
 
 /** "1.234,50" -> 1234.5; vacio -> null */
@@ -6,6 +6,34 @@ export const importe = (t: string): number | null => {
   const limpio = (t || '').replace(/[^\d,.-]/g, '');
   return limpio ? Number(limpio.replace(/\./g, '').replace(',', '.')) : null;
 };
+
+/**
+ * Hace el clic de "Guardar" y espera a que el guardado termine entero. La ficha de la habitacion
+ * guarda en dos pedidos seguidos (los datos y despues las tarifas, con las observaciones): entre
+ * uno y otro el boton ya queda deshabilitado y el panel de pendientes se oculta. El 26/11/2026 el
+ * test salio de la ficha en ese hueco, el segundo pedido quedo cortado y la observacion no se
+ * borro. Como una persona, se sigue recien cuando no queda ningun guardado en curso.
+ */
+export async function guardarYEsperar(page: Page, guardar: () => Promise<void>) {
+  const esGuardado = (r: Request) => r.method() !== 'GET' && /\/api\//.test(r.url())
+    && !/\/preview$|browser-perf|loyalty|\/support\//.test(new URL(r.url()).pathname);
+  let enCurso = 0;
+  let ultimo = Date.now();
+  const sube = (r: Request) => { if (esGuardado(r)) { enCurso++; ultimo = Date.now(); } };
+  const baja = (r: Request) => { if (esGuardado(r)) { enCurso = Math.max(0, enCurso - 1); ultimo = Date.now(); } };
+  page.on('request', sube);
+  page.on('requestfinished', baja);
+  page.on('requestfailed', baja);
+  try {
+    await guardar();
+    await expect.poll(() => enCurso === 0 && Date.now() - ultimo > 1_500,
+      { message: 'El guardado tiene que terminar: ningun pedido de guardado en curso', timeout: 120_000 }).toBe(true);
+  } finally {
+    page.off('request', sube);
+    page.off('requestfinished', baja);
+    page.off('requestfailed', baja);
+  }
+}
 
 export type Tramo = {
   desde: string; hasta: string; dias: number;
@@ -266,8 +294,10 @@ export class HabitacionNuevaPage {
   async guardar() {
     const boton = this.pie.getByRole('button', { name: 'Guardar', exact: true });
     await expect(boton, 'Tiene que haber cambios para guardar').toBeEnabled();
-    await boton.click();
-    await expect(boton, 'Al guardar, el pie tiene que quedar "Al dia"').toBeDisabled({ timeout: 90_000 });
+    await guardarYEsperar(this.page, async () => {
+      await boton.click();
+      await expect(boton, 'Al guardar, el pie tiene que quedar "Al dia"').toBeDisabled({ timeout: 90_000 });
+    });
     await expect(this.pie.getByRole('button', { name: /^Guardar/ }).first(), 'Guardado, el boton Guardar del pie queda deshabilitado (antes el pie decia "Al dia")').toBeDisabled({ timeout: 30_000 });
     await expect(this.pendientes).toBeHidden({ timeout: 30_000 });
   }

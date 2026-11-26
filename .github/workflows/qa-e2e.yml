@@ -311,12 +311,38 @@ jobs:
       # adjuntos que superan el limite, SIEMPRE DESPUES de subir los resultados como
       # artefacto: ahi siguen disponibles para investigar. Las capturas y los videos
       # no se tocan.
+      #
+      # Desde el 26/11/2026 tambien se sacan todas las trazas (.zip de Playwright): el reporte
+      # pesaba mas de 4 GB, casi todo trazas, y el push al tablero terminaba en HTTP 500 desde
+      # el 25/11. Las trazas siguen en los artefactos resultados-* de cada corrida.
       - name: Sacar del reporte los adjuntos que superan el limite de GitHub
         if: always()
         run: |
+          echo "Peso de allure-results antes: $(du -sh allure-results | cut -f1)"
+          node -e '
+            const fs = require("fs"), path = require("path"), dir = "allure-results";
+            let borradas = 0;
+            const limpiar = (n) => {
+              if (!n || typeof n !== "object") return;
+              if (Array.isArray(n.attachments)) n.attachments = n.attachments.filter((a) => {
+                const traza = a.type === "application/zip" || /\.zip$/i.test(a.source || "");
+                if (traza) { fs.rmSync(path.join(dir, a.source), { force: true }); borradas++; }
+                return !traza;
+              });
+              (n.steps || []).forEach(limpiar);
+            };
+            for (const f of fs.readdirSync(dir).filter((f) => f.endsWith("-result.json") || f.endsWith("-container.json"))) {
+              const r = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+              limpiar(r); (r.befores || []).forEach(limpiar); (r.afters || []).forEach(limpiar);
+              fs.writeFileSync(path.join(dir, f), JSON.stringify(r));
+            }
+            for (const f of fs.readdirSync(dir).filter((f) => /-attachment\.zip$/.test(f))) { fs.rmSync(path.join(dir, f)); borradas++; }
+            console.log(`Trazas sacadas del reporte: ${borradas}`);
+          ' || true
           echo "Adjuntos de mas de 90 MB:"
           find allure-results -type f -size +90M -exec du -h {} + || true
           find allure-results -type f -size +90M -delete || true
+          echo "Peso de allure-results despues: $(du -sh allure-results | cut -f1)"
 
       # El CLI de Allure necesita Java; en el runner se instala en un paso.
       - name: Configurar Java (para Allure)

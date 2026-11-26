@@ -1,6 +1,6 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { leerTabla } from './tabla';
-import { importe } from './habitacion.page';
+import { importe, guardarYEsperar } from './habitacion.page';
 
 /** Recargo por idioma de la tarifa (columna "Recargos por idioma"): porcentaje, por pasajero o por grupo. */
 export type RecargoPorIdioma = { idioma: string; tipo: 'porcentaje' | 'porPasajero' | 'porGrupo'; valor: number };
@@ -115,8 +115,10 @@ export class ServicioNuevoPage {
   async guardar() {
     const boton = this.pie.getByRole('button', { name: 'Guardar', exact: true });
     await expect(boton, 'Tiene que haber cambios para guardar').toBeEnabled();
-    await boton.click();
-    await expect(boton, 'Al guardar, el pie tiene que quedar "Al dia"').toBeDisabled({ timeout: 90_000 });
+    await guardarYEsperar(this.page, async () => {
+      await boton.click();
+      await expect(boton, 'Al guardar, el pie tiene que quedar "Al dia"').toBeDisabled({ timeout: 90_000 });
+    });
     await expect(this.pie.getByRole('button', { name: /^Guardar/ }).first(), 'Guardado, el boton Guardar del pie queda deshabilitado (antes el pie decia "Al dia")').toBeDisabled({ timeout: 30_000 });
   }
 }

@@ -16,14 +16,17 @@
  *     candidatos.json) y los dos van a la vez. La serie no tiene copia: el test de series de la
  *     app nueva va en la maquina del WebAdmin viejo, despues del suyo.
  *   - Fuera del WebAdmin, solo dos tests leen precios de los datos del juego de siempre
- *     ("Markups por tipo de producto" y "Carrito con hotel y servicio"): van en la maquina del
- *     WebAdmin viejo, antes que el, para no cruzarse con sus cambios.
+ *     ("Markups por tipo de producto" y "Carrito con hotel y servicio"). Ademas cargan el
+ *     carrito de pablo1, el mismo del carrito de la app nueva (el 26/11/2026 le sumaron un item a
+ *     "Anular la carta de cobranza"). Con la app nueva en la corrida van solos, en una fase aparte.
  *   - Tarifario, Seguridad y SIX solo leen. La Seguridad del viejo toma una reserva reciente
  *     del historial de autoqa.viejo: corre despues de su carrito, en la misma maquina.
  * Cada maquina es una lista de tandas que corren en fila ({ proyectos, grep, sin, juego }).
- * Corrida completa con los dos sistemas, una sola fase de cinco maquinas:
- *   WebAdmin nuevo (juego B) || markups + WebAdmin viejo + series nuevo || carrito viejo + lectura vieja
- *   || carrito nuevo || lectura nueva. Hasta el 26/11 eran tres fases y tardaba 1 h 37.
+ * Corrida completa con los dos sistemas:
+ *   Fase 1: WebAdmin nuevo (juego B) || WebAdmin viejo + series nuevo || carrito viejo + lectura vieja
+ *           || carrito nuevo || lectura nueva.
+ *   Fase 2: los tests de markups de los dos sistemas.
+ *   Hasta el 26/11 eran tres fases y tardaba 1 h 37.
  * Se prueba local con:  SISTEMA=Ambos AREA=Todas node tools/plan-corrida.mjs
  */
 import { readFileSync, appendFileSync } from 'node:fs';
@@ -93,15 +96,17 @@ if (area === 'todas' && !grep) {
   if (sistemas.length === 2) {
     fase1 = [
       maquina('webadmin-nuevo', [t.webadmin('nuevo', { sin: SERIES, juego: 'B' })]),
-      maquina('webadmin-viejo', [t.markups(sistemas), t.webadmin('viejo'), t.webadmin('nuevo', { grep: SERIES })]),
+      maquina('webadmin-viejo', [t.webadmin('viejo'), t.webadmin('nuevo', { grep: SERIES })]),
       maquina('carrito-viejo', [t.carrito('viejo'), t.lectura('viejo')]),
       maquina('carrito-nuevo', [t.carrito('nuevo')]),
       maquina('lectura-nuevo', [t.lectura('nuevo')]),
     ];
+    fase2 = [maquina('markups-ambos', [t.markups(sistemas)])];
   } else if (sistemas[0] === 'nuevo') {
-    // Solo la app nueva: su WebAdmin con el juego B no toca lo que leen los de markups.
+    // Solo la app nueva: los de markups usan el carrito de pablo1, como el carrito nuevo: despues.
     fase1 = [maquina('webadmin-nuevo', [t.webadmin('nuevo', { juego: 'B' })]), maquina('carrito-nuevo', [t.carrito('nuevo')]),
-      maquina('lectura-nuevo', [t.lectura('nuevo')]), maquina('markups-nuevo', [t.markups(['nuevo'])])];
+      maquina('lectura-nuevo', [t.lectura('nuevo')])];
+    fase2 = [maquina('markups-nuevo', [t.markups(['nuevo'])])];
   } else {
     fase1 = [maquina('webadmin-viejo', [t.markups(['viejo']), t.webadmin('viejo')]), maquina('carrito-viejo', [t.carrito('viejo'), t.lectura('viejo')])];
   }
