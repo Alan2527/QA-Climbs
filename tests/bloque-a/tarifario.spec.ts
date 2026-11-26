@@ -961,6 +961,18 @@ test.describe('Tarifario', () => {
     const tarifario = new TarifarioPage(page);
     const ciudad = CIUDAD[cfg.tab] ?? 'Buenos Aires';
 
+    // Desde la US 5034 (WEB d165a413, 01/11/2026) el combo de destino ofrece solo las ciudades
+    // con producto de la pestania activa, y Ushuaia no tiene excursiones: para Cruceros y Ofertas
+    // primero se abre la pestania y despues se elige el destino, como lo hace la persona.
+    if (ciudad !== 'Buenos Aires') {
+      await paso(page, `Abrir la pestania ${titulo} para que el destino ofrezca ${ciudad}`, async () => {
+        await tarifario.seleccionarPais('Argentina');
+        const disponible = await tarifario.pestaniaEstaDisponible(cfg.tab);
+        expect(disponible, `La pestania ${titulo} tiene que estar visible`).toBe(true);
+        await tarifario.abrirPestania(cfg.tab, cfg.container);
+      });
+    }
+
     await paso(page, `Filtrar por Argentina / ${ciudad} y buscar`, async () => {
       await tarifario.seleccionarPais('Argentina');
       await tarifario.seleccionarCiudad(ciudad);

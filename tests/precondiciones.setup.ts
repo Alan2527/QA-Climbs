@@ -119,6 +119,10 @@ setup('Precondiciones: los datos AUTO-QA estan en QA', async ({ page }) => {
   for (const item of itemsDelBloque) {
     try {
       if (item.ciudad !== ciudadFiltrada) {
+        // Desde la US 5034 (WEB d165a413, 01/11/2026) el combo de destino ofrece solo las
+        // ciudades con producto de la pestania activa: primero la pestania, despues el destino,
+        // como lo hace la persona. Buscar recarga el tarifario: se vuelve a abrir la pestania.
+        await tarifario.abrirPestania(item.pestania, item.contenedor);
         await tarifario.seleccionarCiudad(item.ciudad);
         await tarifario.buscar();
         ciudadFiltrada = item.ciudad;
