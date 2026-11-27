@@ -83,9 +83,27 @@ export class CajaDiariaNuevaPage {
     await this.page.mouse.wheel(0, -20_000);
     await expect(this.page.locator('#dc-filter')).toBeInViewport();
     await this.page.waitForTimeout(500);
-    await this.page.locator('#dc-filter').click();
+    const filtro = this.page.locator('#dc-filter');
     const lista = this.page.getByRole('listbox', { name: 'Medio' });
-    await expect(lista).toBeVisible();
+    // La barra de filtros anima el ancho del "Medio" al elegir una caja (useReflowMotion, data-reflowing):
+    // en local dura medio segundo, pero en CI (27/11/2026) siguio animando 60 s con cambios de fracciones de
+    // pixel que no se ven (los 280 cuadros del video eran identicos) y Playwright nunca lo dio por "estable".
+    // Una persona ve el boton quieto y lo toca: si el clic normal no entra, se hace clic donde esta el boton,
+    // despues de comprobar que no se mueve mas de un pixel. La lista se abre una sola vez: si ya esta abierta
+    // no se vuelve a tocar el boton (otro clic la cerraria).
+    await expect(async () => {
+      if (!(await lista.isVisible())) {
+        const entro = await filtro.click({ timeout: 10_000 }).then(() => true).catch(() => false);
+        if (!entro && !(await lista.isVisible())) {
+          const a = await filtro.boundingBox();
+          await this.page.waitForTimeout(300);
+          const b = await filtro.boundingBox();
+          expect(a && b && Math.abs(a.x - b.x) <= 1 && Math.abs(a.y - b.y) <= 1, 'El filtro Medio tiene que quedar quieto en pantalla').toBe(true);
+          await this.page.mouse.click(b!.x + b!.width / 2, b!.y + b!.height / 2);
+        }
+      }
+      await expect(lista).toBeVisible({ timeout: 5_000 });
+    }, 'El filtro Medio tiene que abrir la lista de cajas').toPass({ timeout: 90_000 });
     return lista;
   }
 
