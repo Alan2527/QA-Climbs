@@ -180,7 +180,17 @@ test.describe('Multidestino: agregar servicio y hotel', () => {
       const quoteId = page.url().match(/quote=(\d+)/)?.[1] ?? '';
       await page.getByRole('tab', { name: /^Hoteles (y|&) [Ss]ervicios$/ }).click();
       await expect(page.getByRole('button', { name: /^(Reservar|Continuar)$/ }).last()).toBeVisible({ timeout: 120_000 });
-      const t = await totalDelItinerario();
+      // Recien guardada, la pantalla puede mostrar un instante el total sin el markup nuevo y recalcularlo
+      // enseguida (CI 27/11/2026: leido al toque dio 2.670 y el "despues" salto 789 con una fila de 120).
+      // Se toma el total cuando deja de moverse: tres lecturas iguales seguidas, un segundo entre cada una.
+      let t = await totalDelItinerario();
+      let iguales = 0;
+      for (let i = 0; i < 30 && iguales < 2; i++) {
+        await page.waitForTimeout(1_000);
+        const otra = await totalDelItinerario();
+        iguales = otra.total.valor === t.total.valor ? iguales + 1 : 0;
+        t = otra;
+      }
       totalAntes = t.total;
       await adjuntarTexto('Cotizacion guardada', `Cotizacion ${quoteId}, referencia ${referencia}, markup ${MARKUP}\n${t.lineas.join('\n')}`);
       expect(t.total.valor, 'El itinerario con la cotizacion tiene que tener un total').toBeGreaterThan(0);

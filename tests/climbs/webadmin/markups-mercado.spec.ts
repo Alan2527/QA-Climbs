@@ -42,7 +42,10 @@ const FECHA_IDIOMA = new Date(2031, 0, 13);
  * aunque falle.
  */
 test.describe('WebAdmin — markups de mercado y agencia', () => {
-  test.describe.configure({ mode: 'serial', retries: process.env.CI ? 2 : 0 });
+  // Modo normal, no serial: los dos tests son independientes (cada uno restaura lo que toca) y solo
+  // comparten la preparacion de beforeAll. En serial, si el de mercado fallaba por un error del sistema,
+  // el de agencia no corria y quedaba sin probar (corrida del 27/11/2026).
+  test.describe.configure({ retries: process.env.CI ? 2 : 0 });
 
   let contexto: BrowserContext;
   let portal: Page;
