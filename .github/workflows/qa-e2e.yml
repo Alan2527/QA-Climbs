@@ -280,8 +280,10 @@ jobs:
           ls -la blob-report || true
           mkdir -p resultados
           if ls blob-report/*.zip >/dev/null 2>&1; then
-            PLAYWRIGHT_JSON_OUTPUT_NAME=resultados/playwright.json npx playwright merge-reports --reporter json ./blob-report
-            PLAYWRIGHT_HTML_OPEN=never npx playwright merge-reports --reporter html ./blob-report
+            # merge-reports termina con 1 si hay tests en rojo: eso no es una falla de la publicacion
+            # (el 26/11/2026 cortaba el paso antes del HTML y dejaba la publicacion en rojo).
+            PLAYWRIGHT_JSON_OUTPUT_NAME=resultados/playwright.json npx playwright merge-reports --reporter json ./blob-report || true
+            PLAYWRIGHT_HTML_OPEN=never npx playwright merge-reports --reporter html ./blob-report || true
           else
             echo "No llego ningun blob: la corrida murio antes de los tests."
           fi

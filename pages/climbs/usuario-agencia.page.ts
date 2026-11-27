@@ -11,7 +11,7 @@ export type FichaDelUsuario = {
  * Usuarios de agencia en el Backoffice nuevo (Clientes › Usuarios de agencias,
  * /clients/agency-users): reemplaza a Customers/Detail del WebAdmin. El alta se abre desde la
  * solapa "Usuarios" de la agencia ("Nuevo usuario"), que viene con la agencia elegida. La clave la
- * escribe quien da el alta (no la genera la pantalla). La ficha tiene "Borrar" en el pie.
+ * escribe quien da el alta, con "Editar" prendido (ver ponerClave). La ficha tiene "Borrar" en el pie.
  *
  * La clave nunca sale de aca: no se adjunta ni se loguea.
  */
@@ -57,7 +57,23 @@ export class UsuarioDeAgenciaPage {
     await this.ficha.locator('#au-lastName').fill(d.apellido);
     await this.ficha.locator('#au-email').fill(d.email);
     await this.ficha.locator('#au-userName').fill(d.usuario);
-    await this.ficha.locator('#au-pass').fill(clave);
+    await this.ponerClave(clave);
+  }
+
+  /**
+   * Desde el 26/11/2026 la clave del alta viene trabada ("La crea el usuario") y se destraba con el
+   * interruptor "Editar" de Clave (el "Password manual -> Habilitar" del WebAdmin), que ademas pasa
+   * el alta a Activo. Con clave, lo prende y la escribe; sin clave, lo deja apagado.
+   * Antes de ese cambio el campo estaba siempre abierto: sin el interruptor, se escribe directo.
+   */
+  async ponerClave(clave: string) {
+    const editar = this.ficha.locator('#au-manual');
+    const hayInterruptor = (await editar.count()) > 0;
+    if (hayInterruptor && (await editar.isChecked()) !== !!clave) {
+      await this.ficha.locator('label[for="au-manual"]').click();
+      await expect(editar).toBeChecked({ checked: !!clave });
+    }
+    if (clave || !hayInterruptor) await this.ficha.locator('#au-pass').fill(clave);
   }
 
   /** "Guardar": devuelve el id si llevo a la ficha nueva, o el aviso del rechazo. */
@@ -66,7 +82,10 @@ export class UsuarioDeAgenciaPage {
 
   /** Abre el modal del envio y devuelve su nota ("lleva el enlace..." o "lleva la clave..."), o '' si no abrio. */
   async abrirEnvio(): Promise<string> {
-    await this.pie.getByRole('button', { name: /^Guardar( y enviar email)?$/ }).first().click();
+    // Hasta el 26/11/2026 el Guardar del alta se llamaba "Guardar y enviar email"; desde entonces son
+    // dos botones y el del mail es el que dice "Guardar y enviar email".
+    const conMail = this.ficha.getByRole('button', { name: /^Guardar y enviar email$/ });
+    await (await conMail.count() ? conMail.first() : this.pie.getByRole('button', { name: /^Guardar$/ }).first()).click();
     if (!(await this.envio.waitFor({ state: 'visible', timeout: 15_000 }).then(() => true).catch(() => false))) return '';
     return (await this.envio.locator('p.muted').first().innerText()).replace(/\s+/g, ' ').trim();
   }

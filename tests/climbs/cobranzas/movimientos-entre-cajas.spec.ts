@@ -90,14 +90,14 @@ test.describe('Movimientos entre cajas', () => {
         await mov.comentario(comentario);
         await mov.destino({ moneda: 'USD', caja: CAJA_USD });
         await mov.guardarSinEsperar();
-        // En la app nueva (26/10/2026) el servidor rechaza el pedido sin montos con un 400 generico
-        // y la pantalla muestra solo "Bad Request": no se guarda, pero el aviso no dice que falta.
-        // Diferencia con el BO actual: se marca sin cortar.
-        const aviso = page.getByText(/Debe completar Monto & Cotizaci.n|Bad Request/).first();
+        // La app nueva avisa el monto vacio con su propio texto (el de los pedidos con un campo mal
+        // cargado: "Complete este campo con un valor valido."), no con el "Debe completar Monto &
+        // Cotizacion" del BO actual. Pedido de Alan el 27/11/2026: se exige el texto de la app nueva.
+        const aviso = page.locator('.toast.bad .toast-text').or(page.getByText(/Complete este campo con un valor v.lido|Bad Request/)).first();
         await expect(aviso, 'Sin monto el guardado tiene que rechazarse con un aviso').toBeVisible({ timeout: 30_000 });
         const textoDelAviso = (await aviso.innerText()).trim();
         await adjuntarTexto('Aviso sin monto', textoDelAviso);
-        expect.soft(textoDelAviso, 'Sin monto el aviso tiene que decir que falta Monto & Cotizacion').toMatch(/Debe completar Monto & Cotizaci.n/);
+        expect.soft(textoDelAviso, 'Sin monto el aviso tiene que ser el de la app nueva: "Complete este campo con un valor valido."').toMatch(/^Complete este campo con un valor v.lido\.?$/);
         await mov.campo('amount').fill(ALTA.origen.texto);
         await mov.campo('damount').fill(ALTA.origen.texto);
         await mov.asegurarCotizacion();

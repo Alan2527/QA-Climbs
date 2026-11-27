@@ -111,7 +111,13 @@ export class SerieNuevaPage {
   private get desplegable(): Locator { return this.combo.locator('xpath=..').getByRole('listbox'); }
 
   private async abrirCombo() {
-    if (!(await this.desplegable.isVisible().catch(() => false))) await this.combo.click();
+    // Despues de elegir una opcion la lista tarda en desmontarse: sigue visible con aria-expanded en
+    // false. El 26/11/2026 el test la tomo por abierta, no hizo clic y la lista desaparecio. Se espera
+    // a que el combo quede quieto (abierto o con la lista ya oculta) y se abre si hace falta.
+    const abierto = async () => (await this.combo.getAttribute('aria-expanded')) === 'true';
+    await expect.poll(async () => (await abierto()) || !(await this.desplegable.isVisible().catch(() => false)),
+      { message: 'La lista de categorias tiene que terminar de cerrarse', timeout: 15_000 }).toBe(true);
+    if (!(await abierto())) await this.combo.click();
     await expect(this.desplegable).toBeVisible();
     // La lista se monta ~20 ms antes de quedar abierta (TsSelect.show): en ese hueco el Escape no cierra nada.
     await expect(this.combo).toHaveAttribute('aria-expanded', 'true');

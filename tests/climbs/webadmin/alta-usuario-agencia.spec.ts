@@ -88,7 +88,7 @@ test.describe('WebAdmin — alta de usuario de agencia', () => {
       });
 
       await paso(page, 'Completar la clave y guardar', async () => {
-        await usuarios.ficha.locator('#au-pass').fill(clave);
+        await usuarios.ponerClave(clave);
         const resultado = await usuarios.guardarAlta();
         expect(resultado.aviso, 'El alta no tiene que ser rechazada').toBe('');
         expect(resultado.id, 'Guardar tiene que llevar a la ficha del usuario nuevo').not.toBeNull();
