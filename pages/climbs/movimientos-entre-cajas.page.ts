@@ -133,8 +133,12 @@ export class MovimientosNuevaPage {
         expect(leidas.length).toBeGreaterThan(1);
         nombres.splice(0, nombres.length, ...leidas);
       }, 'El menu "Acciones" de la fila tiene que abrirse y mostrar sus opciones').toPass({ timeout: 60_000 });
-      await this.page.keyboard.press('Escape');
-      await expect(m).toBeHidden();
+      // Se cierra con el mismo boton, nunca con Escape: si el menu ya se cerro solo (por un scroll),
+      // el Escape le llega a la caja del dia y la cierra (vuelve al listado). Visto en CI el 27/11/2026.
+      await expect(async () => {
+        if (await m.isVisible()) await menu.click();
+        await expect(m).toBeHidden({ timeout: 2_000 });
+      }, 'El menu "Acciones" tiene que cerrarse sin salir de la caja').toPass({ timeout: 30_000 });
     } else {
       for (const b of await fila.locator('td.finance-actions-cell, td.table-actions-cell').getByRole('button').all()) {
         nombres.push(((await b.getAttribute('aria-label')) ?? (await b.innerText())).trim());

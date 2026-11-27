@@ -69,18 +69,27 @@ export class TarifarioNuevoPage {
     Paquetes: ['Paquetes', 'Packages', 'Pacotes'],
     Programas: ['Programas', 'Programs'],
     Excursiones: ['Excursiones', 'Tours', 'Excursões'],
-    Hoteles: ['Hoteles', 'Hotels', 'Hoteis'],
+    Hoteles: ['Hoteles', 'Hotels', 'Hotéis'],
     Traslados: ['Traslados', 'Transfers', 'Traslado'],
     'Cena show': ['Cena show', 'Dinner show', 'Jantar show'],
     Cruceros: ['Cruceros', 'Cruises', 'Cruzeiros'],
     Ofertas: ['Ofertas', 'Recommended', 'Oferta'],
   };
 
+  /**
+   * Formas mal escritas que la pantalla mostro alguna vez: con ellas se ubica la solapa para
+   * seguir el recorrido, pero se marca error. "Hoteis" sin tilde se mostraba en portugues hasta la
+   * T-100 (#100, en qa el 27/11/2026), que lo corrigio a "Hotéis".
+   */
+  static readonly MAL_ESCRITAS: Record<string, string[]> = {
+    Hoteles: ['Hoteis'],
+  };
+
   /** La solapa por su nombre en espanol; en otro idioma se ubica por su posicion. */
   solapa(nombre: string): Locator {
     // Por el nombre en cualquiera de los tres idiomas (texts.ts del sitio): las solapas que se
     // muestran dependen de los tipos con servicios visibles en el destino, la posicion no sirve.
-    const nombres = TarifarioNuevoPage.TRADUCCIONES[nombre] ?? [nombre];
+    const nombres = [...(TarifarioNuevoPage.TRADUCCIONES[nombre] ?? [nombre]), ...(TarifarioNuevoPage.MAL_ESCRITAS[nombre] ?? [])];
     return this.page.locator('main').getByRole('tablist').first().getByRole('tab')
       .filter({ hasText: new RegExp(`^(${nombres.join('|')})$`) }).first();
   }
@@ -93,6 +102,10 @@ export class TarifarioNuevoPage {
     }).toPass({ timeout: 30_000 });
     await this.page.waitForLoadState('networkidle');
     await expect(this.solapa(nombre)).toHaveAttribute('aria-selected', 'true');
+    // textContent y no innerText: el estilo puede pasarla a mayusculas y el regex de solapa() mira el texto.
+    const rotulo = ((await this.solapa(nombre).textContent()) ?? '').replace(/\s+/g, ' ').trim();
+    const correctas = TarifarioNuevoPage.TRADUCCIONES[nombre] ?? [nombre];
+    expect.soft(correctas, `La solapa "${rotulo}" esta mal escrita: tiene que ser una de ${correctas.join(' / ')}`).toContain(rotulo);
   }
 
   /** El buscador por nombre de la solapa ("Buscar <solapa> por nombre"): el segundo combo del lateral. */

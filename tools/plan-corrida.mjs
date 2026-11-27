@@ -19,13 +19,17 @@
  *     ("Markups por tipo de producto" y "Carrito con hotel y servicio"). Ademas cargan el
  *     carrito de pablo1, el mismo del carrito de la app nueva (el 26/11/2026 le sumaron un item a
  *     "Anular la carta de cobranza"). Con la app nueva en la corrida van solos, en una fase aparte.
+ *   - Movimientos entre cajas y Caja diaria miden los totales de las cajas AUTO-QA (USD y ARS)
+ *     antes y despues de mover plata. Las ordenes de pago y de cobro de los dos sistemas usan esas
+ *     mismas cajas: si el otro sistema paga en el medio, el total se corre (CI del 27/11/2026, OP
+ *     de ARS 94600 del viejo en plena medicion del nuevo). Esos tests van en la fase 2, en fila.
  *   - Tarifario, Seguridad y SIX solo leen. La Seguridad del viejo toma una reserva reciente
  *     del historial de autoqa.viejo: corre despues de su carrito, en la misma maquina.
  * Cada maquina es una lista de tandas que corren en fila ({ proyectos, grep, sin, juego }).
  * Corrida completa con los dos sistemas:
  *   Fase 1: WebAdmin nuevo (juego B) || WebAdmin viejo + series nuevo || carrito viejo + lectura vieja
  *           || carrito nuevo || lectura nueva.
- *   Fase 2: los tests de markups de los dos sistemas.
+ *   Fase 2: los tests de markups de los dos sistemas y despues los de cajas de los dos, en fila.
  *   Hasta el 26/11 eran tres fases y tardaba 1 h 37.
  * Se prueba local con:  SISTEMA=Ambos AREA=Todas node tools/plan-corrida.mjs
  */
@@ -75,6 +79,8 @@ if (filtro) {
 
 // Los unicos tests fuera del WebAdmin que leen precios de los datos que el WebAdmin cambia.
 const LEEN_MARKUPS = '(Markups por tipo de producto|Carrito con hotel y servicio)';
+// Los que miden los totales de las cajas AUTO-QA: no pueden correr a la vez que un pago del otro sistema.
+const MIDEN_CAJAS = '(Movimiento entre dos cajas|Movimiento entre sucursales|Caja diaria: recibe el pago)';
 // El test de series del WebAdmin (la serie no tiene juego B).
 const SERIES = 'WebAdmin — series: cupo, salidas y tarifas';
 // Una tanda: proyectos de Playwright que corren juntos en un solo comando.
@@ -84,9 +90,11 @@ const tanda = (pares, { grep: g = grep, sin = '', juego = '' } = {}) =>
 const maquina = (carril, tandas) => ({ carril, tandas: JSON.stringify(tandas) });
 const t = {
   webadmin: (s, opciones) => tanda([[s, 'webadmin']], opciones),
-  carrito: (s) => tanda([[s, 'cobranzas'], [s, 'reservas']], { sin: LEEN_MARKUPS }),
+  carrito: (s, { sinCajas = false } = {}) =>
+    tanda([[s, 'cobranzas'], [s, 'reservas']], { sin: sinCajas ? `${LEEN_MARKUPS}|${MIDEN_CAJAS}` : LEEN_MARKUPS }),
   lectura: (s) => tanda(SOLO_LEEN.map((a) => [s, a]), { sin: LEEN_MARKUPS }),
   markups: (ss) => tanda(ss.flatMap((s) => [[s, 'tarifario'], [s, 'reservas']]), { grep: LEEN_MARKUPS }),
+  cajas: (ss) => tanda(ss.map((s) => [s, 'cobranzas']), { grep: MIDEN_CAJAS }),
 };
 let fase1 = [];
 let fase2 = [];
@@ -97,11 +105,11 @@ if (area === 'todas' && !grep) {
     fase1 = [
       maquina('webadmin-nuevo', [t.webadmin('nuevo', { sin: SERIES, juego: 'B' })]),
       maquina('webadmin-viejo', [t.webadmin('viejo'), t.webadmin('nuevo', { grep: SERIES })]),
-      maquina('carrito-viejo', [t.carrito('viejo'), t.lectura('viejo')]),
-      maquina('carrito-nuevo', [t.carrito('nuevo')]),
+      maquina('carrito-viejo', [t.carrito('viejo', { sinCajas: true }), t.lectura('viejo')]),
+      maquina('carrito-nuevo', [t.carrito('nuevo', { sinCajas: true })]),
       maquina('lectura-nuevo', [t.lectura('nuevo')]),
     ];
-    fase2 = [maquina('markups-ambos', [t.markups(sistemas)])];
+    fase2 = [maquina('markups-y-cajas', [t.markups(sistemas), t.cajas(sistemas)])];
   } else if (sistemas[0] === 'nuevo') {
     // Solo la app nueva: los de markups usan el carrito de pablo1, como el carrito nuevo: despues.
     fase1 = [maquina('webadmin-nuevo', [t.webadmin('nuevo', { juego: 'B' })]), maquina('carrito-nuevo', [t.carrito('nuevo')]),
@@ -113,7 +121,12 @@ if (area === 'todas' && !grep) {
 } else if (area === 'todas') {
   // Una prueba elegida o un filtro libre sin area: todo en serie, en una maquina.
   fase1 = [maquina(`todas-${sistemas.length === 2 ? 'ambos' : sistemas[0]}`, [tanda(sistemas.flatMap((s) => Object.keys(AREAS).map((a) => [s, a])))])];
-} else if (SOLO_LEEN.includes(area) || area === 'cobranzas') {
+} else if (area === 'cobranzas' && sistemas.length === 2 && !grep) {
+  // Cobranzas de los dos sistemas: cada uno en su maquina, menos los que miden las cajas, que van
+  // despues y en fila (las ordenes de pago del otro sistema les correrian los totales).
+  fase1 = sistemas.map((s) => maquina(`cobranzas-${s}`, [tanda([[s, 'cobranzas']], { sin: MIDEN_CAJAS })]));
+  fase2 = [maquina('cajas-ambos', [t.cajas(sistemas)])];
+} else if (SOLO_LEEN.includes(area) || (area === 'cobranzas' && sistemas.length === 1)) {
   // Solo leen, o Cobranzas (cada sistema con su carrito): con los dos sistemas, una maquina para
   // cada uno. Reservas no: los dos "Carrito con hotel y servicio" usan el carrito de autoqa.markups.
   fase1 = sistemas.map((s) => maquina(`${area}-${s}`, [tanda([[s, area]])]));

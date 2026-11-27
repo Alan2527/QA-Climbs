@@ -1129,14 +1129,22 @@ export class TarifarioPage {
   readonly pastillasDelTitulo = '.tariff-category-tag, .tariff-duration-tag';
 
   async nombreDelItem(container: string): Promise<string> {
-    return this.contenedor(container).evaluate((cont) => {
-      const titulos = Array.from(cont.querySelectorAll('h2'))
-        .filter((h) => !h.closest('.modal'));
-      if (!titulos.length) return '';
-      const copia = titulos[0].cloneNode(true) as HTMLElement;
-      copia.querySelectorAll('.tariff-category-tag, .tariff-duration-tag').forEach((b) => b.remove());
-      return (copia.textContent ?? '').replace(/\s+/g, ' ').trim();
+    // El primer titulo VISIBLE y con texto, como lo lee una persona, esperando a que aparezca.
+    // El 27/11/2026 en CI (Cruceros y Multiidioma) la lectura de un solo instante tomo un <h2>
+    // vacio u oculto y devolvio "", con la card ya mostrando su titulo completo en la captura.
+    const leer = () => this.contenedor(container).evaluate((cont) => {
+      for (const h of Array.from(cont.querySelectorAll('h2'))) {
+        if (h.closest('.modal') || !h.getClientRects().length) continue;
+        const copia = h.cloneNode(true) as HTMLElement;
+        copia.querySelectorAll('.tariff-category-tag, .tariff-duration-tag').forEach((b) => b.remove());
+        const texto = (copia.textContent ?? '').replace(/\s+/g, ' ').trim();
+        if (texto) return texto;
+      }
+      return '';
     });
+    let nombre = '';
+    await expect.poll(async () => (nombre = await leer()), { timeout: 15_000 }).not.toBe('').catch(() => {});
+    return nombre;
   }
 
   /**

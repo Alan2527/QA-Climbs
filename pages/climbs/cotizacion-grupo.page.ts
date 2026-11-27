@@ -102,6 +102,10 @@ export class CotizacionGrupoNuevaPage {
 
   /** "Crear reserva" + "Aceptar": devuelve el numero del aviso ("Se creo correctamente la reserva nro. N"). */
   async crearReserva(): Promise<number> {
+    // Ritmo de una persona: nadie carga la cotizacion y confirma la reserva en menos de 2 s. En CI el test
+    // lo hacia en 1,07 s y la app nueva descarta los avisos del primer 1,5 s de la pagina (saveEcho.ts toma
+    // como "recien guardada" a la ficha con los tiempos en 0): la reserva se creaba y el aviso no salia.
+    await this.page.waitForFunction(() => performance.now() > 2_000, undefined, { timeout: 10_000 });
     await this.botonCrearReserva.click();
     const modal = this.page.getByRole('dialog', { name: 'Crear reserva' });
     await expect(modal, 'Crear reserva tiene que pedir confirmacion').toBeVisible();
