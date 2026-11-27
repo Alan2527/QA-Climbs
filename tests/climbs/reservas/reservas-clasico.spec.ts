@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PortalNuevoPage } from '../../../pages/climbs/portal.page';
 import { HotelNuevoPage } from '../../../pages/climbs/hotel.page';
-import { paso, adjuntarTexto, reiniciarNumeracionDePasos, fechaDeBusqueda, formatearFecha, conResaltado } from '../../../utils/pasos';
+import { paso, adjuntarTexto, reiniciarNumeracionDePasos, fechaDeBusqueda, fechaDeHotel, formatearFecha, conResaltado } from '../../../utils/pasos';
 import { importe, Importe, pasajerosDePrueba, verificarEnElBackofficeNuevo } from './reservas-comun';
 import { conBackofficeNuevo, costosDelServicio, precioConIdioma, tarifaVigente, mismoIdioma } from '../../../utils/markups';
 import candidatos from '../../../data/candidatos.json';
@@ -152,7 +152,7 @@ test.describe('Reservas', () => {
     const portal = new PortalNuevoPage(page);
     const hotel = new HotelNuevoPage(page);
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
-    const entrada = fechaDeBusqueda();
+    const entrada = fechaDeHotel();
     const salida = new Date(entrada);
     salida.setDate(salida.getDate() + 1);
     const reserva = {

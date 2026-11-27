@@ -256,6 +256,20 @@ export function fechaDeBusqueda(diasExtra = 7): Date {
   return d;
 }
 
+/**
+ * Entrada de una noche en el hotel AUTO-QA 5003 (Park Hyatt): como fechaDeBusqueda, pero fuera del
+ * cierre de fin de ano. El hotel tiene tarifas hasta el 27/12 y desde el 03/01 (asi esta cargado y
+ * asi lo muestra la linea base del tarifario), y el portal viejo pide tarifa tambien para el dia de
+ * salida: una entrada del 27/12 al 02/01 no ofrece el hotel. El 27/11/2026 la anulacion de hotel
+ * (a 30 dias) cayo en el 27/12 y el listado salio vacio. Una entrada en ese cierre pasa al 03/01.
+ */
+export function fechaDeHotel(diasExtra = 7): Date {
+  const d = fechaDeBusqueda(diasExtra);
+  const enCierre = (d.getMonth() === 11 && d.getDate() >= 27) || (d.getMonth() === 0 && d.getDate() <= 2);
+  if (enCierre) return new Date(d.getMonth() === 11 ? d.getFullYear() + 1 : d.getFullYear(), 0, 3);
+  return d;
+}
+
 /** Formatea una fecha como dd/mm/aaaa, que es el formato que usan los campos del sitio. */
 export function formatearFecha(d: Date): string {
   const dia = String(d.getDate()).padStart(2, '0');

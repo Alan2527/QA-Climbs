@@ -134,13 +134,22 @@ export class PortalNuevoPage {
       await this.page.getByRole('option', { name: valor, exact: true }).first().click();
       await expect(c, `El buscador tiene que quedar en ${valor}`).toHaveValue(valor);
     }
+    // Desde la T-100 (#100, en qa el 27/11/2026) el combo muestra el nombre de la solapa del tipo
+    // ("Excursiones", "Cena show") y no el del tipo ("Excursión", "Cena Show"): mismo tipo, otro
+    // rotulo. Se elige la opcion que es ese tipo, sin importar tildes, mayusculas ni el plural.
     const combo = panel.getByRole('combobox', { name: 'Tipo' });
-    if ((await combo.inputValue()) !== tipo) {
+    const clave = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim().replace(/(es|s)$/, '');
+    const esElTipo = (s: string) => clave(s) === clave(tipo);
+    if (!esElTipo(await combo.inputValue())) {
       await combo.click();
-      await combo.fill(tipo);
-      await this.page.getByRole('option', { name: tipo, exact: true }).click();
+      const opciones = this.page.getByRole('option');
+      await expect(opciones.first(), 'El combo Tipo tiene que desplegar sus opciones').toBeVisible();
+      const textos = (await opciones.allInnerTexts()).map((t) => t.trim());
+      const opcion = textos.find(esElTipo);
+      expect(opcion, `El combo Tipo tiene que ofrecer ${tipo} (ofrece: ${textos.join(', ')})`).toBeTruthy();
+      await this.page.getByRole('option', { name: opcion!, exact: true }).click();
     }
-    await expect(combo).toHaveValue(tipo);
+    await expect.poll(async () => esElTipo(await combo.inputValue()), { message: `El combo Tipo tiene que quedar en ${tipo}`, timeout: 30_000 }).toBe(true);
     const checkin = panel.getByRole('textbox', { name: 'Check-in' });
     await checkin.fill(formatearFecha(fecha));
     await checkin.press('Tab');

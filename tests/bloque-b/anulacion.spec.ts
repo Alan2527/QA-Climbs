@@ -6,7 +6,7 @@ import { CarritoPage, Pasajero } from '../../pages/carrito.page';
 import { CustomToursPage } from '../../pages/customtours.page';
 import { CarritoCustomToursPage } from '../../pages/carrito-customtours.page';
 import {
-  paso, adjuntarTexto, esperarFinDeCarga, fechaDeBusqueda, formatearFecha,
+  paso, adjuntarTexto, esperarFinDeCarga, fechaDeBusqueda, fechaDeHotel, formatearFecha,
   reiniciarNumeracionDePasos, conResaltado, selloEnLetras,
 } from '../../utils/pasos';
 import { armarCircuitoYEmitir, importeDelPortal } from './reservas-comun';
@@ -361,7 +361,7 @@ test.describe('Reservas — anulacion', () => {
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
     // A 30 dias, por lo mismo que el servicio: el riel clasico pone el limite de
     // cancelacion en la fecha del servicio menos 15 dias.
-    const entrada = fechaDeBusqueda(30);
+    const entrada = fechaDeHotel(30);
     const salida = new Date(entrada);
     salida.setDate(salida.getDate() + 1);
 

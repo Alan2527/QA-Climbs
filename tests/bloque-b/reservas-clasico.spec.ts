@@ -7,7 +7,7 @@ import { BackOfficePage } from '../../pages/backoffice.page';
 import { conBackofficeNuevo, costosDelServicio, precioConIdioma, tarifaVigente, mismoIdioma } from '../../utils/markups';
 import candidatos from '../../data/candidatos.json';
 import {
-  paso, adjuntarTexto, reiniciarNumeracionDePasos, fechaDeBusqueda,
+  paso, adjuntarTexto, reiniciarNumeracionDePasos, fechaDeBusqueda, fechaDeHotel,
   formatearFecha, esperarFinDeCarga, conResaltado, selloEnLetras,
 } from '../../utils/pasos';
 import {
@@ -292,7 +292,7 @@ test.describe('Reservas', () => {
     const bo = new BackOfficePage(page);
 
     const sello = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
-    const entrada = fechaDeBusqueda();
+    const entrada = fechaDeHotel();
     const salida = new Date(entrada);
     salida.setDate(salida.getDate() + 1);
 

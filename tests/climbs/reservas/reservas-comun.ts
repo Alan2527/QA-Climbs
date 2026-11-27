@@ -8,7 +8,7 @@ import { leerTabla } from '../../../pages/climbs/tabla';
 import { conBackofficeNuevo, exigirHotelesDelCircuito, exigirServiciosDelCircuito, costosDelServicio, tarifaVigente, precioEsperado } from '../../../utils/markups';
 import { ModalesMultidestinoPage } from '../../../pages/climbs/modales-multidestino.page';
 import candidatos from '../../../data/candidatos.json';
-import { paso, adjuntarTexto, conResaltado, importeANumero, selloEnLetras, formatearFecha, fechaDeBusqueda } from '../../../utils/pasos';
+import { paso, adjuntarTexto, conResaltado, importeANumero, selloEnLetras, formatearFecha, fechaDeBusqueda, fechaDeHotel } from '../../../utils/pasos';
 
 /** Datos del usuario con el que se reserva: los pone el sistema a partir de la sesion. */
 export const CONTEXTO = {
@@ -544,7 +544,7 @@ export async function armarCircuitoYEmitir(page: Page, opciones: {
 export async function reservarHotelEnElPortalNuevo(page: Page, sello: string, opciones: { diasExtra: number; referencia: string; observaciones: string }): Promise<string> {
   const portal = new PortalNuevoPage(page);
   const hotel = new HotelNuevoPage(page);
-  const entrada = fechaDeBusqueda(opciones.diasExtra);
+  const entrada = fechaDeHotel(opciones.diasExtra);
   const salida = new Date(entrada);
   salida.setDate(salida.getDate() + 1);
   await portal.vaciarCarrito();
