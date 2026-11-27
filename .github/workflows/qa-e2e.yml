@@ -155,6 +155,7 @@ env:
   # El usuario de markups del juego B (lo usa el WebAdmin de la app nueva con AMV_JUEGO_DATOS=B).
   AMV_MARKUP_USER_B: ${{ secrets.AMV_MARKUP_USER_B }}
   AMV_MARKUP_PASS_B: ${{ secrets.AMV_MARKUP_PASS_B }}
+  # Respaldo: los tests del SIX piden el link vigente al BO (utils/six-link.ts).
   AMV_SIX_AUTOLOGIN_URL: ${{ secrets.AMV_SIX_AUTOLOGIN_URL }}
   AMV_MOV_SUCURSAL_DESTINO: ${{ secrets.AMV_MOV_SUCURSAL_DESTINO }}
   AMV_MOV_CAJA_DESTINO: ${{ secrets.AMV_MOV_CAJA_DESTINO }}

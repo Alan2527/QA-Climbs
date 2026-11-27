@@ -1,6 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado } from '../../utils/pasos';
 import candidatos from '../../data/candidatos.json';
+import { prepararLinkDelSix, linkDelSix } from '../../utils/six-link';
 
 const X = candidatos.six;
 const H = candidatos.extensionTarifas;
@@ -14,8 +15,8 @@ const S = candidatos.tarifasServicio;
  * 4820, inicio y onboarding, itinerario 4400/4402/4439, token sin vencimiento 18e64b3).
  *
  * Se entra con el link de autologin del pasajero AUTO-QA del file 33379 (hotel 15422
- * del 13 al 15/01/2031 y servicio 7954 el 13/01), que no vence y vive en
- * AMV_SIX_AUTOLOGIN_URL (.env y secrets: es una credencial). El alta se hizo a mano
+ * del 13 al 15/01/2031 y servicio 7954 el 13/01). El link vigente se pide al BO en cada
+ * corrida (utils/six-link.ts; es una credencial, no se adjunta). El alta se hizo a mano
  * en el Rooming del BO: usuario de la app 4173, espanol.
  *
  * 1. Con el link entra al inicio del viaje: el saludo, el numero de reserva, las
@@ -35,11 +36,13 @@ test.describe('SIX — app del pasajero', () => {
   const SERVICIO = S.nombre;
   const HOTEL = H.hotelNombre;
 
+  // El link vigente del pasajero AUTO-QA se pide al BO una vez por proceso (utils/six-link.ts).
+  test.beforeAll(async ({ browser }) => {
+    await prepararLinkDelSix(browser);
+  });
+
   function link(): string {
-    const url = process.env.AMV_SIX_AUTOLOGIN_URL;
-    expect(url, 'Falta AMV_SIX_AUTOLOGIN_URL en el entorno (.env o secrets): el link de autologin del pasajero AUTO-QA')
-      .toMatch(/^https:\/\/[^/]+\/autologin\?token=.+/);
-    return url!;
+    return linkDelSix();
   }
 
   /**

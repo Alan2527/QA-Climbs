@@ -1,6 +1,7 @@
 import { test, expect, Page, Request } from '@playwright/test';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado } from '../../utils/pasos';
 import candidatos from '../../data/candidatos.json';
+import { prepararLinkDelSix, linkDelSix } from '../../utils/six-link';
 
 const X = candidatos.six;
 const NUMERO_DE_RESERVA = X.fileCode.split('-').pop()!; // AMV-AR-30161 -> 30161
@@ -31,11 +32,13 @@ test.describe('SIX — seguridad: acceso al viaje por GUID sin sesion', () => {
     reiniciarNumeracionDePasos();
   });
 
+  // El link vigente del pasajero AUTO-QA se pide al BO una vez por proceso (utils/six-link.ts).
+  test.beforeAll(async ({ browser }) => {
+    await prepararLinkDelSix(browser);
+  });
+
   function link(): string {
-    const url = process.env.AMV_SIX_AUTOLOGIN_URL;
-    expect(url, 'Falta AMV_SIX_AUTOLOGIN_URL en el entorno (.env o secrets): el link de autologin del pasajero AUTO-QA')
-      .toMatch(/^https:\/\/[^/]+\/autologin\?token=.+/);
-    return url!;
+    return linkDelSix();
   }
 
   /** Abre un link de autologin sin que el token quede en el reporte. */

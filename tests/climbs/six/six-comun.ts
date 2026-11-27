@@ -1,4 +1,6 @@
-import { Page, expect } from '@playwright/test';
+import { Page } from '@playwright/test';
+import { linkDelSix } from '../../../utils/six-link';
+export { prepararLinkDelSix } from '../../../utils/six-link';
 
 /**
  * SIX contra la app nueva.
@@ -33,12 +35,9 @@ export async function usarApiNueva(page: Page) {
   });
 }
 
-/** El link de autologin del pasajero AUTO-QA (credencial: .env y secrets). */
+/** El link de autologin vigente del pasajero AUTO-QA: lo pide al BO prepararLinkDelSix (utils/six-link.ts), en el beforeAll del spec. */
 export function link(): string {
-  const url = process.env.AMV_SIX_AUTOLOGIN_URL;
-  expect(url, 'Falta AMV_SIX_AUTOLOGIN_URL en el entorno (.env o secrets): el link de autologin del pasajero AUTO-QA')
-    .toMatch(/^https:\/\/[^/]+\/autologin\?token=.+/);
-  return url!;
+  return linkDelSix();
 }
 
 /**

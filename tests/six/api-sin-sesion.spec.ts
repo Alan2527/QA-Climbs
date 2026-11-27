@@ -1,6 +1,7 @@
 import { test, expect, Page, Browser } from '@playwright/test';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado } from '../../utils/pasos';
 import candidatos from '../../data/candidatos.json';
+import { prepararLinkDelSix, linkDelSix } from '../../utils/six-link';
 
 const X = candidatos.six;
 const BOOK = Number(X.reserva.replace(/\D/g, '')); // "BO00025513" -> 25513
@@ -26,11 +27,13 @@ test.describe('Seguridad — API sin sesion: PII de la reserva', () => {
     reiniciarNumeracionDePasos();
   });
 
+  // El link vigente del pasajero AUTO-QA se pide al BO una vez por proceso (utils/six-link.ts).
+  test.beforeAll(async ({ browser }) => {
+    await prepararLinkDelSix(browser);
+  });
+
   function link(): string {
-    const url = process.env.AMV_SIX_AUTOLOGIN_URL;
-    expect(url, 'Falta AMV_SIX_AUTOLOGIN_URL en el entorno (.env o secrets)')
-      .toMatch(/^https:\/\/[^/]+\/autologin\?token=.+/);
-    return url!;
+    return linkDelSix();
   }
 
   // Entra una sola vez con el pasajero AUTO-QA para descubrir el origin real de la API

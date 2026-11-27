@@ -158,7 +158,7 @@ export default defineConfig({
     },
     {
       // La app del pasajero: no usa la sesion del portal (entra con el link de autologin
-      // de AMV_SIX_AUTOLOGIN_URL) y es mobile. Solo lee, asi que admite un reintento. Sin
+      // vigente, que se pide al BO en cada corrida: utils/six-link.ts) y es mobile. Solo lee, asi que admite un reintento. Sin
       // trace: registra las URLs de la red y el link lleva el token del pasajero.
       name: 'Climbs - SIX',
       testDir: './tests/six',

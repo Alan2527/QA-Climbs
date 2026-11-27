@@ -1,6 +1,6 @@
 import { test, expect, Request } from '@playwright/test';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado } from '../../../utils/pasos';
-import { API_VIEJA, API_NUEVA, link, abrirLink, pasarBienvenida } from './six-comun';
+import { API_VIEJA, API_NUEVA, link, prepararLinkDelSix, abrirLink, pasarBienvenida } from './six-comun';
 import candidatos from '../../../data/candidatos.json';
 
 const X = candidatos.six;
@@ -22,6 +22,11 @@ const NUMERO_DE_RESERVA = X.fileCode.split('-').pop()!;
  * numero de reserva. Trace apagado en el proyecto.
  */
 test.describe('SIX — seguridad: acceso al viaje por GUID sin sesion', () => {
+  // El link vigente del pasajero AUTO-QA se pide al BO una vez por proceso (utils/six-link.ts).
+  test.beforeAll(async ({ browser }) => {
+    await prepararLinkDelSix(browser);
+  });
+
   test.beforeEach(() => {
     reiniciarNumeracionDePasos();
   });

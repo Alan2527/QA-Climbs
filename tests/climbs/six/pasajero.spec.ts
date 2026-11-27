@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado } from '../../../utils/pasos';
-import { usarApiNueva, link, abrirLink, pasarBienvenida, escucharAutologin } from './six-comun';
+import { usarApiNueva, link, prepararLinkDelSix, abrirLink, pasarBienvenida, escucharAutologin } from './six-comun';
 import candidatos from '../../../data/candidatos.json';
 
 const X = candidatos.six;
@@ -15,12 +15,17 @@ const S = candidatos.tarifasServicio;
  * API mayorista de la app nueva (/api/wholesale, mismos contratos; ver six-comun.ts). Es la app
  * tal como va a quedar despues del pasaje.
  *
- * Se entra con el link de autologin del pasajero AUTO-QA del file 33379 (AMV_SIX_AUTOLOGIN_URL,
- * credencial). Si la API nueva no lo acepta, el paso de entrada lo dice con el mensaje de la API.
+ * Se entra con el link de autologin vigente del pasajero AUTO-QA del file 33379, que se pide al BO
+ * en cada corrida (utils/six-link.ts; credencial, no se adjunta). Si la API nueva no lo acepta, el paso de entrada lo dice con el mensaje de la API.
  * Solo lee, salvo la opinion del viaje (escribe sobre el pasajero AUTO-QA) y el idioma (vuelve a
  * espanol al terminar).
  */
 test.describe('SIX — app del pasajero', () => {
+  // El link vigente del pasajero AUTO-QA se pide al BO una vez por proceso (utils/six-link.ts).
+  test.beforeAll(async ({ browser }) => {
+    await prepararLinkDelSix(browser);
+  });
+
   let respuestaDelAutologin: () => string = () => '';
 
   test.beforeEach(async ({ page }) => {

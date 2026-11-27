@@ -1,6 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
 import { paso, adjuntarTexto, reiniciarNumeracionDePasos, conResaltado } from '../../utils/pasos';
 import candidatos from '../../data/candidatos.json';
+import { prepararLinkDelSix, linkDelSix } from '../../utils/six-link';
 
 const X = candidatos.six;
 const FILE_ID = X.fileId;                       // 33379
@@ -29,11 +30,13 @@ test.describe('SIX — seguridad: rooming (PII) por fileid sin sesion', () => {
     reiniciarNumeracionDePasos();
   });
 
+  // El link vigente del pasajero AUTO-QA se pide al BO una vez por proceso (utils/six-link.ts).
+  test.beforeAll(async ({ browser }) => {
+    await prepararLinkDelSix(browser);
+  });
+
   function link(): string {
-    const url = process.env.AMV_SIX_AUTOLOGIN_URL;
-    expect(url, 'Falta AMV_SIX_AUTOLOGIN_URL en el entorno (.env o secrets): el link de autologin del pasajero AUTO-QA')
-      .toMatch(/^https:\/\/[^/]+\/autologin\?token=.+/);
-    return url!;
+    return linkDelSix();
   }
 
   async function abrirLink(page: Page, url: string, destino: RegExp) {
