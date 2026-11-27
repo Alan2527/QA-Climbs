@@ -1,0 +1,24 @@
+{
+  "corrida": 213,
+  "fecha": "2026-11-27T13:28:32.811Z",
+  "duracionMs": null,
+  "estado": "sin-resultados",
+  "suite": "todas",
+  "filtro": null,
+  "evento": "workflow_dispatch",
+  "commit": "66c631223008b60ba7546c5ebfa33a9257f9946e",
+  "enlaces": {
+    "allure": "https://alan2527.github.io/QA-Climbs/213/",
+    "github": "https://github.com/Alan2527/QA-Climbs/actions/runs/45995663468"
+  },
+  "totales": {
+    "total": 0,
+    "paso": 0,
+    "fallo": 0,
+    "inestable": 0,
+    "omitida": 0
+  },
+  "areas": {},
+  "erroresGlobales": [],
+  "pruebas": []
+}

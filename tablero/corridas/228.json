@@ -1,0 +1,59 @@
+{
+  "corrida": 228,
+  "fecha": "2026-11-27T23:38:18.691Z",
+  "duracionMs": 61314.39404296875,
+  "estado": "sin-fallas",
+  "suite": "Cobranzas (nuevo)",
+  "filtro": "Movimiento entre dos cajas de la misma sucursal: sale de una, entra en la otra y cuadra",
+  "evento": "workflow_dispatch",
+  "commit": "8cdc7acc0e5537aa81b91c8a4636f01b73963596",
+  "enlaces": {
+    "allure": "https://alan2527.github.io/QA-Climbs/228/",
+    "github": "https://github.com/Alan2527/QA-Climbs/actions/runs/46083537167"
+  },
+  "totales": {
+    "total": 2,
+    "paso": 2,
+    "fallo": 0,
+    "inestable": 0,
+    "omitida": 0
+  },
+  "areas": {
+    "cobranzas": {
+      "total": 1,
+      "paso": 1,
+      "fallo": 0,
+      "inestable": 0,
+      "omitida": 0
+    }
+  },
+  "erroresGlobales": [],
+  "pruebas": [
+    {
+      "area": "preparacion-nueva",
+      "app": "nueva",
+      "archivo": "climbs/ingreso.setup.ts",
+      "linea": 13,
+      "grupo": "",
+      "titulo": "Ingreso a la app nueva: Backoffice y portal",
+      "proyecto": "App nueva - Login",
+      "estado": "paso",
+      "duracionMs": 11557,
+      "intentos": 1,
+      "error": null
+    },
+    {
+      "area": "cobranzas",
+      "app": "nueva",
+      "archivo": "climbs/cobranzas/movimientos-entre-cajas.spec.ts",
+      "linea": 64,
+      "grupo": "Movimientos entre cajas",
+      "titulo": "Movimiento entre dos cajas de la misma sucursal: sale de una, entra en la otra y cuadra",
+      "proyecto": "App nueva - Cobranzas",
+      "estado": "paso",
+      "duracionMs": 47159,
+      "intentos": 1,
+      "error": null
+    }
+  ]
+}
